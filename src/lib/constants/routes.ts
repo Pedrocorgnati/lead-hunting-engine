@@ -1,0 +1,17 @@
+export const Routes = {
+  HOME: '/',
+  LOGIN: '/login',
+  INVITE: '/invite',
+  RESET_PASSWORD: '/auth/reset-password',
+  DASHBOARD: '/dashboard',
+  LEADS: '/leads',
+  LEAD_DETAIL: (id: string) => `/leads/${id}`,
+  COLETAS: '/coletas',
+  EXPORTAR: '/exportar',
+  PERFIL: '/perfil',
+  ADMIN: '/admin',
+  ADMIN_CONVITES: '/admin/convites',
+  ADMIN_CONFIGURACOES: '/admin/configuracoes',
+  ADMIN_SCORING: '/admin/scoring',
+  ADMIN_METRICAS: '/admin/metricas',
+} as const

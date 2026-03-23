@@ -1,0 +1,309 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum CollectionJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PAUSED
+  PARTIAL
+}
+
+enum DataSource {
+  GOOGLE_MAPS
+  INSTAGRAM
+  FACEBOOK
+  WEBSITE
+  YELP
+  APONTADOR
+  GUIA_MAIS
+  LINKEDIN_COMPANY
+  HERE_PLACES
+  TOMTOM
+  OUTSCRAPER
+  APIFY
+  SHOPEE
+  MERCADOLIVRE
+  OVERTURE_MAPS
+}
+
+enum EnrichmentStatus {
+  PENDING
+  COMPLETE
+  PARTIAL
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  DISCARDED
+  FALSE_POSITIVE
+  ENRICHMENT_PENDING
+}
+
+enum LeadTemperature {
+  COLD
+  WARM
+  HOT
+}
+
+// ─────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────
+
+model UserProfile {
+  id                  String    @id @db.Uuid
+  email               String    @unique @db.VarChar(255)
+  name                String?   @db.VarChar(255)
+  role                UserRole  @default(OPERATOR)
+  avatarUrl           String?   @map("avatar_url")
+  termsAcceptedAt     DateTime? @map("terms_accepted_at")
+  deletionRequestedAt DateTime? @map("deletion_requested_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  invitesSent    Invite[]         @relation("InvitedBy")
+  collectionJobs CollectionJob[]
+  leads          Lead[]
+  rawLeadData    RawLeadData[]
+  pitchTemplates PitchTemplate[]
+  auditLogs      AuditLog[]
+
+  @@map("user_profiles")
+}
+
+model Invite {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String       @db.VarChar(255)
+  role        UserRole     @default(OPERATOR)
+  status      InviteStatus @default(PENDING)
+  token       String       @unique @db.VarChar(255)
+  invitedById String?      @map("invited_by_id") @db.Uuid
+  expiresAt   DateTime     @map("expires_at")
+  acceptedAt  DateTime?    @map("accepted_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  invitedBy UserProfile? @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([token])
+  @@index([email])
+  @@map("invites")
+}
+
+model CollectionJob {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  status          CollectionJobStatus @default(PENDING)
+  city            String              @db.VarChar(255)
+  state           String?             @db.VarChar(100)
+  country         String              @default("BR") @db.VarChar(100)
+  niche           String              @db.VarChar(255)
+  sources         DataSource[]
+  limitVal        Int?                @map("limit_val")
+  totalEstimated  Int?                @map("total_estimated")
+  processedLeads  Int                 @default(0) @map("processed_leads")
+  currentSource   String?             @map("current_source") @db.VarChar(50)
+  errorLog        Json?               @map("error_log")
+  startedAt       DateTime?           @map("started_at")
+  completedAt     DateTime?           @map("completed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  user        UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawLeadData RawLeadData[]
+  leads       Lead[]
+
+  @@index([userId, status])
+  @@map("collection_jobs")
+}
+
+model RawLeadData {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId            String           @map("job_id") @db.Uuid
+  userId           String           @map("user_id") @db.Uuid
+  source           DataSource
+  sourceUrl        String?          @map("source_url")
+  collectedAt      DateTime         @default(now()) @map("collected_at")
+  businessName     String?          @map("business_name") @db.VarChar(500)
+  phone            String?          @db.VarChar(50)
+  phoneNormalized  String?          @map("phone_normalized") @db.VarChar(20)
+  address          String?
+  city             String?          @db.VarChar(255)
+  state            String?          @db.VarChar(100)
+  website          String?
+  email            String?          @db.VarChar(255)
+  category         String?          @db.VarChar(255)
+  rating           Decimal?         @db.Decimal(2, 1)
+  reviewCount      Int?             @map("review_count")
+  instagramHandle  String?          @map("instagram_handle") @db.VarChar(255)
+  instagramFollowers Int?           @map("instagram_followers")
+  facebookUrl      String?          @map("facebook_url")
+  openingHours     Json?            @map("opening_hours")
+  rawJson          Json?            @map("raw_json")
+  enrichmentStatus EnrichmentStatus @default(PENDING) @map("enrichment_status")
+  enrichmentData   Json?            @map("enrichment_data")
+  leadId           String?          @map("lead_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  job  CollectionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  dataProvenance DataProvenance[]
+
+  @@index([jobId])
+  @@index([phoneNormalized])
+  @@index([userId])
+  @@map("raw_lead_data")
+}
+
+model Lead {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String          @map("user_id") @db.Uuid
+  jobId              String?         @map("job_id") @db.Uuid
+  status             LeadStatus      @default(NEW)
+  businessName       String          @map("business_name") @db.VarChar(500)
+  phone              String?         @db.VarChar(50)
+  phoneNormalized    String?         @map("phone_normalized") @db.VarChar(20)
+  address            String?
+  city               String?         @db.VarChar(255)
+  state              String?         @db.VarChar(100)
+  website            String?
+  email              String?         @db.VarChar(255)
+  category           String?         @db.VarChar(255)
+  instagramHandle    String?         @map("instagram_handle") @db.VarChar(255)
+  instagramFollowers Int?            @map("instagram_followers")
+  facebookUrl        String?         @map("facebook_url")
+  rating             Decimal?        @db.Decimal(2, 1)
+  reviewCount        Int?            @map("review_count")
+  score              Int             @default(0)
+  scoreBreakdown     Json?           @map("score_breakdown")
+  temperature        LeadTemperature @default(COLD)
+  opportunities      String[]        @default([])
+  problems           String[]        @default([])
+  suggestions        String[]        @default([])
+  pitchContent       String?         @map("pitch_content")
+  pitchTone          String?         @default("direto") @map("pitch_tone") @db.VarChar(50)
+  contactedAt        DateTime?       @map("contacted_at")
+  notes              String?
+  enrichmentData     Json?           @map("enrichment_data")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  user           UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job            CollectionJob?   @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  rawLeadData    RawLeadData[]
+  dataProvenance DataProvenance[]
+
+  @@index([userId, score(sort: Desc)])
+  @@index([userId, status])
+  @@index([userId, temperature])
+  @@index([userId, city])
+  @@index([userId, createdAt])
+  @@map("leads")
+}
+
+model DataProvenance {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId         String     @map("lead_id") @db.Uuid
+  source         DataSource
+  sourceUrl      String?    @map("source_url")
+  collectedAt    DateTime   @map("collected_at")
+  confidence     Decimal    @default(1.00) @db.Decimal(3, 2)
+  rawLeadDataId  String?    @map("raw_lead_data_id") @db.Uuid
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  rawLeadData RawLeadData? @relation(fields: [rawLeadDataId], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@map("data_provenance")
+}
+
+model PitchTemplate {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  name       String   @db.VarChar(255)
+  content    String
+  tone       String   @default("direto") @db.VarChar(50)
+  isFavorite Boolean  @default(false) @map("is_favorite")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("pitch_templates")
+}
+
+model ApiCredential {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider     String   @unique @db.VarChar(100)
+  encryptedKey String   @map("encrypted_key")
+  iv           String   @db.VarChar(32)
+  isActive     Boolean  @default(true) @map("is_active")
+  usageCount   Int      @default(0) @map("usage_count")
+  usageResetAt DateTime? @map("usage_reset_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("api_credentials")
+}
+
+model ScoringRule {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(100)
+  description String?
+  weight      Int      @default(1)
+  isActive    Boolean  @default(true) @map("is_active")
+  condition   Json
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("scoring_rules")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @db.VarChar(100)
+  resource   String   @db.VarChar(100)
+  resourceId String?  @map("resource_id") @db.Uuid
+  metadata   Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(50)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

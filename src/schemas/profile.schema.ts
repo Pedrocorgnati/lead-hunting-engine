@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const UpdateProfileSchema = z
   .object({
-    name: z.string().min(1).max(255).trim().optional(),
+    name: z.string().min(2, 'Mínimo 2 caracteres').max(100).trim().optional(),
     avatarUrl: z.string().url().nullable().optional(),
   })
   .strict()

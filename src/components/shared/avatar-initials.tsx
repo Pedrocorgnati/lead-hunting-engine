@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils'
 
 const AVATAR_COLORS = [
-  'bg-[#4F46E5]',
-  'bg-[#6366F1]',
-  'bg-[#7C3AED]',
-  'bg-[#2563EB]',
-  'bg-[#0891B2]',
-  'bg-[#059669]',
+  'bg-primary',
+  'bg-secondary',
+  'bg-violet-700',
+  'bg-blue-600',
+  'bg-cyan-600',
+  'bg-success',
 ]
 
 function getColorIndex(name: string): number {

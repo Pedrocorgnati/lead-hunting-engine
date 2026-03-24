@@ -5,57 +5,42 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import zxcvbn from 'zxcvbn'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { Routes } from '@/lib/constants/routes'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { PasswordStrength } from '@/components/auth/password-strength'
+import { TermsCheckbox } from '@/components/auth/terms-checkbox'
+import { apiClient } from '@/lib/utils/api-client'
+import { Routes, API_ROUTES } from '@/lib/constants/routes'
+import { useToast } from '@/lib/hooks/use-toast'
 
-const activationSchema = z.object({
-  password: z
-    .string()
-    .min(8, 'A senha deve ter no mínimo 8 caracteres.')
-    .regex(/[A-Z]/, 'A senha deve conter pelo menos uma letra maiúscula.')
-    .regex(/[0-9]/, 'A senha deve conter pelo menos um número.'),
-  confirmPassword: z.string().min(1, 'Confirme sua senha.'),
-  terms: z.boolean().refine((v) => v === true, 'Você deve aceitar os termos de uso.'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'As senhas não coincidem.',
-  path: ['confirmPassword'],
-})
+const activationSchema = z
+  .object({
+    password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres.'),
+    confirmPassword: z.string().min(1, 'Confirme sua senha.'),
+    termsAccepted: z
+      .boolean()
+      .refine((v) => v === true, 'Você deve aceitar os termos de uso.'),
+  })
+  .superRefine((data, ctx) => {
+    const result = zxcvbn(data.password)
+    if (result.score < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Senha muito fraca. Use pelo menos 8 caracteres com números e símbolos.',
+        path: ['password'],
+      })
+    }
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'As senhas não coincidem.',
+    path: ['confirmPassword'],
+  })
 
 type ActivationFormData = z.infer<typeof activationSchema>
-
-function PasswordStrength({ password }: { password: string }) {
-  const checks = [
-    password.length >= 8,
-    /[A-Z]/.test(password),
-    /[0-9]/.test(password),
-    /[^A-Za-z0-9]/.test(password),
-  ]
-  const score = checks.filter(Boolean).length
-
-  const colors = ['bg-destructive', 'bg-orange-500', 'bg-amber-400', 'bg-green-400', 'bg-green-600']
-  const labels = ['', 'Fraca', 'Fraca', 'Média', 'Forte', 'Muito forte']
-
-  if (!password) return null
-
-  return (
-    <div className="space-y-1">
-      <div className="flex gap-1">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className={cn(
-              'h-1 flex-1 rounded-full transition-colors',
-              i < score ? colors[score] : 'bg-muted'
-            )}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-muted-foreground">{labels[score]}</p>
-    </div>
-  )
-}
 
 interface InviteActivationFormProps {
   token: string
@@ -63,68 +48,41 @@ interface InviteActivationFormProps {
 
 export function InviteActivationForm({ token }: InviteActivationFormProps) {
   const router = useRouter()
+  const toast = useToast()
   const [serverError, setServerError] = useState<string | null>(null)
-  const [tokenInvalid] = useState(false) // TODO: validate token — run /auto-flow execute
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ActivationFormData>({
     resolver: zodResolver(activationSchema),
     mode: 'onSubmit',
+    defaultValues: { termsAccepted: false },
   })
 
   const passwordValue = watch('password', '')
 
-  if (tokenInvalid) {
-    return (
-      <div className="text-center space-y-4">
-        <h1 className="text-2xl font-bold text-destructive">Convite inválido</h1>
-        <p className="text-muted-foreground">
-          Este link de convite expirou ou é inválido. Solicite um novo convite ao administrador.
-        </p>
-        <Link
-          href={Routes.LOGIN}
-          className="text-primary hover:underline underline-offset-4 text-sm"
-        >
-          Ir para o login
-        </Link>
-      </div>
-    )
-  }
-
   async function onSubmit(data: ActivationFormData) {
     setServerError(null)
-    try {
-      // TODO: Implementar backend — run /auto-flow execute
-      const res = await fetch(`/api/v1/invites/${token}/activate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: data.password }),
-      })
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        setServerError(body?.error?.message ?? 'Erro ao ativar conta. Tente novamente.')
-        return
-      }
+    const result = await apiClient.post(API_ROUTES.INVITES_ACTIVATE(token), {
+      password: data.password,
+      termsAccepted: data.termsAccepted,
+    })
 
-      router.push(Routes.DASHBOARD)
-      router.refresh()
-    } catch {
-      setServerError('Serviço temporariamente indisponível. Tente novamente em instantes.')
+    if (result.error) {
+      setServerError(result.error.message)
+      toast.error(result.error.message)
+      return
     }
-  }
 
-  const inputClass = (hasError: boolean) => cn(
-    'w-full h-10 px-3 py-2 text-sm bg-background text-foreground border border-border rounded-md outline-none',
-    'placeholder:text-muted-foreground transition-all duration-[120ms]',
-    'focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:border-primary',
-    'disabled:bg-muted disabled:cursor-not-allowed',
-    hasError && 'border-destructive focus:ring-destructive'
-  )
+    toast.success('Conta ativada com sucesso!')
+    router.push(Routes.DASHBOARD)
+    router.refresh()
+  }
 
   return (
     <div className="space-y-6">
@@ -135,25 +93,36 @@ export function InviteActivationForm({ token }: InviteActivationFormProps) {
         </p>
       </div>
 
-      <form data-testid="form-invite-activation" onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+      <form
+        data-testid="form-invite-activation"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="space-y-5"
+      >
         {/* Password */}
         <div className="space-y-1.5">
           <label htmlFor="password" className="text-sm font-medium text-foreground">
             Criar senha <span className="text-destructive" aria-hidden="true">*</span>
           </label>
-          <input
+          <Input
             id="password"
             data-testid="form-invite-password-input"
             type="password"
             autoComplete="new-password"
             placeholder="Mínimo 8 caracteres"
             disabled={isSubmitting}
+            aria-required
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'password-error' : undefined}
             {...register('password')}
-            className={inputClass(!!errors.password)}
           />
           <PasswordStrength password={passwordValue} />
           {errors.password && (
-            <p className="text-xs text-destructive flex items-center gap-1">
+            <p
+              id="password-error"
+              className="text-xs text-destructive flex items-center gap-1"
+              role="alert"
+            >
               <AlertCircle className="w-3 h-3" aria-hidden="true" />
               {errors.password.message}
             </p>
@@ -162,21 +131,33 @@ export function InviteActivationForm({ token }: InviteActivationFormProps) {
 
         {/* Confirm password */}
         <div className="space-y-1.5">
-          <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-            Confirmar senha <span className="text-destructive" aria-hidden="true">*</span>
+          <label
+            htmlFor="confirmPassword"
+            className="text-sm font-medium text-foreground"
+          >
+            Confirmar senha{' '}
+            <span className="text-destructive" aria-hidden="true">*</span>
           </label>
-          <input
+          <Input
             id="confirmPassword"
             data-testid="form-invite-confirm-password-input"
             type="password"
             autoComplete="new-password"
             placeholder="Repita a senha"
             disabled={isSubmitting}
+            aria-required
+            aria-invalid={!!errors.confirmPassword}
+            aria-describedby={
+              errors.confirmPassword ? 'confirmPassword-error' : undefined
+            }
             {...register('confirmPassword')}
-            className={inputClass(!!errors.confirmPassword)}
           />
           {errors.confirmPassword && (
-            <p className="text-xs text-destructive flex items-center gap-1">
+            <p
+              id="confirmPassword-error"
+              className="text-xs text-destructive flex items-center gap-1"
+              role="alert"
+            >
               <AlertCircle className="w-3 h-3" aria-hidden="true" />
               {errors.confirmPassword.message}
             </p>
@@ -184,58 +165,53 @@ export function InviteActivationForm({ token }: InviteActivationFormProps) {
         </div>
 
         {/* Terms */}
-        <div className="space-y-1">
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              data-testid="form-invite-terms-checkbox"
-              type="checkbox"
-              {...register('terms')}
-              className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
-            />
-            <span className="text-sm text-muted-foreground">
-              Aceito os{' '}
-              <a href="/termos" className="underline text-primary hover:text-primary/80">
-                termos de uso
-              </a>{' '}
-              e a{' '}
-              <a href="/privacidade" className="underline text-primary hover:text-primary/80">
-                política de privacidade
-              </a>
-            </span>
-          </label>
-          {errors.terms && (
-            <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" aria-hidden="true" />
-              {errors.terms.message}
-            </p>
-          )}
-        </div>
+        <TermsCheckbox
+          checked={watch('termsAccepted')}
+          onChange={(v) => setValue('termsAccepted', v, { shouldValidate: true })}
+          error={errors.termsAccepted?.message}
+        />
 
         {/* Server error */}
         {serverError && (
-          <div role="alert" aria-live="polite" className="flex items-start gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="flex items-start gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive"
+          >
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
             <span>{serverError}</span>
           </div>
         )}
 
         {/* Submit */}
-        <button
+        <Button
           type="submit"
           data-testid="form-invite-submit-button"
           disabled={isSubmitting}
-          className={cn(
-            'w-full h-11 px-4 text-sm font-medium bg-primary text-primary-foreground rounded-md',
-            'hover:bg-primary/90 transition-all duration-[120ms]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-            'disabled:opacity-80 disabled:cursor-not-allowed'
-          )}
+          className="w-full"
+          size="lg"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <svg
+                className="animate-spin w-4 h-4"
+                aria-hidden="true"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               Ativando...
             </span>
@@ -245,10 +221,13 @@ export function InviteActivationForm({ token }: InviteActivationFormProps) {
               Ativar conta
             </span>
           )}
-        </button>
+        </Button>
 
         <div className="text-center">
-          <Link href={Routes.LOGIN} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href={Routes.LOGIN}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Já tenho conta — Entrar
           </Link>
         </div>

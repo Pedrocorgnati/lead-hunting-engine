@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { SearchX } from 'lucide-react'
-import { Routes } from '@/lib/constants/routes'
+import { Routes } from '@/lib/constants'
 
 export default function NotFound() {
   return (

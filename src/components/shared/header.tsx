@@ -2,14 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Menu, ChevronRight, User, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/hooks/use-auth'
-import { ThemeToggle } from './theme-toggle'
 import { AvatarInitials } from './avatar-initials'
-import { Routes } from '@/lib/constants/routes'
-import { UserRole } from '@/lib/constants/enums'
+import { Routes, UserRole } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
@@ -19,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -49,6 +48,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMobileMenuOpen }: HeaderProps) {
+  const router = useRouter()
   const { user, isAdmin, loading, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const breadcrumbs = useBreadcrumbs()
@@ -69,7 +69,7 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
         onClick={onMobileMenuOpen}
         aria-label="Abrir menu de navegação"
         className={cn(
-          'md:hidden p-2 rounded-lg text-foreground',
+          'md:hidden p-2 min-h-[44px] min-w-[44px] rounded-lg text-foreground',
           'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
         )}
       >
@@ -102,7 +102,6 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
       {/* Actions */}
       <div data-testid="header-actions" className="flex items-center gap-2">
         <ThemeToggle />
-
         {/* User menu */}
         {loading ? (
           <div className="h-9 w-9 rounded-full bg-muted animate-pulse" aria-label="Carregando usuário" />
@@ -134,7 +133,7 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuItem
                 data-testid="header-user-menu-profile-item"
-                onClick={() => window.location.href = Routes.PERFIL}
+                onClick={() => router.push(Routes.PERFIL)}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <User className="h-4 w-4" aria-hidden={true} />

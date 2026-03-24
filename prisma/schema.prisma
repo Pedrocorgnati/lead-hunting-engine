@@ -29,6 +29,7 @@ enum CollectionJobStatus {
   FAILED
   PAUSED
   PARTIAL
+  CANCELLED
 }
 
 enum DataSource {
@@ -58,8 +59,10 @@ enum EnrichmentStatus {
 enum LeadStatus {
   NEW
   CONTACTED
+  NEGOTIATING
   CONVERTED
   DISCARDED
+  DISQUALIFIED
   FALSE_POSITIVE
   ENRICHMENT_PENDING
 }
@@ -68,6 +71,14 @@ enum LeadTemperature {
   COLD
   WARM
   HOT
+}
+
+enum OpportunityType {
+  A_NEEDS_SITE
+  B_NEEDS_SYSTEM
+  C_NEEDS_AUTOMATION
+  D_NEEDS_ECOMMERCE
+  E_SCALE
 }
 
 // ─────────────────────────────────────────
@@ -81,9 +92,10 @@ model UserProfile {
   role                UserRole  @default(OPERATOR)
   avatarUrl           String?   @map("avatar_url")
   termsAcceptedAt     DateTime? @map("terms_accepted_at")
-  deletionRequestedAt DateTime? @map("deletion_requested_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletionRequestedAt     DateTime? @map("deletion_requested_at")
+  onboardingCompletedAt   DateTime? @map("onboarding_completed_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   invitesSent    Invite[]         @relation("InvitedBy")
   collectionJobs CollectionJob[]
@@ -91,6 +103,7 @@ model UserProfile {
   rawLeadData    RawLeadData[]
   pitchTemplates PitchTemplate[]
   auditLogs      AuditLog[]
+  notifications  Notification[]
 
   @@map("user_profiles")
 }
@@ -111,12 +124,15 @@ model Invite {
 
   @@index([token])
   @@index([email])
+  @@index([status])
+  @@index([invitedById])
   @@map("invites")
 }
 
 model CollectionJob {
   id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId          String              @map("user_id") @db.Uuid
+  name            String?             @db.VarChar(255)
   status          CollectionJobStatus @default(PENDING)
   city            String              @db.VarChar(255)
   state           String?             @db.VarChar(100)
@@ -126,6 +142,10 @@ model CollectionJob {
   limitVal        Int?                @map("limit_val")
   totalEstimated  Int?                @map("total_estimated")
   processedLeads  Int                 @default(0) @map("processed_leads")
+  resultCount     Int                 @default(0) @map("result_count")
+  progress        Int                 @default(0)
+  triggerId       String?             @map("trigger_id") @db.VarChar(255)
+  errorMessage    String?             @map("error_message")
   currentSource   String?             @map("current_source") @db.VarChar(50)
   errorLog        Json?               @map("error_log")
   startedAt       DateTime?           @map("started_at")
@@ -142,33 +162,42 @@ model CollectionJob {
 }
 
 model RawLeadData {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  jobId            String           @map("job_id") @db.Uuid
-  userId           String           @map("user_id") @db.Uuid
-  source           DataSource
-  sourceUrl        String?          @map("source_url")
-  collectedAt      DateTime         @default(now()) @map("collected_at")
-  businessName     String?          @map("business_name") @db.VarChar(500)
-  phone            String?          @db.VarChar(50)
-  phoneNormalized  String?          @map("phone_normalized") @db.VarChar(20)
-  address          String?
-  city             String?          @db.VarChar(255)
-  state            String?          @db.VarChar(100)
-  website          String?
-  email            String?          @db.VarChar(255)
-  category         String?          @db.VarChar(255)
-  rating           Decimal?         @db.Decimal(2, 1)
-  reviewCount      Int?             @map("review_count")
-  instagramHandle  String?          @map("instagram_handle") @db.VarChar(255)
-  instagramFollowers Int?           @map("instagram_followers")
-  facebookUrl      String?          @map("facebook_url")
-  openingHours     Json?            @map("opening_hours")
-  rawJson          Json?            @map("raw_json")
-  enrichmentStatus EnrichmentStatus @default(PENDING) @map("enrichment_status")
-  enrichmentData   Json?            @map("enrichment_data")
-  leadId           String?          @map("lead_id") @db.Uuid
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId          String?          @unique @map("external_id") @db.VarChar(500)
+  jobId               String           @map("job_id") @db.Uuid
+  userId              String           @map("user_id") @db.Uuid
+  source              DataSource
+  sourceUrl           String?          @map("source_url")
+  collectedAt         DateTime         @default(now()) @map("collected_at")
+  businessName        String?          @map("business_name") @db.VarChar(500)
+  phone               String?          @db.VarChar(50)
+  phoneNormalized     String?          @map("phone_normalized") @db.VarChar(20)
+  address             String?
+  city                String?          @db.VarChar(255)
+  state               String?          @db.VarChar(100)
+  lat                 Decimal?         @db.Decimal(9, 6)
+  lng                 Decimal?         @db.Decimal(9, 6)
+  website             String?
+  email               String?          @db.VarChar(255)
+  category            String?          @db.VarChar(255)
+  rating              Decimal?         @db.Decimal(2, 1)
+  reviewCount         Int?             @map("review_count")
+  openNow             Boolean?         @map("open_now")
+  priceLevel          Int?             @map("price_level")
+  siteReachable       Boolean?         @map("site_reachable")
+  siteHasSsl          Boolean?         @map("site_has_ssl")
+  siteTitle           String?          @map("site_title") @db.VarChar(500)
+  siteMobileFriendly  Boolean?         @map("site_mobile_friendly")
+  instagramHandle     String?          @map("instagram_handle") @db.VarChar(255)
+  instagramFollowers  Int?             @map("instagram_followers")
+  facebookUrl         String?          @map("facebook_url")
+  openingHours        Json?            @map("opening_hours")
+  rawJson             Json?            @map("raw_json")
+  enrichmentStatus    EnrichmentStatus @default(PENDING) @map("enrichment_status")
+  enrichmentData      Json?            @map("enrichment_data")
+  leadId              String?          @map("lead_id") @db.Uuid
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
 
   job  CollectionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -204,16 +233,17 @@ model Lead {
   score              Int             @default(0)
   scoreBreakdown     Json?           @map("score_breakdown")
   temperature        LeadTemperature @default(COLD)
-  opportunities      String[]        @default([])
+  opportunities      OpportunityType[]
   problems           String[]        @default([])
   suggestions        String[]        @default([])
   pitchContent       String?         @map("pitch_content")
-  pitchTone          String?         @default("direto") @map("pitch_tone") @db.VarChar(50)
+  pitchTone          String?         @default("formal") @map("pitch_tone") @db.VarChar(50)
   contactedAt        DateTime?       @map("contacted_at")
   notes              String?
-  enrichmentData     Json?           @map("enrichment_data")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  enrichmentData      Json?           @map("enrichment_data")
+  falsePositiveReason String?         @map("false_positive_reason")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
   user           UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
   job            CollectionJob?   @relation(fields: [jobId], references: [id], onDelete: SetNull)
@@ -231,6 +261,7 @@ model Lead {
 model DataProvenance {
   id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   leadId         String     @map("lead_id") @db.Uuid
+  field          String     @db.VarChar(100)
   source         DataSource
   sourceUrl      String?    @map("source_url")
   collectedAt    DateTime   @map("collected_at")
@@ -250,7 +281,7 @@ model PitchTemplate {
   userId     String   @map("user_id") @db.Uuid
   name       String   @db.VarChar(255)
   content    String
-  tone       String   @default("direto") @db.VarChar(50)
+  tone       String   @default("formal") @db.VarChar(50)
   isFavorite Boolean  @default(false) @map("is_favorite")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -288,6 +319,36 @@ model ScoringRule {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("scoring_rules")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String    @db.VarChar(50)
+  title     String    @db.VarChar(255)
+  message   String
+  data      Json?
+  read      Boolean   @default(false)
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  email     String   @db.VarChar(255)
+  ipAddress String   @map("ip_address") @db.VarChar(45)
+  success   Boolean
+  timestamp DateTime @default(now())
+
+  @@index([email, timestamp])
+  @@index([ipAddress, timestamp])
+  @@map("login_attempts")
 }
 
 model AuditLog {

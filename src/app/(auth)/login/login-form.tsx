@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Routes } from '@/lib/constants/routes'
+import { Routes } from '@/lib/constants'
 
 const loginSchema = z.object({
   email: z
@@ -47,11 +47,13 @@ export function LoginForm() {
       })
 
       if (res.status === 401) {
-        setServerError('E-mail ou senha inválidos.')
+        // AUTH_002: alinhado ao ERROR-CATALOG
+        setServerError('Email ou senha incorretos.')
         return
       }
       if (res.status === 429) {
-        setServerError('Muitas tentativas. Aguarde alguns segundos antes de tentar novamente.')
+        // AUTH_003: alinhado ao ERROR-CATALOG
+        setServerError('Muitas tentativas. Tente novamente em alguns segundos.')
         return
       }
       if (!res.ok) {

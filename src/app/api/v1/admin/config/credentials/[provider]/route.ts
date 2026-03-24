@@ -28,7 +28,7 @@ export async function DELETE(
   try {
     await requireAdmin()
     const { provider } = await params
-    await configService.deleteCredential(provider)
+    await configService.deleteCredential({ provider })
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     return handleApiError(error)

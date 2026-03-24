@@ -1,0 +1,37 @@
+export const Messages = {
+  SUCCESS: {
+    SAVED: 'Salvo com sucesso',
+    DELETED: 'Excluído com sucesso',
+    INVITE_SENT: 'Convite enviado com sucesso',
+    INVITE_REVOKED: 'Convite revogado',
+    CREDENTIAL_SAVED: 'Credencial salva e validada',
+    SCORING_UPDATED: 'Regras de scoring atualizadas',
+    PITCH_GENERATED: 'Pitch gerado com sucesso',
+    PITCH_COPIED: 'Pitch copiado!',
+    CSV_EXPORTED: 'CSV exportado com sucesso',
+    STATUS_UPDATED: 'Status atualizado',
+    NOTES_SAVED: 'Notas salvas',
+    COLLECTION_STARTED: 'Coleta iniciada',
+    PROFILE_UPDATED: 'Perfil atualizado com sucesso.',
+  },
+  ERROR: {
+    GENERIC: 'Ocorreu um erro. Tente novamente.',
+    UNAUTHORIZED: 'Acesso não autorizado',
+    NOT_FOUND: 'Não encontrado',
+    VALIDATION: 'Dados inválidos. Verifique o formulário.',
+    NETWORK: 'Erro de conexão. Verifique sua internet.',
+    API_KEY_INVALID: 'Credencial de API inválida',
+    PITCH_FAILED: 'Não foi possível gerar o pitch. Usando template padrão.',
+    COLLECTION_BLOCKED: 'Coleta bloqueada pela fonte. Aguardando backoff.',
+    PROFILE_SAVE: 'Erro ao salvar perfil. Tente novamente.',
+  },
+  INFO: {
+    AVATAR_COMING_SOON: 'Upload de avatar em breve.',
+  },
+  EMPTY: {
+    LEADS: 'Nenhum lead encontrado. Inicie uma nova coleta.',
+    COLLECTIONS: 'Nenhuma coleta realizada ainda.',
+    INVITES: 'Nenhum convite enviado.',
+    TEMPLATES: 'Nenhum template salvo.',
+  },
+} as const

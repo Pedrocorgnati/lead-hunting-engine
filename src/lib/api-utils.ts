@@ -38,6 +38,19 @@ export function handleApiError(error: unknown): NextResponse {
     )
   }
 
-  console.error('[API Error]', error)
+  // Erros estruturados com code + httpStatus (ex: JOB_050 do jobService)
+  if (
+    error instanceof Error &&
+    'code' in error &&
+    'httpStatus' in error &&
+    typeof (error as { httpStatus: unknown }).httpStatus === 'number'
+  ) {
+    const { code, httpStatus } = error as { code: string; httpStatus: number }
+    return NextResponse.json({ error: { code, message: error.message } }, { status: httpStatus })
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('[API Error]', error)
+  }
   return NextResponse.json(errorResponse(SYS_001), { status: 500 })
 }

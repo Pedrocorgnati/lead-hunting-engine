@@ -1,6 +1,5 @@
 import { LayoutDashboard, Users, Zap, Download, Settings, Mail, SlidersHorizontal, BarChart3, Home } from 'lucide-react'
-import { Routes } from '@/lib/constants/routes'
-import { UserRole } from '@/lib/constants/enums'
+import { Routes, UserRole } from '@/lib/constants'
 
 export interface NavItem {
   href: string

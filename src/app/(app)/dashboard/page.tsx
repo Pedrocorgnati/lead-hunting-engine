@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Users, Target, TrendingUp, Zap } from 'lucide-react'
-import { Routes } from '@/lib/constants/routes'
+import { Routes } from '@/lib/constants'
 import { getDashboardStats, getRecentLeads } from '@/actions/leads'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -16,10 +19,10 @@ const KPI_CARDS = [
     subLabel: 'leads coletados',
   },
   {
-    label: 'Alta Oportunidade',
+    label: 'Leads Quentes',
     icon: Target,
-    dataKey: 'highOpportunity',
-    subLabel: '+ médias oportunidades',
+    dataKey: 'hotLeads',
+    subLabel: 'alta oportunidade',
   },
   {
     label: 'Taxa de Conversão',
@@ -36,6 +39,17 @@ const KPI_CARDS = [
 ]
 
 export default async function DashboardPage() {
+  // Redireciona para onboarding se ainda não concluído
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const profile = await prisma.userProfile.findUnique({
+    where: { id: user.id },
+    select: { onboardingCompletedAt: true },
+  })
+  if (!profile?.onboardingCompletedAt) redirect('/onboarding')
+
   const [stats, recentLeads] = await Promise.all([
     getDashboardStats(),
     getRecentLeads(),
@@ -114,7 +128,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs border border-border rounded px-1.5 py-0.5">
-                    Tipo {lead.type}
+                    {lead.temperature}
                   </span>
                   <span className="text-sm font-mono text-foreground">{lead.score}</span>
                 </div>

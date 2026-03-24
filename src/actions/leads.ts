@@ -1,64 +1,374 @@
 'use server'
 
-import { LeadType, LeadStatus } from '@/lib/constants/enums'
+import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { Routes } from '@/lib/constants'
+import { Limits } from '@/lib/constants/limits'
+import { LeadTemperature, CollectionJobStatus, LeadStatus } from '@/lib/constants/enums'
+import type { Lead } from '@prisma/client'
+// ─── DTOs usados nas páginas (Server Components) ─────────────────────────────
 
 export interface LeadSummary {
   id: string
   name: string
-  city: string
-  type: LeadType
+  city: string | null
+  category: string | null
+  temperature: string
+  opportunities: string[]
   score: number
-  status: LeadStatus
+  status: string
+  createdAt: string
 }
 
 export interface DashboardStats {
   totalLeads: string
-  highOpportunity: string
+  hotLeads: string
+  warmLeads: string
+  coldLeads: string
   conversionRate: string
   activeJobs: string
 }
 
-// TODO: Implementar backend — run /auto-flow execute
+export interface LeadDetailView {
+  id: string
+  name: string
+  city: string | null
+  state: string | null
+  phone: string | null
+  website: string | null
+  email: string | null
+  category: string | null
+  instagramHandle: string | null
+  score: number
+  temperature: string
+  opportunities: string[]
+  status: string
+  notes: string | null
+  contactedAt: Date | null
+  scoreBreakdown: unknown
+  pitchContent: string | null
+  pitchTone: string | null
+  createdAt: Date
+  updatedAt: Date
+  provenance: {
+    id: string
+    field: string
+    source: string
+    sourceUrl: string | null
+    collectedAt: Date
+    confidence: unknown
+  }[]
+}
+
+// ─── Helper interno para obter userId autenticado ────────────────────────────
+
+async function getAuthenticatedUserId(): Promise<string> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect(Routes.LOGIN)
+  return user.id
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 export async function getDashboardStats(): Promise<DashboardStats> {
+  const userId = await getAuthenticatedUserId()
+
+  const [totalLeads, hotLeads, warmLeads, coldLeads, convertedLeads, activeJobs] = await Promise.all([
+    prisma.lead.count({ where: { userId } }),
+    prisma.lead.count({ where: { userId, temperature: LeadTemperature.HOT } }),
+    prisma.lead.count({ where: { userId, temperature: LeadTemperature.WARM } }),
+    prisma.lead.count({ where: { userId, temperature: LeadTemperature.COLD } }),
+    prisma.lead.count({ where: { userId, status: LeadStatus.CONVERTED } }),
+    prisma.collectionJob.count({
+      where: {
+        userId,
+        status: { in: [CollectionJobStatus.PENDING, CollectionJobStatus.RUNNING] },
+      },
+    }),
+  ])
+
+  const conversionRate = totalLeads > 0
+    ? Math.round((convertedLeads / totalLeads) * 100)
+    : 0
+
   return {
-    totalLeads: '0',
-    highOpportunity: '0',
-    conversionRate: '0%',
-    activeJobs: '0',
+    totalLeads: String(totalLeads),
+    hotLeads: String(hotLeads),
+    warmLeads: String(warmLeads),
+    coldLeads: String(coldLeads),
+    conversionRate: `${conversionRate}%`,
+    activeJobs: String(activeJobs),
   }
 }
 
-// TODO: Implementar backend — run /auto-flow execute
 export async function getRecentLeads(): Promise<LeadSummary[]> {
-  return []
+  const userId = await getAuthenticatedUserId()
+
+  const leads = await prisma.lead.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      businessName: true,
+      city: true,
+      category: true,
+      temperature: true,
+      opportunities: true,
+      score: true,
+      status: true,
+      createdAt: true,
+    },
+  })
+
+  return leads.map((l) => ({
+    id: l.id,
+    name: l.businessName,
+    city: l.city,
+    category: l.category,
+    temperature: l.temperature,
+    opportunities: l.opportunities,
+    score: l.score,
+    status: l.status,
+    createdAt: l.createdAt.toISOString(),
+  }))
 }
 
-// TODO: Implementar backend — run /auto-flow execute
-export async function getLeads(_params?: {
+// ─── Leads ────────────────────────────────────────────────────────────────────
+
+export async function getLeads(params?: {
   page?: number
   search?: string
   type?: string
   status?: string
+  city?: string
+  scoreMin?: number
+  scoreMax?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }): Promise<{ data: LeadSummary[]; total: number; pages: number }> {
-  return { data: [], total: 0, pages: 0 }
+  const userId = await getAuthenticatedUserId()
+
+  const page = Math.max(1, params?.page ?? 1)
+  const limit = Limits.PAGE_SIZE
+  const skip = (page - 1) * limit
+
+  const where: Record<string, unknown> = { userId }
+  if (params?.status) where.status = params.status
+  if (params?.type) where.opportunities = { has: params.type }
+  if (params?.city) where.city = { contains: params.city, mode: 'insensitive' }
+  if (params?.search) {
+    where.OR = [
+      { businessName: { contains: params.search, mode: 'insensitive' } },
+      { city: { contains: params.search, mode: 'insensitive' } },
+      { category: { contains: params.search, mode: 'insensitive' } },
+    ]
+  }
+  if (params?.scoreMin !== undefined || params?.scoreMax !== undefined) {
+    where.score = {
+      ...(params.scoreMin !== undefined ? { gte: params.scoreMin } : {}),
+      ...(params.scoreMax !== undefined ? { lte: params.scoreMax } : {}),
+    }
+  }
+
+  const validSortFields: Record<string, string> = {
+    score: 'score',
+    createdAt: 'createdAt',
+    businessName: 'businessName',
+    temperature: 'temperature',
+  }
+  const safeSortBy = params?.sortBy && validSortFields[params.sortBy] ? params.sortBy : 'createdAt'
+  const orderBy = { [safeSortBy]: params?.sortOrder ?? 'desc' }
+
+  const [leads, total] = await Promise.all([
+    prisma.lead.findMany({
+      where,
+      orderBy,
+      take: limit,
+      skip,
+      select: {
+        id: true,
+        businessName: true,
+        city: true,
+        category: true,
+        temperature: true,
+        opportunities: true,
+        score: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
+    prisma.lead.count({ where }),
+  ])
+
+  return {
+    data: leads.map((l) => ({
+      id: l.id,
+      name: l.businessName,
+      city: l.city,
+      category: l.category,
+      temperature: l.temperature,
+      opportunities: l.opportunities,
+      score: l.score,
+      status: l.status,
+      createdAt: l.createdAt.toISOString(),
+    })),
+    total,
+    pages: Math.ceil(total / limit),
+  }
 }
 
-// TODO: Implementar backend — run /auto-flow execute
-export async function getLead(_id: string): Promise<LeadSummary | null> {
-  return null
+export async function getLead(id: string): Promise<LeadDetailView | null> {
+  const userId = await getAuthenticatedUserId()
+
+  const lead = await prisma.lead.findFirst({
+    where: { id, userId },
+    include: {
+      dataProvenance: {
+        orderBy: { collectedAt: 'desc' },
+        select: {
+          id: true,
+          field: true,
+          source: true,
+          sourceUrl: true,
+          collectedAt: true,
+          confidence: true,
+        },
+      },
+    },
+  })
+
+  if (!lead) return null
+
+  return {
+    id: lead.id,
+    name: lead.businessName,
+    city: lead.city,
+    state: lead.state,
+    phone: lead.phone,
+    website: lead.website,
+    email: lead.email,
+    category: lead.category,
+    instagramHandle: lead.instagramHandle,
+    score: lead.score,
+    temperature: lead.temperature,
+    opportunities: lead.opportunities,
+    status: lead.status,
+    notes: lead.notes,
+    contactedAt: lead.contactedAt,
+    scoreBreakdown: lead.scoreBreakdown,
+    pitchContent: lead.pitchContent,
+    pitchTone: lead.pitchTone,
+    createdAt: lead.createdAt,
+    updatedAt: lead.updatedAt,
+    provenance: lead.dataProvenance.map((p) => ({
+      id: p.id,
+      field: p.field,
+      source: p.source,
+      sourceUrl: p.sourceUrl,
+      collectedAt: p.collectedAt,
+      confidence: p.confidence,
+    })),
+  }
 }
 
-// TODO: Implementar backend — run /auto-flow execute
-export async function updateLeadStatus(_id: string, _status: LeadStatus): Promise<{ success: boolean }> {
-  throw new Error('Not implemented - run /auto-flow execute')
+// ─── Mutations ────────────────────────────────────────────────────────────────
+
+export async function updateLeadStatus(id: string, status: LeadStatus): Promise<{ success: boolean }> {
+  const userId = await getAuthenticatedUserId()
+
+  const lead = await prisma.lead.findFirst({ where: { id, userId }, select: { id: true } })
+  if (!lead) throw new Error('Lead não encontrado')
+
+  await prisma.lead.update({
+    where: { id },
+    data: {
+      status: status as unknown as Lead['status'],
+      ...(status === LeadStatus.CONTACTED ? { contactedAt: new Date() } : {}),
+    },
+  })
+
+  return { success: true }
 }
 
-// TODO: Implementar backend — run /auto-flow execute
-export async function updateLeadNotes(_id: string, _notes: string): Promise<{ success: boolean }> {
-  throw new Error('Not implemented - run /auto-flow execute')
+export async function updateLeadNotes(id: string, notes: string): Promise<{ success: boolean }> {
+  const userId = await getAuthenticatedUserId()
+
+  const lead = await prisma.lead.findFirst({ where: { id, userId }, select: { id: true } })
+  if (!lead) throw new Error('Lead não encontrado')
+
+  await prisma.lead.update({ where: { id }, data: { notes } })
+  return { success: true }
 }
 
-// TODO: Implementar backend — run /auto-flow execute
-export async function exportLeads(_params?: unknown): Promise<{ url: string }> {
-  throw new Error('Not implemented - run /auto-flow execute')
+export async function exportLeads(params?: {
+  status?: string
+  city?: string
+  search?: string
+  scoreMin?: number
+  scoreMax?: number
+}): Promise<{ csv: string; count: number }> {
+  const userId = await getAuthenticatedUserId()
+
+  const where: Record<string, unknown> = { userId }
+  if (params?.status) where.status = params.status
+  if (params?.city) where.city = { contains: params.city, mode: 'insensitive' }
+  if (params?.search) {
+    where.OR = [
+      { businessName: { contains: params.search, mode: 'insensitive' } },
+      { city: { contains: params.search, mode: 'insensitive' } },
+    ]
+  }
+  if (params?.scoreMin !== undefined || params?.scoreMax !== undefined) {
+    where.score = {
+      ...(params.scoreMin !== undefined ? { gte: params.scoreMin } : {}),
+      ...(params.scoreMax !== undefined ? { lte: params.scoreMax } : {}),
+    }
+  }
+
+  const leads = await prisma.lead.findMany({
+    where,
+    orderBy: { score: 'desc' },
+    take: Limits.MAX_COLLECTION_SIZE,
+    select: {
+      id: true,
+      businessName: true,
+      category: true,
+      city: true,
+      state: true,
+      phone: true,
+      website: true,
+      email: true,
+      score: true,
+      temperature: true,
+      opportunities: true,
+      status: true,
+      createdAt: true,
+    },
+  })
+
+  const csvEscape = (val: unknown): string => {
+    if (val === null || val === undefined) return ''
+    const str = Array.isArray(val) ? val.join(';') : String(val)
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
+  const headers = ['ID', 'Nome', 'Categoria', 'Cidade', 'Estado', 'Telefone', 'Site', 'Email', 'Score', 'Temperatura', 'Oportunidades', 'Status', 'Criado em']
+  const rows = leads.map((l) =>
+    [
+      l.id, l.businessName, l.category, l.city, l.state,
+      l.phone, l.website, l.email, l.score, l.temperature,
+      l.opportunities, l.status, l.createdAt.toISOString().split('T')[0],
+    ].map(csvEscape).join(',')
+  )
+
+  return {
+    csv: [headers.join(','), ...rows].join('\n'),
+    count: leads.length,
+  }
 }

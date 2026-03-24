@@ -10,6 +10,6 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],       // Supabase connection pooler (Transaction mode)
-    directUrl: process.env["DIRECT_URL"],   // Conexão direta para migrations (Supavisor)
+    // directUrl é configurado em schema.prisma via env("DIRECT_URL") — Prisma 7 não suporta no config
   },
 });

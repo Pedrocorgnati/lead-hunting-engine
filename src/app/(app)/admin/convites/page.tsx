@@ -1,17 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { Routes } from '@/lib/constants'
 import { Plus, Mail, Send, Trash2, MoreHorizontal, ChevronDown, AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { formatDate } from '@/lib/utils/format'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { trackEvent } from '@/lib/utils/analytics'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { getInvites, createInvite, resendInvite, revokeInvite, getAuditLog } from '@/actions/invites'
+import { InviteError } from '@/services/invite.service'
 import type { InviteDto, AuditLogEntry } from '@/actions/invites'
 import { InviteStatus, INVITE_STATUS_MAP, UserRole } from '@/lib/constants/enums'
 
@@ -27,6 +35,7 @@ function InviteStatusBadge({ status }: { status: InviteStatus }) {
   return (
     <Badge
       variant={info.variant}
+      aria-label={`Status: ${info.label}`}
       className={
         status === InviteStatus.PENDING ? 'bg-primary text-primary-foreground' :
         status === InviteStatus.ACCEPTED ? 'bg-muted text-foreground' : ''
@@ -52,6 +61,8 @@ function InviteActions({ invite, onRevoke, onResend }: {
       <button
         onClick={() => setOpen(!open)}
         aria-label={`Ações do convite ${invite.email}`}
+        aria-expanded={open}
+        aria-haspopup="menu"
         className="p-1.5 rounded hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[44px] min-w-[44px] flex items-center justify-center"
       >
         <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
@@ -60,21 +71,25 @@ function InviteActions({ invite, onRevoke, onResend }: {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute right-0 z-20 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg p-1">
+          <div role="menu" className="absolute right-0 z-20 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg p-1">
             <button
+              role="menuitem"
               onClick={() => { onResend(invite.id); setOpen(false) }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md transition-colors"
             >
               <Send className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               Reenviar
             </button>
-            <button
-              onClick={() => { onRevoke(invite.id, invite.email); setOpen(false) }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Revogar
-            </button>
+            {invite.status === InviteStatus.PENDING && (
+              <button
+                role="menuitem"
+                onClick={() => { onRevoke(invite.id, invite.email); setOpen(false) }}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Revogar
+              </button>
+            )}
           </div>
         </>
       )}
@@ -95,6 +110,7 @@ function CreateInviteModal({ open, onClose, onSuccess }: {
   const onSubmit = async (data: CreateInviteFormData) => {
     try {
       await createInvite(data)
+      trackEvent('invite_sent', { email_domain: data.email.split('@')[1], role: data.role })
       toast.success('Convite enviado com sucesso!')
       reset()
       onSuccess({
@@ -105,8 +121,19 @@ function CreateInviteModal({ open, onClose, onSuccess }: {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
       })
-    } catch {
-      toast.error('Erro ao enviar convite. Tente novamente.')
+    } catch (err) {
+      const code = err instanceof InviteError
+        ? err.code
+        : (err as { code?: string }).code
+      if (code) {
+        const messages: Record<string, string> = {
+          INVITE_020: 'Este email já possui uma conta ativa.',
+          INVITE_021: 'Já existe um convite pendente para este email.',
+        }
+        toast.error(messages[code] ?? 'Erro ao enviar convite. Tente novamente.')
+      } else {
+        toast.error('Erro ao enviar convite. Tente novamente.')
+      }
     }
   }
 
@@ -152,27 +179,26 @@ function CreateInviteModal({ open, onClose, onSuccess }: {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               data-testid="admin-convites-modal-cancel-button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               data-testid="admin-convites-modal-submit-button"
               disabled={isSubmitting}
               aria-busy={isSubmitting}
-              className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-80 flex items-center gap-2"
             >
               {isSubmitting && (
                 <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" aria-hidden="true" />
               )}
               {isSubmitting ? 'Enviando...' : 'Enviar convite'}
-            </button>
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -200,12 +226,12 @@ function RevokeConfirmDialog({ invite, onConfirm, onCancel }: {
             Tem certeza que deseja revogar o convite de <strong>{invite.email}</strong>? O usuário não conseguirá mais ativar a conta com este link.
           </p>
           <div className="flex gap-2 w-full justify-end">
-            <button data-testid="admin-convites-revoke-cancel-button" onClick={onCancel} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors">
+            <Button variant="outline" data-testid="admin-convites-revoke-cancel-button" onClick={onCancel}>
               Cancelar
-            </button>
-            <button data-testid="admin-convites-revoke-confirm-button" onClick={onConfirm} className="px-4 py-2 bg-destructive text-white text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors">
+            </Button>
+            <Button variant="destructive" data-testid="admin-convites-revoke-confirm-button" onClick={onConfirm}>
               Revogar
-            </button>
+            </Button>
           </div>
         </div>
       </DialogContent>
@@ -233,16 +259,17 @@ function AuditLogSection() {
         onClick={toggle}
         className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-foreground hover:bg-accent transition-colors"
         aria-expanded={expanded}
+        aria-controls="audit-log-section"
       >
         <span>Histórico de ações</span>
         <ChevronDown
-          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          className={cn('h-4 w-4 text-muted-foreground transition-transform duration-200', expanded && 'rotate-180')}
           aria-hidden="true"
         />
       </button>
 
       {expanded && (
-        <div className="border-t border-border">
+        <div id="audit-log-section" className="border-t border-border">
           {loading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -258,7 +285,7 @@ function AuditLogSection() {
             <p className="text-sm text-muted-foreground text-center py-6">Nenhuma entrada no histórico.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" aria-label="Histórico de ações">
                 <thead>
                   <tr className="bg-muted/50 border-b border-border">
                     <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wider">Ação</th>
@@ -276,7 +303,7 @@ function AuditLogSection() {
                       <td className="px-4 py-3 text-sm">{log.performedBy ?? '—'}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden sm:table-cell">{log.ipAddress ?? '—'}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {new Date(log.createdAt).toLocaleString('pt-BR')}
+                        {formatDate(log.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                     </tr>
                   ))}
@@ -291,11 +318,17 @@ function AuditLogSection() {
 }
 
 export default function AdminConvitesPage() {
+  const { isAdmin, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [invites, setInvites] = useState<InviteDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [revokeTarget, setRevokeTarget] = useState<{ id: string; email: string } | null>(null)
+
+  useEffect(() => {
+    if (!authLoading && !isAdmin) router.replace(Routes.DASHBOARD)
+  }, [isAdmin, authLoading, router])
 
   useEffect(() => {
     getInvites()
@@ -307,6 +340,11 @@ export default function AdminConvitesPage() {
   const handleResend = async (id: string) => {
     try {
       await resendInvite(id)
+      setInvites(prev => prev.map(i =>
+        i.id === id
+          ? { ...i, status: InviteStatus.PENDING, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() }
+          : i
+      ))
       toast.success('Convite reenviado.')
     } catch {
       toast.error('Erro ao reenviar convite.')
@@ -333,14 +371,14 @@ export default function AdminConvitesPage() {
           <h1 className="text-2xl font-bold text-foreground">Convites</h1>
           <p className="text-sm text-muted-foreground mt-1">Gerencie o acesso de usuários à plataforma</p>
         </div>
-        <button
+        <Button
           data-testid="admin-convites-create-button"
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[44px]"
+          size="lg"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Novo convite
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -388,12 +426,13 @@ export default function AdminConvitesPage() {
                     <div className="flex flex-col items-center gap-3">
                       <Mail className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
                       <p className="text-sm font-medium text-muted-foreground">Nenhum convite encontrado.</p>
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCreateOpen(true)}
-                        className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-accent transition-colors"
                       >
                         Criar primeiro convite
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -424,10 +463,10 @@ export default function AdminConvitesPage() {
                       <InviteStatusBadge status={invite.status} />
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">
-                      {invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString('pt-BR') : '—'}
+                      {invite.expiresAt ? formatDate(invite.expiresAt) : '—'}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">
-                      {new Date(invite.createdAt).toLocaleDateString('pt-BR')}
+                      {formatDate(invite.createdAt)}
                     </td>
                     <td className="px-4 py-3">
                       <InviteActions

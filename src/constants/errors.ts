@@ -48,6 +48,7 @@ export const INVITE_080 = { code: 'INVITE_080', httpStatus: 404, userMessage: 'C
 export const JOB_020 = { code: 'JOB_020', httpStatus: 400, userMessage: 'Os parâmetros da coleta são inválidos.', technicalMessage: 'Invalid job parameters: {details}' }
 export const JOB_050 = { code: 'JOB_050', httpStatus: 429, userMessage: 'Você atingiu o limite de coletas simultâneas.', technicalMessage: 'Concurrent job limit reached for user: {userId}' }
 export const JOB_051 = { code: 'JOB_051', httpStatus: 403, userMessage: 'Você não tem acesso a esta coleta.', technicalMessage: 'Job ownership mismatch: user {userId} != owner {ownerId}' }
+export const JOB_052 = { code: 'JOB_052', httpStatus: 409, userMessage: 'Esta coleta não pode ser cancelada pois já foi concluída, falhou ou foi cancelada.', technicalMessage: 'Cannot cancel job in terminal status: {status}' }
 export const JOB_080 = { code: 'JOB_080', httpStatus: 404, userMessage: 'Coleta não encontrada.', technicalMessage: 'Collection job not found: {jobId}' }
 
 // ─── Leads (LEAD) ────────────────────────────────────

@@ -1,9 +1,11 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
-import { ThemeProvider } from '@/components/shared/theme-provider'
+import { ThemeProvider } from '@/components/providers/theme-provider'
 import { Toaster } from 'sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 import { DevOverlayLoader } from '@/components/dev/DevOverlayLoader'
 
@@ -18,6 +20,11 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
   display: 'swap',
 })
+
+export const viewport: Viewport = {
+  themeColor: '#4F46E5',
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   title: {
@@ -58,6 +65,8 @@ export default function RootLayout({
               duration={5000}
             />
             <DevOverlayLoader />
+            <Analytics />
+            <SpeedInsights />
           </TooltipProvider>
         </ThemeProvider>
       </body>

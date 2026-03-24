@@ -1,3 +1,15 @@
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    lead: {
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+      findFirst: jest.fn().mockResolvedValue(null),
+      groupBy: jest.fn().mockResolvedValue([]),
+      update: jest.fn(),
+    },
+  },
+}))
+
 import { LeadService } from '../lead.service'
 
 describe('LeadService', () => {
@@ -5,10 +17,11 @@ describe('LeadService', () => {
 
   beforeEach(() => {
     service = new LeadService()
+    jest.clearAllMocks()
   })
 
   describe('findAll', () => {
-    it('should return empty array (stub)', async () => {
+    it('should return empty array when no leads', async () => {
       const result = await service.findAll('test-user-id', { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' })
       expect(result.data).toEqual([])
       expect(result.total).toBe(0)
@@ -16,14 +29,14 @@ describe('LeadService', () => {
   })
 
   describe('findById', () => {
-    it('should return null (stub)', async () => {
+    it('should return null when lead not found', async () => {
       const result = await service.findById('test-lead-id', 'test-user-id')
       expect(result).toBeNull()
     })
   })
 
   describe('count', () => {
-    it('should return zero counts (stub)', async () => {
+    it('should return zero counts when no leads', async () => {
       const result = await service.count('test-user-id')
       expect(result.total).toBe(0)
       expect(result.byStatus.NEW).toBe(0)
@@ -32,18 +45,19 @@ describe('LeadService', () => {
   })
 
   describe('updateStatus', () => {
-    it('should throw Not implemented (stub)', async () => {
+    it('should throw when lead not found', async () => {
       await expect(
         service.updateStatus('lead-id', 'user-id', { status: 'CONTACTED' })
-      ).rejects.toThrow('Not implemented')
+      ).rejects.toThrow('Lead não encontrado.')
     })
   })
 
   describe('exportCsv', () => {
-    it('should throw Not implemented (stub)', async () => {
-      await expect(
-        service.exportCsv('user-id', { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' })
-      ).rejects.toThrow('Not implemented')
+    it('should return CSV string with column headers', async () => {
+      const result = await service.exportCsv('user-id', { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' })
+      expect(typeof result).toBe('string')
+      expect(result).toContain('ID')
+      expect(result).toContain('Nome')
     })
   })
 })

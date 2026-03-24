@@ -1,0 +1,157 @@
+{
+  "auth": {
+    "login": {
+      "title": "Entrar na plataforma",
+      "email": "E-mail",
+      "password": "Senha",
+      "submit": "Entrar",
+      "forgotPassword": "Esqueci minha senha",
+      "loading": "Entrando...",
+      "errors": {
+        "invalidCredentials": "E-mail ou senha inválidos",
+        "tooManyAttempts": "Muitas tentativas. Aguarde {seconds}s.",
+        "generic": "Erro ao fazer login. Tente novamente."
+      }
+    },
+    "invite": {
+      "title": "Ativar minha conta",
+      "createPassword": "Criar senha",
+      "confirmPassword": "Confirmar senha",
+      "acceptTerms": "Li e aceito os termos de uso",
+      "submit": "Ativar conta",
+      "tokenExpired": "Link de convite expirado ou inválido",
+      "passwordMismatch": "As senhas não coincidem",
+      "passwordWeak": "Senha muito fraca. Use pelo menos 8 caracteres."
+    },
+    "resetPassword": {
+      "title": "Redefinir senha",
+      "email": "E-mail cadastrado",
+      "submit": "Enviar link",
+      "success": "E-mail enviado! Verifique sua caixa de entrada.",
+      "updateTitle": "Nova senha",
+      "newPassword": "Nova senha",
+      "updateSubmit": "Salvar nova senha"
+    },
+    "logout": "Sair"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "collections": "Coletas",
+    "export": "Exportar",
+    "profile": "Perfil",
+    "admin": "Admin",
+    "adminInvites": "Convites",
+    "adminConfig": "Configurações",
+    "adminScoring": "Scoring",
+    "adminMetrics": "Métricas"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "metrics": {
+      "totalLeads": "Total de Leads",
+      "hotLeads": "Leads Quentes",
+      "newLeads": "Novos Leads",
+      "conversionRate": "Taxa de Conversão",
+      "falsePositiveRate": "Falsos Positivos",
+      "lastCollection": "Última Coleta",
+      "radarUsage": "Uso do Radar"
+    }
+  },
+  "leads": {
+    "title": "Leads",
+    "filters": {
+      "city": "Cidade",
+      "niche": "Nicho",
+      "status": "Status",
+      "temperature": "Temperatura",
+      "scoreMin": "Score mín.",
+      "scoreMax": "Score máx.",
+      "search": "Buscar",
+      "sortBy": "Ordenar por",
+      "clearFilters": "Limpar filtros"
+    },
+    "empty": "Nenhum lead encontrado. Inicie uma nova coleta.",
+    "detail": {
+      "score": "Score",
+      "opportunities": "Oportunidades detectadas",
+      "pitch": "Pitch de abordagem",
+      "provenance": "Proveniência dos dados",
+      "notes": "Notas",
+      "timeline": "Histórico"
+    }
+  },
+  "collections": {
+    "title": "Coletas",
+    "new": "Nova Coleta",
+    "form": {
+      "city": "Cidade",
+      "state": "Estado",
+      "niche": "Nicho de mercado",
+      "sources": "Fontes de dados",
+      "limit": "Limite de resultados",
+      "submit": "Iniciar coleta"
+    },
+    "status": {
+      "PENDING": "Na fila",
+      "RUNNING": "Em execução",
+      "COMPLETED": "Concluída",
+      "FAILED": "Falhou",
+      "PAUSED": "Pausada",
+      "PARTIAL": "Parcial",
+      "CANCELLED": "Cancelada"
+    },
+    "progress": "Coletando {processed} de ~{total} resultados",
+    "empty": "Nenhuma coleta realizada ainda. Comece agora!"
+  },
+  "admin": {
+    "invites": {
+      "title": "Gestão de Convites",
+      "send": "Enviar Convite",
+      "email": "E-mail do operador",
+      "role": "Papel",
+      "expires": "Validade (dias)",
+      "resend": "Reenviar",
+      "revoke": "Revogar",
+      "revokeConfirm": "Tem certeza que deseja revogar este convite?"
+    },
+    "config": {
+      "title": "Configurações de API",
+      "addCredential": "Adicionar Credencial",
+      "provider": "Provedor",
+      "apiKey": "Chave de API",
+      "validate": "Testar",
+      "validating": "Validando...",
+      "valid": "Válida",
+      "invalid": "Inválida"
+    },
+    "scoring": {
+      "title": "Regras de Scoring",
+      "weight": "Peso",
+      "resetDefaults": "Restaurar padrões",
+      "preview": "Score simulado"
+    }
+  },
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro",
+    "retry": "Tentar novamente",
+    "noResults": "Nenhum resultado encontrado",
+    "copyToClipboard": "Copiar",
+    "copied": "Copiado!",
+    "download": "Baixar",
+    "back": "Voltar"
+  },
+  "errors": {
+    "unauthorized": "Acesso não autorizado",
+    "notFound": "Página não encontrada",
+    "serverError": "Erro interno. Tente novamente mais tarde.",
+    "networkError": "Sem conexão. Verifique sua internet."
+  }
+}

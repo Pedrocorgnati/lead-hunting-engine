@@ -13,6 +13,8 @@ const config: Config = {
       tsconfig: 'tsconfig.json',
     }],
   },
+  // ST004 — TASK-AUDIT-1: env vars para testes (DATABASE_URL, ENCRYPTION_KEY, etc.)
+  setupFiles: ['<rootDir>/src/__tests__/setup-env.ts'],
 }
 
 export default config

@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { TONE_OPTIONS } from '@/lib/pitch/tone-config'
 
 export const UpdateLeadStatusSchema = z.object({
-  status: z.enum(['NEW', 'CONTACTED', 'CONVERTED', 'DISCARDED', 'FALSE_POSITIVE', 'ENRICHMENT_PENDING']),
+  status: z.enum(['NEW', 'CONTACTED', 'NEGOTIATING', 'CONVERTED', 'DISCARDED', 'DISQUALIFIED', 'FALSE_POSITIVE', 'ENRICHMENT_PENDING']),
 })
 
 export const UpdateLeadNotesSchema = z.object({
@@ -10,11 +11,11 @@ export const UpdateLeadNotesSchema = z.object({
 
 export const UpdateLeadPitchSchema = z.object({
   pitchContent: z.string().min(1),
-  pitchTone: z.enum(['formal', 'casual', 'direto']).default('direto'),
+  pitchTone: z.enum(TONE_OPTIONS).default('formal'),
 })
 
 export const RegeneratePitchSchema = z.object({
-  tone: z.enum(['formal', 'casual', 'direto']).default('direto'),
+  tone: z.enum(TONE_OPTIONS).default('formal'),
 })
 
 export const MarkFalsePositiveSchema = z.object({

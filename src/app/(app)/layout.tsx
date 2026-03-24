@@ -1,26 +1,33 @@
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/shared/app-shell'
 import { AuthProvider } from '@/components/shared/auth-provider'
 import type { UserProfile } from '@/lib/hooks/use-auth'
-import { UserRole } from '@/lib/constants/enums'
+import { getAuthenticatedUser } from '@/lib/auth'
+import { Routes } from '@/lib/constants/routes'
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // TODO: Authenticate with real Supabase — run /auto-flow execute
-  // Stub: always serve the app shell (auth guard is a no-op until backend is live)
-  const mockUser: UserProfile = {
-    id: 'demo',
-    email: 'demo@leadhunting.app',
-    name: 'Demo User',
-    role: UserRole.ADMIN,
+  const authUser = await getAuthenticatedUser()
+
+  if (!authUser) {
+    redirect(Routes.LOGIN)
+  }
+
+  // Seed initial data for AuthProvider — full profile fetched client-side via /api/v1/profile
+  const initialUser: UserProfile = {
+    id: authUser.id,
+    email: authUser.email,
+    name: null,
+    role: authUser.role as UserProfile['role'],
   }
 
   return (
-    <AuthProvider initialUser={mockUser}>
+    <AuthProvider initialUser={initialUser}>
       <AppShell>{children}</AppShell>
     </AuthProvider>
   )

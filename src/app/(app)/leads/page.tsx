@@ -2,15 +2,29 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Download } from 'lucide-react'
 import { getLeads } from '@/actions/leads'
-import { Routes } from '@/lib/constants/routes'
+import { Routes } from '@/lib/constants'
 import { LeadsTable } from '@/components/leads/leads-table'
+import { Input } from '@/components/ui/input'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { LeadStatus, OpportunityType, LEAD_STATUS_MAP, OPPORTUNITY_TYPE_MAP } from '@/lib/constants/enums'
 
 export const metadata: Metadata = {
   title: 'Leads',
 }
 
-export default async function LeadsPage() {
-  const { data: leads, total } = await getLeads()
+interface PageProps {
+  searchParams: Promise<{ search?: string; type?: string; status?: string; page?: string }>
+}
+
+export default async function LeadsPage({ searchParams }: PageProps) {
+  const params = await searchParams
+  const page = Math.max(1, parseInt(params.page ?? '1') || 1)
+  const { data: leads, total, pages } = await getLeads({
+    page,
+    search: params.search,
+    type: params.type,
+    status: params.status,
+  })
 
   return (
     <div data-testid="leads-page" className="space-y-6">
@@ -25,7 +39,7 @@ export default async function LeadsPage() {
         <Link
           href={Routes.EXPORTAR}
           data-testid="leads-export-button"
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px]"
         >
           <Download className="h-4 w-4" aria-hidden={true} />
           Exportar
@@ -33,36 +47,42 @@ export default async function LeadsPage() {
       </div>
 
       {/* Filters bar */}
-      <div data-testid="leads-filters" className="flex flex-col sm:flex-row gap-3">
-        <input
+      <form method="GET" data-testid="leads-filters" className="flex flex-col sm:flex-row gap-3">
+        <Input
           type="search"
+          name="search"
+          defaultValue={params.search ?? ''}
           data-testid="leads-search-input"
           placeholder="Buscar por nome, cidade..."
-          className="flex-1 h-10 px-3 py-2 text-sm bg-background text-foreground border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
+          className="flex-1 min-h-[44px]"
           aria-label="Buscar leads"
         />
         <select
+          name="type"
+          defaultValue={params.type ?? ''}
           data-testid="leads-filter-type"
-          className="h-10 px-3 text-sm bg-background text-foreground border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary"
+          className="h-10 px-3 text-sm bg-background text-foreground border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           aria-label="Filtrar por tipo"
         >
           <option value="">Todos os tipos</option>
-          <option value="A">Tipo A</option>
-          <option value="B">Tipo B</option>
-          <option value="C">Tipo C</option>
+          {Object.entries(OPPORTUNITY_TYPE_MAP).map(([value, { label }]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
         <select
+          name="status"
+          defaultValue={params.status ?? ''}
           data-testid="leads-filter-status"
-          className="h-10 px-3 text-sm bg-background text-foreground border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary"
+          className="h-10 px-3 text-sm bg-background text-foreground border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           aria-label="Filtrar por status"
         >
           <option value="">Todos os status</option>
-          <option value="NEW">Novo</option>
-          <option value="CONTACTED">Contatado</option>
-          <option value="QUALIFIED">Qualificado</option>
-          <option value="CONVERTED">Convertido</option>
+          {Object.entries(LEAD_STATUS_MAP).map(([value, { label }]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
-      </div>
+        <button type="submit" className="sr-only">Filtrar</button>
+      </form>
 
       {/* Total count */}
       <p data-testid="leads-total-count" className="text-sm text-muted-foreground">
@@ -71,6 +91,44 @@ export default async function LeadsPage() {
 
       {/* Table */}
       <LeadsTable leads={leads} />
+
+      {/* Pagination */}
+      {pages > 1 && (
+        <nav className="flex items-center justify-between py-4" aria-label="Paginação">
+          <p className="text-sm text-muted-foreground">
+            Página {page} de {pages}
+          </p>
+          <div className="flex items-center gap-2">
+            {page > 1 ? (
+              <Link
+                href={`/leads?${new URLSearchParams({ ...(params.search ? { search: params.search } : {}), ...(params.type ? { type: params.type } : {}), ...(params.status ? { status: params.status } : {}), page: String(page - 1) }).toString()}`}
+                className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm hover:bg-accent transition-colors"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Link>
+            ) : (
+              <span className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm opacity-50 cursor-not-allowed">
+                <ChevronLeft className="h-4 w-4" />
+              </span>
+            )}
+            <span className="flex items-center text-sm px-3">{page} / {pages}</span>
+            {page < pages ? (
+              <Link
+                href={`/leads?${new URLSearchParams({ ...(params.search ? { search: params.search } : {}), ...(params.type ? { type: params.type } : {}), ...(params.status ? { status: params.status } : {}), page: String(page + 1) }).toString()}`}
+                className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm hover:bg-accent transition-colors"
+                aria-label="Próxima página"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <span className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm opacity-50 cursor-not-allowed">
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            )}
+          </div>
+        </nav>
+      )}
     </div>
   )
 }

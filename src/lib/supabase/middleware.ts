@@ -53,5 +53,30 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // G02 — Onboarding gate: redirect users who haven't completed onboarding
+  if (user && !isPublicPath && !isApiAuth && !isApiInvite) {
+    const pathname = request.nextUrl.pathname
+    const isOnboardingPath = pathname === '/onboarding'
+    const isApiPath = pathname.startsWith('/api/')
+
+    if (!isOnboardingPath && !isApiPath) {
+      try {
+        const { data: profile } = await supabase
+          .from('UserProfile')
+          .select('onboardingCompletedAt')
+          .eq('id', user.id)
+          .single()
+
+        if (profile && profile.onboardingCompletedAt === null) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/onboarding'
+          return NextResponse.redirect(url)
+        }
+      } catch {
+        // Se a query falhar, o page-level check em (app)/layout.tsx assume o controle
+      }
+    }
+  }
+
   return supabaseResponse
 }

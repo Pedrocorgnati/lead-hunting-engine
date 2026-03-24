@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { Users } from 'lucide-react'
-import { Routes } from '@/lib/constants/routes'
+import { Routes } from '@/lib/constants'
+import { Badge } from '@/components/ui/badge'
+import { LEAD_STATUS_MAP, OPPORTUNITY_TYPE_MAP } from '@/lib/constants/enums'
+import { formatDate } from '@/lib/utils/format'
 import type { LeadSummary } from '@/actions/leads'
 
 interface LeadsTableProps {
@@ -22,6 +25,18 @@ export function LeadsTable({ leads }: LeadsTableProps) {
     )
   }
 
+  const getStatusLabel = (status: string) =>
+    LEAD_STATUS_MAP[status as keyof typeof LEAD_STATUS_MAP]?.label ?? status
+
+  const getStatusVariant = (status: string) =>
+    LEAD_STATUS_MAP[status as keyof typeof LEAD_STATUS_MAP]?.variant ?? 'secondary'
+
+  const getTypeLabel = (opportunities: string[]) => {
+    const first = opportunities?.[0]
+    if (!first) return '–'
+    return OPPORTUNITY_TYPE_MAP[first as keyof typeof OPPORTUNITY_TYPE_MAP]?.label ?? first
+  }
+
   return (
     <div data-testid="leads-table" className="rounded-lg border bg-card overflow-hidden">
       {/* Mobile: card list */}
@@ -36,12 +51,22 @@ export function LeadsTable({ leads }: LeadsTableProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">{lead.name}</p>
-                <p className="text-xs text-muted-foreground">{lead.city}</p>
+                <p className="text-xs text-muted-foreground">{lead.city ?? '–'}</p>
               </div>
               <div className="flex items-center gap-2 text-right">
-                <span className="text-xs border border-border rounded px-1.5 py-0.5">Tipo {lead.type}</span>
+                <Badge variant="outline" className="text-xs">
+                  {getTypeLabel(lead.opportunities)}
+                </Badge>
                 <span className="text-sm font-mono">{lead.score}</span>
               </div>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={getStatusVariant(lead.status)} className="text-xs">
+                {getStatusLabel(lead.status)}
+              </Badge>
+              {lead.category && (
+                <span className="text-xs text-muted-foreground">{lead.category}</span>
+              )}
             </div>
           </Link>
         ))}
@@ -49,14 +74,16 @@ export function LeadsTable({ leads }: LeadsTableProps) {
 
       {/* Desktop: table */}
       <div data-testid="leads-table-desktop" className="hidden sm:block overflow-x-auto">
-        <table data-testid="leads-table-desktop-table" className="w-full">
+        <table data-testid="leads-table-desktop-table" className="w-full min-w-[700px]">
           <thead>
             <tr className="bg-muted/50 border-b border-border">
               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Nome</th>
               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Cidade</th>
+              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Categoria</th>
               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Tipo</th>
               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Score</th>
               <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Status</th>
+              <th className="text-left text-xs font-semibold text-muted-foreground px-4 py-3">Data</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -70,13 +97,21 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                     {lead.name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{lead.city}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{lead.city ?? '–'}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{lead.category ?? '–'}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs border border-border rounded px-1.5 py-0.5">Tipo {lead.type}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {getTypeLabel(lead.opportunities)}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm font-mono text-foreground">{lead.score}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs text-muted-foreground">{lead.status}</span>
+                  <Badge variant={getStatusVariant(lead.status)} className="text-xs">
+                    {getStatusLabel(lead.status)}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                  {formatDate(lead.createdAt ?? new Date().toISOString())}
                 </td>
               </tr>
             ))}

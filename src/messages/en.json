@@ -1,0 +1,157 @@
+{
+  "auth": {
+    "login": {
+      "title": "Sign in to the platform",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgotPassword": "Forgot my password",
+      "loading": "Signing in...",
+      "errors": {
+        "invalidCredentials": "Invalid email or password",
+        "tooManyAttempts": "Too many attempts. Wait {seconds}s.",
+        "generic": "Login error. Please try again."
+      }
+    },
+    "invite": {
+      "title": "Activate my account",
+      "createPassword": "Create password",
+      "confirmPassword": "Confirm password",
+      "acceptTerms": "I have read and accept the terms of use",
+      "submit": "Activate account",
+      "tokenExpired": "Invite link expired or invalid",
+      "passwordMismatch": "Passwords do not match",
+      "passwordWeak": "Password too weak. Use at least 8 characters."
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "email": "Registered email",
+      "submit": "Send link",
+      "success": "Email sent! Check your inbox.",
+      "updateTitle": "New password",
+      "newPassword": "New password",
+      "updateSubmit": "Save new password"
+    },
+    "logout": "Sign out"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "collections": "Collections",
+    "export": "Export",
+    "profile": "Profile",
+    "admin": "Admin",
+    "adminInvites": "Invites",
+    "adminConfig": "Settings",
+    "adminScoring": "Scoring",
+    "adminMetrics": "Metrics"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "metrics": {
+      "totalLeads": "Total Leads",
+      "hotLeads": "Hot Leads",
+      "newLeads": "New Leads",
+      "conversionRate": "Conversion Rate",
+      "falsePositiveRate": "False Positives",
+      "lastCollection": "Last Collection",
+      "radarUsage": "Radar Usage"
+    }
+  },
+  "leads": {
+    "title": "Leads",
+    "filters": {
+      "city": "City",
+      "niche": "Niche",
+      "status": "Status",
+      "temperature": "Temperature",
+      "scoreMin": "Min. score",
+      "scoreMax": "Max. score",
+      "search": "Search",
+      "sortBy": "Sort by",
+      "clearFilters": "Clear filters"
+    },
+    "empty": "No leads found. Start a new collection.",
+    "detail": {
+      "score": "Score",
+      "opportunities": "Detected opportunities",
+      "pitch": "Outreach pitch",
+      "provenance": "Data provenance",
+      "notes": "Notes",
+      "timeline": "History"
+    }
+  },
+  "collections": {
+    "title": "Collections",
+    "new": "New Collection",
+    "form": {
+      "city": "City",
+      "state": "State",
+      "niche": "Market niche",
+      "sources": "Data sources",
+      "limit": "Result limit",
+      "submit": "Start collection"
+    },
+    "status": {
+      "PENDING": "Queued",
+      "RUNNING": "Running",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "PAUSED": "Paused",
+      "PARTIAL": "Partial",
+      "CANCELLED": "Cancelled"
+    },
+    "progress": "Collecting {processed} of ~{total} results",
+    "empty": "No collections yet. Get started!"
+  },
+  "admin": {
+    "invites": {
+      "title": "Invite Management",
+      "send": "Send Invite",
+      "email": "Operator email",
+      "role": "Role",
+      "expires": "Validity (days)",
+      "resend": "Resend",
+      "revoke": "Revoke",
+      "revokeConfirm": "Are you sure you want to revoke this invite?"
+    },
+    "config": {
+      "title": "API Settings",
+      "addCredential": "Add Credential",
+      "provider": "Provider",
+      "apiKey": "API Key",
+      "validate": "Test",
+      "validating": "Validating...",
+      "valid": "Valid",
+      "invalid": "Invalid"
+    },
+    "scoring": {
+      "title": "Scoring Rules",
+      "weight": "Weight",
+      "resetDefaults": "Reset defaults",
+      "preview": "Simulated score"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "noResults": "No results found",
+    "copyToClipboard": "Copy",
+    "copied": "Copied!",
+    "download": "Download",
+    "back": "Back"
+  },
+  "errors": {
+    "unauthorized": "Unauthorized access",
+    "notFound": "Page not found",
+    "serverError": "Internal error. Please try again later.",
+    "networkError": "No connection. Check your internet."
+  }
+}

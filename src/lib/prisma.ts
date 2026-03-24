@@ -29,6 +29,15 @@ export function getPrisma(): PrismaClient {
   return globalForPrisma.prisma
 }
 
+/**
+ * RLS Safety Pattern (SEC-007, SEC-011):
+ * Every API handler accessing leads/jobs/raw_lead_data MUST include:
+ *   where: { userId: session.user.id, ...otherFilters }
+ * Never query by ID alone without the authenticated user's userId.
+ *
+ * CORRECT:  prisma.lead.findUnique({ where: { id: leadId, userId: session.user.id } })
+ * WRONG:    prisma.lead.findUnique({ where: { id: leadId } })
+ */
 // Proxy that defers access to runtime (avoids build-time DATABASE_URL requirement)
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, prop) {

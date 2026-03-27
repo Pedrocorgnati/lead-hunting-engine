@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { LoginForm } from './login-form'
 import { Check } from 'lucide-react'
+import Image from 'next/image'
 
 export const metadata: Metadata = {
   title: 'Entrar',
@@ -41,7 +42,15 @@ export default function LoginPage() {
             elements: Forma geométrica abstrata com símbolo de busca/alvo
             avoid: Gradientes, sombras, texto, complexidade excessiva
             */}
-            <span className="text-4xl font-bold text-primary-foreground tracking-tight">
+            <Image
+              src="/images/logo-symbol.svg"
+              alt="Lead Hunting Engine"
+              width={120}
+              height={120}
+              className="mx-auto"
+              priority
+            />
+            <span className="mt-4 block text-4xl font-bold text-primary-foreground tracking-tight">
               Lead Hunting Engine
             </span>
           </div>

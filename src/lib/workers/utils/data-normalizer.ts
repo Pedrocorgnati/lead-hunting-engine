@@ -16,6 +16,13 @@ export interface RawLeadInput {
   siteReachable?: boolean | null
   siteHasSsl?: boolean | null
   siteMobileFriendly?: boolean | null
+  instagramFollowers?: number | null
+  instagramLastPostAt?: Date | null
+  instagramPostFrequency?: number | null
+  facebookFollowers?: number | null
+  facebookLastPostAt?: Date | null
+  facebookEngagementRate?: number | null
+  facebookAbandoned?: boolean | null
   source: string
   rawJson: Record<string, unknown>
 }

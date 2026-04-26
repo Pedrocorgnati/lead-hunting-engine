@@ -9,12 +9,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin()
+    const user = await requireAdmin()
     const { id } = await params
     const body = await request.json()
     const validated = UpdateScoringRuleSchema.parse(body)
+    const changeReason =
+      typeof body === 'object' && body !== null && typeof (body as Record<string, unknown>).__reason === 'string'
+        ? ((body as Record<string, unknown>).__reason as string)
+        : undefined
 
-    const rule = await configService.updateScoringRule(id, validated)
+    const rule = await configService.updateScoringRule(id, validated, {
+      changedBy: user.id,
+      changeReason,
+    })
     return successResponse(rule)
   } catch (error) {
     return handleApiError(error)

@@ -44,8 +44,11 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
     defaultValues: { label: editing?.label ?? '', apiKey: '' },
   })
 
-  const form = isEdit ? editForm : createForm
-  const { formState: { errors, isSubmitting } } = form
+  // Unificamos apenas o que for comum (formState) — register e typed por form
+  // para evitar union-of-signatures que o TS nao consegue chamar.
+  const { formState: { errors, isSubmitting } } = isEdit ? editForm : createForm
+  const registerLabel = isEdit ? editForm.register('label') : createForm.register('label')
+  const registerApiKey = isEdit ? editForm.register('apiKey') : createForm.register('apiKey')
 
   const onSubmitCreate = async (data: CreateFormData) => {
     try {
@@ -114,7 +117,7 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
           disabled={isSubmitting}
           aria-required="true"
           aria-invalid={!!errors.label}
-          {...form.register('label')}
+          {...registerLabel}
         />
         {errors.label && <p role="alert" className="text-xs text-destructive">{errors.label.message}</p>}
       </div>
@@ -132,7 +135,7 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
           disabled={isSubmitting}
           aria-required={!isEdit ? 'true' : undefined}
           aria-invalid={!!errors.apiKey}
-          {...form.register('apiKey')}
+          {...registerApiKey}
         />
         {errors.apiKey && <p role="alert" className="text-xs text-destructive">{errors.apiKey.message}</p>}
       </div>

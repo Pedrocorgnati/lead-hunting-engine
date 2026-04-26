@@ -12,6 +12,7 @@ export interface UserProfileDto {
   email: string
   name: string
   role: string
+  avatarUrl?: string | null
   termsAcceptedAt: string | null
   deletionRequestedAt: string | null
 }
@@ -58,7 +59,7 @@ export async function updateProfile(data: { name: string }): Promise<{ success: 
     action: 'user.profile_updated',
     resource: 'user_profiles',
     resourceId: user.id,
-    metadata: { fields_updated: Object.keys(parsed) },
+    metadata: { fields_updated: Object.keys(parsed).join(',') },
   })
 
   return { success: true }

@@ -3,6 +3,22 @@ import { CryptoUtil } from '@/lib/services/crypto-util'
 import { AuditService } from '@/lib/services/audit-service'
 import type { UpsertCredentialInput, UpdateScoringRuleInput } from '@/schemas/config.schema'
 import type { ScoringRule } from '@prisma/client'
+import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
+import {
+  DEFAULT_SCORING_RULES as CANONICAL_DEFAULTS,
+  DEPRECATED_SCORING_SLUGS,
+} from '@/lib/scoring/default-rules'
+
+// Mapeia CredentialProvider -> DataSource correspondente usada por CollectionJob.
+// Usado pelo safeguard de DELETE para bloquear remoção enquanto há jobs ativos
+// consumindo a credencial.
+const PROVIDER_TO_DATA_SOURCES: Record<string, DataSource[]> = {
+  GOOGLE_PLACES: [DataSource.GOOGLE_MAPS],
+  OUTSCRAPER: [DataSource.OUTSCRAPER],
+  APIFY: [DataSource.APIFY],
+  HERE_MAPS: [DataSource.HERE_PLACES],
+  TOMTOM: [DataSource.TOMTOM],
+}
 
 // ─── ApiCredential DTO ───────────────────────────────────────────────────────
 
@@ -136,6 +152,25 @@ export class ConfigService {
    * Remove uma credencial. Aceita id (uuid) ou provider como chave.
    * SEC-011: delete via PK — sem service_role desnecessário.
    */
+  /**
+   * Verifica se há CollectionJob ativo (QUEUED/RUNNING) consumindo o provider.
+   * Retorna a lista de jobs bloqueantes (vazia quando seguro deletar).
+   */
+  async getActiveJobsUsingProvider(provider: string): Promise<Array<{ id: string; name: string | null; status: string; userId: string }>> {
+    const sources = PROVIDER_TO_DATA_SOURCES[provider]
+    if (!sources || sources.length === 0) return []
+
+    const jobs = await prisma.collectionJob.findMany({
+      where: {
+        status: { in: [CollectionJobStatus.PENDING, CollectionJobStatus.RUNNING] },
+        sources: { hasSome: sources },
+      },
+      select: { id: true, name: true, status: true, userId: true },
+      take: 50,
+    })
+    return jobs
+  }
+
   async deleteCredential(
     where: { id?: string; provider?: string },
     userId?: string,
@@ -144,7 +179,29 @@ export class ConfigService {
     const credential = await prisma.apiCredential.findUnique({
       where: where.id ? { id: where.id } : { provider: where.provider! },
     })
-    if (!credential) throw new Error('CONFIG_080: Credencial de API não encontrada.')
+    if (!credential) {
+      const err = Object.assign(new Error('Credencial de API não encontrada.'), {
+        code: 'CONFIG_080',
+        httpStatus: 404,
+      })
+      throw err
+    }
+
+    // Safeguard (CL-206): bloquear se há job ativo consumindo a credencial.
+    const activeJobs = await this.getActiveJobsUsingProvider(credential.provider)
+    if (activeJobs.length > 0) {
+      const err = Object.assign(
+        new Error(
+          `Não é possível remover esta credencial: ${activeJobs.length} job(s) ativo(s) dependem dela.`
+        ),
+        {
+          code: 'CONFIG_082',
+          httpStatus: 409,
+          details: { activeJobs },
+        }
+      )
+      throw err
+    }
 
     await prisma.apiCredential.delete({ where: { id: credential.id } })
 
@@ -231,11 +288,36 @@ export class ConfigService {
     return prisma.scoringRule.findMany({ orderBy: { sortOrder: 'asc' } })
   }
 
-  async updateScoringRule(ruleId: string, data: UpdateScoringRuleInput): Promise<ScoringRule> {
-    return prisma.scoringRule.update({
-      where: { id: ruleId },
-      // condition é Record<string,unknown> — cast necessário para Prisma InputJsonValue
-      data: { ...data, condition: data.condition as never },
+  async updateScoringRule(
+    ruleId: string,
+    data: UpdateScoringRuleInput,
+    opts?: { changedBy?: string; changeReason?: string },
+  ): Promise<ScoringRule> {
+    return prisma.$transaction(async (tx) => {
+      const previous = await tx.scoringRule.findUnique({ where: { id: ruleId } })
+      if (previous) {
+        await tx.scoringRuleHistory.create({
+          data: {
+            ruleId,
+            snapshot: previous as never,
+            changedBy: opts?.changedBy ?? null,
+            changeReason: opts?.changeReason ?? null,
+          },
+        })
+      }
+      return tx.scoringRule.update({
+        where: { id: ruleId },
+        // condition é Record<string,unknown> — cast necessário para Prisma InputJsonValue
+        data: { ...data, condition: data.condition as never },
+      })
+    })
+  }
+
+  async listScoringRuleHistory(ruleId: string) {
+    return prisma.scoringRuleHistory.findMany({
+      where: { ruleId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     })
   }
 
@@ -275,24 +357,34 @@ export class ConfigService {
    * Preserva pesos customizados — update só reseta description.
    */
   async resetScoringRules(userId?: string): Promise<ScoringRule[]> {
-    const DEFAULT_RULES = [
-      { slug: 'website_presence', name: 'Presença Web', description: 'Possui site? HTTPS? Mobile-friendly?', weight: 20, isActive: true as const, condition: {}, sortOrder: 0 },
-      { slug: 'social_presence', name: 'Presença Social', description: 'Instagram, Facebook, LinkedIn, Google Meu Negócio', weight: 20, isActive: true as const, condition: {}, sortOrder: 1 },
-      { slug: 'reviews', name: 'Avaliações', description: 'Quantidade e qualidade de avaliações online', weight: 20, isActive: true as const, condition: {}, sortOrder: 2 },
-      { slug: 'location', name: 'Localização', description: 'Relevância geográfica e presença local', weight: 15, isActive: true as const, condition: {}, sortOrder: 3 },
-      { slug: 'digital_maturity', name: 'Maturidade Digital', description: 'Nível geral de presença e maturidade digital', weight: 15, isActive: true as const, condition: {}, sortOrder: 4 },
-      { slug: 'digital_gap', name: 'Gap Digital', description: 'Oportunidade de melhoria identificada', weight: 10, isActive: true as const, condition: {}, sortOrder: 5 },
-    ]
+    const DEFAULT_RULES = CANONICAL_DEFAULTS.map((rule, index) => ({
+      slug: rule.slug,
+      name: rule.name,
+      description: rule.description,
+      weight: rule.weight,
+      isActive: rule.isActive,
+      condition: rule.condition as object,
+      sortOrder: index,
+    }))
 
-    await prisma.$transaction(
-      DEFAULT_RULES.map(rule =>
+    await prisma.$transaction([
+      // Remove slugs legados deprecados (ex.: renomeados para alinhar com engine).
+      prisma.scoringRule.deleteMany({
+        where: { slug: { in: [...DEPRECATED_SCORING_SLUGS] } },
+      }),
+      ...DEFAULT_RULES.map(rule =>
         prisma.scoringRule.upsert({
           where: { slug: rule.slug },
           create: rule,
-          update: { description: rule.description },
+          update: {
+            // Reset canônico: restaura pesos, descrição e sortOrder aos defaults.
+            weight: rule.weight,
+            description: rule.description,
+            sortOrder: rule.sortOrder,
+          },
         })
-      )
-    )
+      ),
+    ])
 
     await AuditService.log({
       userId,

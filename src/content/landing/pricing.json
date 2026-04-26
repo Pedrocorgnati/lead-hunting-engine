@@ -1,0 +1,67 @@
+{
+  "tiers": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "price": "R$ 197",
+      "period": "/mês",
+      "description": "Para freelancers e novos SDRs validando o processo.",
+      "highlight": false,
+      "features": [
+        "Até 500 leads/mês",
+        "3 coletas simultâneas",
+        "Google Maps + Website",
+        "Pitch IA (20/mês)",
+        "Export CSV/JSON",
+        "1 usuário"
+      ],
+      "cta": {
+        "label": "Entrar na waitlist",
+        "target": "#waitlist"
+      }
+    },
+    {
+      "id": "pro",
+      "name": "Pro",
+      "price": "R$ 497",
+      "period": "/mês",
+      "description": "Para agências e SDRs profissionais escalando prospecção.",
+      "highlight": true,
+      "features": [
+        "Até 5.000 leads/mês",
+        "10 coletas simultâneas",
+        "Todas as fontes (Maps, IG, FB, SERP)",
+        "Pitch IA ilimitado",
+        "Exportação BudgetFlow",
+        "Até 5 usuários",
+        "Scoring customizável",
+        "Suporte prioritário"
+      ],
+      "cta": {
+        "label": "Entrar na waitlist",
+        "target": "#waitlist"
+      }
+    },
+    {
+      "id": "scale",
+      "name": "Scale",
+      "price": "Sob consulta",
+      "period": "",
+      "description": "Para operações outbound maduras e agências de performance.",
+      "highlight": false,
+      "features": [
+        "Leads ilimitados",
+        "Coletas ilimitadas",
+        "API dedicada + webhooks",
+        "Onboarding e treinamento",
+        "Usuários ilimitados",
+        "SLA 99,9% + suporte dedicado",
+        "Integrações sob demanda"
+      ],
+      "cta": {
+        "label": "Falar com vendas",
+        "target": "/contato"
+      }
+    }
+  ]
+}

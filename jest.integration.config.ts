@@ -33,8 +33,10 @@ const config: Config = {
       },
     ],
   },
-  // Executar sequencialmente — testes de integração compartilham banco
-  runInBand: true,
+  // Executar sequencialmente — testes de integração compartilham banco.
+  // Nota: runInBand e um flag CLI, nao opcao de config. O script `test:integration`
+  // em package.json ja passa `--runInBand`.
+  maxWorkers: 1,
   // Setup de ambiente global
   globalSetup: '<rootDir>/tests/integration/globalSetup.ts',
   globalTeardown: '<rootDir>/tests/integration/globalTeardown.ts',

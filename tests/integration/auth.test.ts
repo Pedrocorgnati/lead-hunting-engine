@@ -168,8 +168,7 @@ describe('POST /api/v1/auth/logout', () => {
     const mockClient = { auth: { signOut: jest.fn().mockResolvedValue({ error: null }) } }
     ;(createServerClient as jest.Mock).mockReturnValue(mockClient)
 
-    const req = makeRequest('POST', '/api/v1/auth/logout')
-    const res = await logoutRoute(req)
+    const res = await logoutRoute()
 
     expect(res.status).toBe(204)
     expect(mockClient.auth.signOut).toHaveBeenCalledTimes(1)

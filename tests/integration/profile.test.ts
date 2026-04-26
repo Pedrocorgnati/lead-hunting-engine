@@ -28,8 +28,7 @@ describe('GET /api/v1/profile', () => {
   })
 
   it('[CENÁRIO 1] deve retornar perfil do operador autenticado', async () => {
-    const req = makeRequest('GET', '/api/v1/profile')
-    const res = await getProfile(req)
+    const res = await getProfile()
     const body = await parseResponseJson<{ data: { id: string; role: string; email: string } }>(res)
 
     expect(res.status).toBe(200)
@@ -47,8 +46,7 @@ describe('GET /api/v1/profile', () => {
   it('[CENÁRIO 3] deve retornar 401 sem autenticação (AUTH_001)', async () => {
     setupUnauthenticatedMock(requireAuth as jest.Mock)
 
-    const req = makeRequest('GET', '/api/v1/profile')
-    const res = await getProfile(req)
+    const res = await getProfile()
     const body = await parseResponseJson<{ error: { code: string } }>(res)
 
     expect(res.status).toBe(401)
@@ -188,8 +186,7 @@ describe('GET /api/v1/profile/data-export', () => {
   })
 
   it('[CENÁRIO 1] deve retornar exportação completa dos dados do usuário (LGPD Art. 18, II)', async () => {
-    const req = makeRequest('GET', '/api/v1/profile/data-export')
-    const res = await dataExport(req)
+    const res = await dataExport()
     const body = await parseResponseJson<{
       data: {
         exportedAt: string
@@ -209,8 +206,7 @@ describe('GET /api/v1/profile/data-export', () => {
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {
     setupUnauthenticatedMock(requireAuth as jest.Mock)
 
-    const req = makeRequest('GET', '/api/v1/profile/data-export')
-    const res = await dataExport(req)
+    const res = await dataExport()
 
     expect(res.status).toBe(401)
   })

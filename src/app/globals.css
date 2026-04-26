@@ -173,6 +173,16 @@
   html {
     @apply font-sans;
   }
+
+  /* TASK-21 (CL-504): focus-visible transversal — WCAG 2.4.7 + contraste AA. */
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }
 
 /* ─── Reduced Motion ─── */

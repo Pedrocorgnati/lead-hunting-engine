@@ -29,6 +29,7 @@ import { setupAdminMock, setupUnauthenticatedMock } from './helpers/auth.helper'
 import { buildCreateInvitePayload } from './helpers/factory.helper'
 import { trackCreatedInvite, cleanupTracked, getInviteFromDb } from './helpers/db.helper'
 import { TEST_IDS } from '../../prisma/seed/test'
+import { prisma } from '@/lib/prisma'
 
 // Mock Supabase para não enviar email real
 function mockSupabaseEmailService() {
@@ -152,7 +153,7 @@ describe('POST /api/v1/admin/invites', () => {
     expect(body.error.code).toBe('INVITE_020')
 
     // Nenhum convite deve ter sido criado
-    const count = await require('@/lib/prisma').prisma.invite.count({
+    const count = await prisma.invite.count({
       where: { email: 'admin@test.local' },
     })
     expect(count).toBe(0) // admin já tem conta, não deve ter invite

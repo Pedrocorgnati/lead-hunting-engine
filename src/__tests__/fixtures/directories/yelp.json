@@ -1,0 +1,44 @@
+{
+  "businesses": [
+    {
+      "id": "test-biz-001",
+      "name": "Restaurante Anonimizado",
+      "phone": "+15551234567",
+      "display_phone": "(555) 123-4567",
+      "url": "https://www.yelp.com/biz/test-biz-001",
+      "rating": 4.2,
+      "review_count": 87,
+      "price": "$$",
+      "coordinates": { "latitude": 37.7749, "longitude": -122.4194 },
+      "is_closed": false,
+      "location": {
+        "address1": "123 Test Ave",
+        "city": "San Francisco",
+        "state": "CA",
+        "display_address": ["123 Test Ave", "San Francisco, CA 94103"]
+      },
+      "categories": [
+        { "alias": "restaurants", "title": "Restaurantes" }
+      ]
+    },
+    {
+      "id": "test-biz-002",
+      "name": "Cafe Placeholder",
+      "phone": null,
+      "display_phone": null,
+      "url": "https://www.yelp.com/biz/test-biz-002",
+      "rating": 3.8,
+      "review_count": 12,
+      "price": null,
+      "coordinates": { "latitude": null, "longitude": null },
+      "is_closed": true,
+      "location": {
+        "address1": "456 Placeholder Rd",
+        "city": "Oakland",
+        "state": "CA",
+        "display_address": ["456 Placeholder Rd", "Oakland, CA 94607"]
+      },
+      "categories": []
+    }
+  ]
+}

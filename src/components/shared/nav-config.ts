@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Zap, Download, Settings, Mail, SlidersHorizontal, BarChart3, Home } from 'lucide-react'
+import { LayoutDashboard, Users, Zap, Download, Settings, Mail, SlidersHorizontal, BarChart3, Home, Activity, ScrollText } from 'lucide-react'
 import { Routes, UserRole } from '@/lib/constants'
 
 export interface NavItem {
@@ -15,6 +15,12 @@ export const APP_NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     icon: LayoutDashboard,
     tooltip: 'Dashboard',
+  },
+  {
+    href: Routes.RADAR,
+    label: 'Radar',
+    icon: Activity,
+    tooltip: 'Radar — leads das últimas 24h',
   },
   {
     href: Routes.LEADS,
@@ -70,6 +76,13 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     label: 'Métricas',
     icon: BarChart3,
     tooltip: 'Métricas',
+    roles: [UserRole.ADMIN],
+  },
+  {
+    href: Routes.ADMIN_AUDIT_LOG,
+    label: 'Audit log',
+    icon: ScrollText,
+    tooltip: 'Audit log',
     roles: [UserRole.ADMIN],
   },
 ]

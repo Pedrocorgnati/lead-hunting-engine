@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { CollectionJobStatus } from '@/lib/constants/enums'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { quotaEnforcer } from '@/lib/services/quota-enforcer'
 import type { CollectionJobSummary } from '@/lib/types/entities'
 
 // Helper: mapeia CollectionJob do DB para CollectionJobSummary da UI
@@ -67,6 +68,10 @@ export async function createJob(data: {
   maxResults: number
 }): Promise<{ id: string }> {
   const user = await requireAuth()
+
+  // Enforcement de quota pre-dispatch (INTAKE-REVIEW TASK-3 / CL-228).
+  // Lanca QuotaExceededError com code+httpStatus para ser convertido em 429 pela UI.
+  await quotaEnforcer.assertCanCreateJob(user.id)
 
   // Extrair cidade e estado de "São Paulo, SP" → { city: "São Paulo", state: "SP" }
   const parts = data.location.split(',').map(p => p.trim())
@@ -175,10 +180,10 @@ export async function getJobLeads(jobId: string): Promise<{ id: string; name: st
   if (!job || job.userId !== user.id) return []
 
   const leads = await prisma.lead.findMany({
-    where: { collectionJobId: jobId },
+    where: { jobId },
     select: {
       id: true,
-      name: true,
+      businessName: true,
       category: true,
       city: true,
       score: true,
@@ -188,7 +193,15 @@ export async function getJobLeads(jobId: string): Promise<{ id: string; name: st
     take: 200,
   })
 
-  return leads
+  // Mapeia businessName -> name para contrato estavel do caller
+  return leads.map((l) => ({
+    id: l.id,
+    name: l.businessName,
+    category: l.category,
+    city: l.city,
+    score: l.score,
+    status: l.status,
+  }))
 }
 
 export async function cancelJob(id: string): Promise<{ success: boolean }> {

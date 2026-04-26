@@ -7,7 +7,7 @@ jest.mock('@/lib/prisma', () => ({
 }))
 
 import { classifyOpportunity } from '../classifier/opportunity-classifier'
-import { calculateScore } from '../scoring/scoring-engine'
+import { calculateScore, scoreRawSignals } from '../scoring/scoring-engine'
 import { OpportunityType } from '@/lib/constants/enums'
 import type { ScoreResult } from '../scoring/scoring-engine'
 import type { EnrichedLeadData } from '../enrichment/types'
@@ -163,5 +163,58 @@ describe('calculateScore', () => {
     // Fallback: pesos iguais como se DB estivesse vazio
     const weights = Object.values(result.breakdown).map(b => b.weight)
     expect(new Set(weights).size).toBe(1)
+  })
+})
+
+describe('scoreRawSignals', () => {
+  it('scores +2 for IG >=10k with broken site', () => {
+    const result = scoreRawSignals({ instagramFollowers: 15000, siteReachable: false })
+    expect(result.breakdown.instagram_active_weak_site).toBe(2)
+    expect(result.bonus).toBe(2)
+  })
+
+  it('no bonus for IG >=10k with working site', () => {
+    const result = scoreRawSignals({ instagramFollowers: 15000, siteReachable: true })
+    expect(result.breakdown.instagram_active_weak_site).toBeUndefined()
+    expect(result.bonus).toBe(0)
+  })
+
+  it('no bonus for IG <10k with broken site', () => {
+    const result = scoreRawSignals({ instagramFollowers: 500, siteReachable: false })
+    expect(result.bonus).toBe(0)
+  })
+
+  it('returns empty breakdown when no signals', () => {
+    const result = scoreRawSignals({ instagramFollowers: null, siteReachable: null })
+    expect(result.bonus).toBe(0)
+    expect(Object.keys(result.breakdown)).toHaveLength(0)
+  })
+})
+
+describe('classifyOpportunity — social signals', () => {
+  it('overrides to A_NEEDS_SITE when FB abandoned and site unreachable', () => {
+    const enriched: EnrichedLeadData = {
+      ...baseEnriched,
+      scores: { ...baseScores, businessMaturity: 10, digitalGap: 10 },
+    }
+    const result = classifyOpportunity(
+      { totalScore: 10, breakdown: baseBreakdown },
+      enriched,
+      { facebookAbandoned: true, siteReachable: false },
+    )
+    expect(result).toBe(OpportunityType.A_NEEDS_SITE)
+  })
+
+  it('does not override when site is reachable (even if FB abandoned)', () => {
+    const enriched: EnrichedLeadData = {
+      ...baseEnriched,
+      scores: { ...baseScores, businessMaturity: 10, digitalGap: 10 },
+    }
+    const result = classifyOpportunity(
+      { totalScore: 10, breakdown: baseBreakdown },
+      enriched,
+      { facebookAbandoned: true, siteReachable: true },
+    )
+    expect(result).toBe(OpportunityType.E_SCALE)
   })
 })

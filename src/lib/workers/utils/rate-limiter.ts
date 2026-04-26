@@ -8,6 +8,8 @@ const PROVIDER_LIMITS: Record<string, RateLimitConfig> = {
   'apify':         { requestsPerSecond: 5 },
   'here-maps':     { requestsPerSecond: 5 },
   'tomtom':        { requestsPerSecond: 5 },
+  'nominatim':     { requestsPerSecond: 1 },
+  'overture-maps': { requestsPerSecond: 2 },
 }
 
 const lastRequestTime: Record<string, number> = {}

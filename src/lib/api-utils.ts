@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { errorResponse, SYS_001 } from '@/constants/errors'
 import { handleAuthError, AuthError } from '@/lib/auth'
+import { RateLimitError } from '@/lib/rate-limiter'
 
 export function successResponse<T>(data: T, status = 200) {
   return NextResponse.json({ data }, { status })
@@ -21,6 +22,19 @@ export function paginatedResponse<T>(data: T[], meta: { page: number; limit: num
 }
 
 export function handleApiError(error: unknown): NextResponse {
+  if (error instanceof RateLimitError) {
+    return NextResponse.json(
+      { error: { code: 'RATE_001', message: error.message } },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(error.retryAfter),
+          'X-RateLimit-Reset': String(error.reset),
+        },
+      }
+    )
+  }
+
   if (error instanceof AuthError) {
     return handleAuthError(error)
   }
@@ -45,8 +59,16 @@ export function handleApiError(error: unknown): NextResponse {
     'httpStatus' in error &&
     typeof (error as { httpStatus: unknown }).httpStatus === 'number'
   ) {
-    const { code, httpStatus } = error as { code: string; httpStatus: number }
-    return NextResponse.json({ error: { code, message: error.message } }, { status: httpStatus })
+    const { code, httpStatus, details } = error as {
+      code: string
+      httpStatus: number
+      details?: unknown
+    }
+    const payload: { error: { code: string; message: string; details?: unknown } } = {
+      error: { code, message: error.message },
+    }
+    if (details !== undefined) payload.error.details = details
+    return NextResponse.json(payload, { status: httpStatus })
   }
 
   if (process.env.NODE_ENV !== 'production') {

@@ -21,6 +21,12 @@ export interface EnrichedLeadData {
     digitalGap: number           // Estágio 6: INVERSO — gap alto = mais oportunidade de venda
   }
 
+  // TASK-3 intake-review (CL-058/059/060): sinais estruturados dos enrichers dedicados
+  isWhatsappChannel?: boolean | null
+  hasEcommerce?: boolean | null
+  ecommercePlatform?: string | null
+  analyticsPixels?: string[]
+
   // Metadata de enriquecimento
   enrichmentSources: string[]   // ex: ['raw_lead_data', 'google-places']
   enrichedAt: Date

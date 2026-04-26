@@ -1,0 +1,11 @@
+{
+  "runStart": {
+    "data": { "id": "abc-run-err" }
+  },
+  "runStatus": {
+    "data": {
+      "status": "FAILED",
+      "defaultDatasetId": null
+    }
+  }
+}

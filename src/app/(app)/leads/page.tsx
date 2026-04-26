@@ -5,7 +5,8 @@ import { getLeads } from '@/actions/leads'
 import { Routes } from '@/lib/constants'
 import { LeadsTable } from '@/components/leads/leads-table'
 import { Input } from '@/components/ui/input'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { LeadsPagination } from './_components/LeadsPagination'
+import { SavedViewsBar } from '@/components/leads/SavedViewsBar'
 import { LeadStatus, OpportunityType, LEAD_STATUS_MAP, OPPORTUNITY_TYPE_MAP } from '@/lib/constants/enums'
 
 export const metadata: Metadata = {
@@ -13,17 +14,19 @@ export const metadata: Metadata = {
 }
 
 interface PageProps {
-  searchParams: Promise<{ search?: string; type?: string; status?: string; page?: string }>
+  searchParams: Promise<{ search?: string; type?: string; status?: string; page?: string; recency?: string }>
 }
 
 export default async function LeadsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const page = Math.max(1, parseInt(params.page ?? '1') || 1)
+  const recency = params.recency === '24h' ? '24h' : undefined
   const { data: leads, total, pages } = await getLeads({
     page,
     search: params.search,
     type: params.type,
     status: params.status,
+    recency,
   })
 
   return (
@@ -46,8 +49,24 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         </Link>
       </div>
 
+      {/* Quick filter pills */}
+      <div className="flex items-center gap-2" data-testid="leads-quick-filters">
+        <Link
+          href={params.recency === '24h'
+            ? `/leads?${new URLSearchParams({ ...(params.search ? { search: params.search } : {}), ...(params.type ? { type: params.type } : {}), ...(params.status ? { status: params.status } : {}) }).toString()}`
+            : `/leads?${new URLSearchParams({ ...(params.search ? { search: params.search } : {}), ...(params.type ? { type: params.type } : {}), ...(params.status ? { status: params.status } : {}), recency: '24h' }).toString()}`}
+          data-testid="leads-filter-recency-24h"
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors min-h-[32px] ${params.recency === '24h' ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent border-border'}`}
+          aria-pressed={params.recency === '24h'}
+        >
+          Novos 24h
+        </Link>
+      </div>
+
       {/* Filters bar */}
       <form method="GET" data-testid="leads-filters" className="flex flex-col sm:flex-row gap-3">
+        {/* Preserve recency quando usuario aplica outros filtros */}
+        {params.recency === '24h' && <input type="hidden" name="recency" value="24h" />}
         <Input
           type="search"
           name="search"
@@ -84,6 +103,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         <button type="submit" className="sr-only">Filtrar</button>
       </form>
 
+      {/* TASK-16/ST004 intake-review (CL-267): visoes de filtros salvas */}
+      <SavedViewsBar />
+
       {/* Total count */}
       <p data-testid="leads-total-count" className="text-sm text-muted-foreground">
         {total} {total === 1 ? 'lead encontrado' : 'leads encontrados'}
@@ -92,42 +114,21 @@ export default async function LeadsPage({ searchParams }: PageProps) {
       {/* Table */}
       <LeadsTable leads={leads} />
 
-      {/* Pagination */}
+      {/* Pagination — TASK-25/ST005 (CL-274): useTransition + skeleton inline */}
       {pages > 1 && (
-        <nav className="flex items-center justify-between py-4" aria-label="Paginação">
-          <p className="text-sm text-muted-foreground">
-            Página {page} de {pages}
-          </p>
-          <div className="flex items-center gap-2">
-            {page > 1 ? (
-              <Link
-                href={`/leads?${new URLSearchParams({ ...(params.search ? { search: params.search } : {}), ...(params.type ? { type: params.type } : {}), ...(params.status ? { status: params.status } : {}), page: String(page - 1) }).toString()}`}
-                className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm hover:bg-accent transition-colors"
-                aria-label="Página anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Link>
-            ) : (
-              <span className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm opacity-50 cursor-not-allowed">
-                <ChevronLeft className="h-4 w-4" />
-              </span>
-            )}
-            <span className="flex items-center text-sm px-3">{page} / {pages}</span>
-            {page < pages ? (
-              <Link
-                href={`/leads?${new URLSearchParams({ ...(params.search ? { search: params.search } : {}), ...(params.type ? { type: params.type } : {}), ...(params.status ? { status: params.status } : {}), page: String(page + 1) }).toString()}`}
-                className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm hover:bg-accent transition-colors"
-                aria-label="Próxima página"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            ) : (
-              <span className="inline-flex items-center justify-center h-9 px-3 border rounded-lg text-sm opacity-50 cursor-not-allowed">
-                <ChevronRight className="h-4 w-4" />
-              </span>
-            )}
-          </div>
-        </nav>
+        <LeadsPagination
+          page={page}
+          pages={pages}
+          buildHref={(nextPage) =>
+            `/leads?${new URLSearchParams({
+              ...(params.search ? { search: params.search } : {}),
+              ...(params.type ? { type: params.type } : {}),
+              ...(params.status ? { status: params.status } : {}),
+              ...(params.recency ? { recency: params.recency } : {}),
+              page: String(nextPage),
+            }).toString()}`
+          }
+        />
       )}
     </div>
   )

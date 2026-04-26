@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { handleApiError, successResponse } from '@/lib/api-utils'
 import { jobService } from '@/services/job.service'
 import { CreateJobSchema } from '@/schemas/job.schema'
-import { errorResponse, JOB_050 } from '@/constants/errors'
-
-const MAX_CONCURRENT_JOBS = 3
+import { limits } from '@/lib/rate-limiter'
 
 export async function GET() {
   try {
@@ -20,14 +18,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
+    limits.createJob(user.id)
+
     const body = await request.json()
     const validated = CreateJobSchema.parse(body)
 
-    const concurrent = await jobService.countConcurrent(user.id)
-    if (concurrent >= MAX_CONCURRENT_JOBS) {
-      return NextResponse.json(errorResponse(JOB_050), { status: 429 })
-    }
-
+    // jobService.create delega quota (concurrent + monthly) ao quotaEnforcer
+    // e lanca QuotaExceededError quando excedido. handleApiError converte
+    // para 429 com code JOB_050 (concurrent) ou JOB_053 (monthly).
     const job = await jobService.create(validated, user.id)
     return successResponse({ id: job.id, status: job.status }, 201)
   } catch (error) {

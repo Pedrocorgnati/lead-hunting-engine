@@ -20,7 +20,9 @@ jest.mock('@/lib/pitch/llm-client', () => {
 
 const { generateWithLLM } = jest.requireMock<
   typeof import('@/lib/pitch/llm-client')
->('@/lib/pitch/llm-client')
+>('@/lib/pitch/llm-client') as unknown as {
+  generateWithLLM: jest.Mock
+}
 
 function makeLead(overrides: Partial<LeadContext> = {}): LeadContext {
   return {

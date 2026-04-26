@@ -6,6 +6,9 @@ import { useToast } from '@/lib/hooks/use-toast'
 import { apiClient } from '@/lib/utils/api-client'
 import { TONE_OPTIONS, TONE_DESCRIPTIONS, type ToneOption } from '@/lib/pitch/tone-config'
 import { cn } from '@/lib/utils/cn'
+import { API_ROUTES } from '@/lib/constants/routes'
+import { PITCH_ERROR_CODES } from '@/lib/pitch/errors'
+import { PitchTemplateFallback, type PitchTemplate } from './PitchTemplateFallback'
 
 interface PitchData {
   content: string
@@ -18,6 +21,8 @@ interface Props {
   initialPitch?: PitchData
 }
 
+type FallbackKind = 'unavailable' | 'hallucinated' | null
+
 export function PitchCard({ leadId, initialPitch }: Props) {
   const toast = useToast()
   const [pitch, setPitch] = useState<PitchData | null>(initialPitch ?? null)
@@ -25,22 +30,30 @@ export function PitchCard({ leadId, initialPitch }: Props) {
   const [generating, setGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fallback, setFallback] = useState<FallbackKind>(null)
 
   async function handleGenerate() {
     setGenerating(true)
     setError(null)
+    setFallback(null)
 
     const res = await apiClient.post<PitchData & { cached?: boolean }>(
-      `/api/v1/leads/${leadId}/pitch`,
+      API_ROUTES.LEAD_PITCH(leadId),
       { tone }
     )
     setGenerating(false)
 
     if (res.error) {
+      const err = res.error as { code?: string; message?: string }
       const msg =
-        (res.error as { message?: string }).message ??
+        err.message ??
         'Erro ao gerar pitch. Verifique se as credenciais LLM estão configuradas.'
       setError(msg)
+      if (err.code === PITCH_ERROR_CODES.LLM_UNAVAILABLE) {
+        setFallback('unavailable')
+      } else if (err.code === PITCH_ERROR_CODES.HALLUCINATED) {
+        setFallback('hallucinated')
+      }
       toast.error(msg)
       return
     }
@@ -60,6 +73,22 @@ export function PitchCard({ leadId, initialPitch }: Props) {
     await navigator.clipboard.writeText(pitch.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleApplyTemplate(template: PitchTemplate) {
+    const res = await apiClient.patch<{ id: string; pitchContent: string; pitchTone: string }>(
+      API_ROUTES.LEAD_PITCH(leadId),
+      { pitchContent: template.content, pitchTone: template.tone }
+    )
+    if (res.error) {
+      toast.error(res.error.message ?? 'Não foi possível aplicar o template.')
+      return
+    }
+    setPitch({ content: template.content, tone: template.tone, provider: 'template-manual' })
+    setTone((template.tone as ToneOption) ?? tone)
+    setError(null)
+    setFallback(null)
+    toast.success(`Template "${template.name}" aplicado.`)
   }
 
   return (
@@ -113,14 +142,26 @@ export function PitchCard({ leadId, initialPitch }: Props) {
 
       {/* Estado: erro */}
       {!generating && error && (
-        <div
-          className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive"
-          role="alert"
-        >
-          {error}
-          <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={handleGenerate}>
-            Tentar novamente
-          </Button>
+        <div className="space-y-3">
+          <div
+            className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive"
+            role="alert"
+          >
+            {error}
+            {fallback !== 'hallucinated' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={handleGenerate}
+              >
+                Tentar novamente
+              </Button>
+            )}
+          </div>
+          {fallback && (
+            <PitchTemplateFallback variant={fallback} onApply={handleApplyTemplate} />
+          )}
         </div>
       )}
 

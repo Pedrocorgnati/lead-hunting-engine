@@ -6,5 +6,27 @@
   "regions": ["gru1"],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/cron/retention-cleanup",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/v1/cron/credential-check",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/v1/cron/check-alerts",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/drain-local-queue",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/v1/cron/retention-sweep",
+      "schedule": "0 5 * * *"
+    }
+  ]
 }

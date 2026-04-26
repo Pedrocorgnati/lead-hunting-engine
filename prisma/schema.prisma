@@ -81,6 +81,30 @@ enum OpportunityType {
   E_SCALE
 }
 
+// TASK-2 intake-review (CL-310): landing — waitlist
+enum WaitlistStatus {
+  PENDING
+  INVITED
+  REJECTED
+}
+
+// TASK-2 intake-review (CL-311): landing — contact messages
+enum ContactStatus {
+  NEW
+  READ
+  REPLIED
+  ARCHIVED
+}
+
+// TASK-2 intake-review (CL-307): segmentacao de landing leads
+enum BusinessType {
+  AGENCIA
+  CONSULTORIA
+  SDR
+  FREELA
+  OUTRO
+}
+
 // ─────────────────────────────────────────
 // MODELS
 // ─────────────────────────────────────────
@@ -94,6 +118,12 @@ model UserProfile {
   termsAcceptedAt     DateTime? @map("terms_accepted_at")
   deletionRequestedAt     DateTime? @map("deletion_requested_at")
   onboardingCompletedAt   DateTime? @map("onboarding_completed_at")
+  onboardingStep          Int       @default(0) @map("onboarding_step")
+  onboardingData          Json?     @map("onboarding_data")
+  leadsPerMonthMax        Int       @default(500) @map("leads_per_month_max")
+  maxConcurrentJobs       Int       @default(3)   @map("max_concurrent_jobs")
+  deactivatedAt           DateTime? @map("deactivated_at")
+  mustResetPassword       Boolean   @default(false) @map("must_reset_password")
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @updatedAt @map("updated_at")
 
@@ -104,6 +134,8 @@ model UserProfile {
   pitchTemplates PitchTemplate[]
   auditLogs      AuditLog[]
   notifications  Notification[]
+  notificationPrefs NotificationPreference[]
+  pushSubscriptions PushSubscription[]
 
   @@map("user_profiles")
 }
@@ -150,6 +182,8 @@ model CollectionJob {
   errorLog        Json?               @map("error_log")
   startedAt       DateTime?           @map("started_at")
   completedAt     DateTime?           @map("completed_at")
+  retriedFromId   String?             @map("retried_from_id") @db.Uuid
+  metadata        Json?
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 
@@ -188,14 +222,20 @@ model RawLeadData {
   siteHasSsl          Boolean?         @map("site_has_ssl")
   siteTitle           String?          @map("site_title") @db.VarChar(500)
   siteMobileFriendly  Boolean?         @map("site_mobile_friendly")
-  instagramHandle     String?          @map("instagram_handle") @db.VarChar(255)
-  instagramFollowers  Int?             @map("instagram_followers")
-  facebookUrl         String?          @map("facebook_url")
+  instagramHandle        String?          @map("instagram_handle") @db.VarChar(255)
+  instagramFollowers     Int?             @map("instagram_followers")
+  instagramLastPostAt    DateTime?        @map("instagram_last_post_at")
+  instagramPostFrequency Int?             @map("instagram_post_frequency")
+  facebookUrl            String?          @map("facebook_url")
+  facebookFollowers      Int?             @map("facebook_followers")
+  facebookLastPostAt     DateTime?        @map("facebook_last_post_at")
+  facebookEngagementRate Float?           @map("facebook_engagement_rate")
   openingHours        Json?            @map("opening_hours")
   rawJson             Json?            @map("raw_json")
   enrichmentStatus    EnrichmentStatus @default(PENDING) @map("enrichment_status")
   enrichmentData      Json?            @map("enrichment_data")
   leadId              String?          @map("lead_id") @db.Uuid
+  retentionUntil      DateTime?        @map("retention_until")
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
 
@@ -225,9 +265,17 @@ model Lead {
   website            String?
   email              String?         @db.VarChar(255)
   category           String?         @db.VarChar(255)
-  instagramHandle    String?         @map("instagram_handle") @db.VarChar(255)
-  instagramFollowers Int?            @map("instagram_followers")
-  facebookUrl        String?         @map("facebook_url")
+  instagramHandle        String?         @map("instagram_handle") @db.VarChar(255)
+  instagramFollowers     Int?            @map("instagram_followers")
+  instagramLastPostAt    DateTime?       @map("instagram_last_post_at")
+  instagramPostFrequency Int?            @map("instagram_post_frequency")
+  facebookUrl            String?         @map("facebook_url")
+  facebookFollowers      Int?            @map("facebook_followers")
+  facebookLastPostAt     DateTime?       @map("facebook_last_post_at")
+  facebookEngagementRate Float?          @map("facebook_engagement_rate")
+  facebookAbandoned      Boolean?        @map("facebook_abandoned")
+  uxScore                Int?            @map("ux_score")
+  uxSignals              Json?           @map("ux_signals")
   rating             Decimal?        @db.Decimal(2, 1)
   reviewCount        Int?            @map("review_count")
   score              Int             @default(0)
@@ -242,6 +290,24 @@ model Lead {
   notes              String?
   enrichmentData      Json?           @map("enrichment_data")
   falsePositiveReason String?         @map("false_positive_reason")
+  retentionUntil      DateTime?       @map("retention_until")
+  // TASK-3 intake-review (CL-058/059/060): sinais estruturados dos enrichers dedicados
+  isWhatsappChannel   Boolean?        @map("is_whatsapp_channel")
+  hasEcommerce        Boolean?        @map("has_ecommerce")
+  ecommercePlatform   String?         @map("ecommerce_platform") @db.VarChar(50)
+  analyticsPixels     String[]        @default([]) @map("analytics_pixels")
+  // TASK-4 intake-review (CL-063..CL-068): slugs de sinais de oportunidade disparados
+  signals             String[]        @default([]) @map("signals")
+  // TASK-5 intake-review: enriquecimento detalhado
+  siteAudit           Json?           @map("site_audit")
+  googleReviews       Json?           @map("google_reviews")
+  serpRank            Json?           @map("serp_rank")
+  adsStatus           Json?           @map("ads_status")
+  techStack           String[]        @default([]) @map("tech_stack")
+  placeId             String?         @map("place_id") @db.VarChar(255)
+  facebookPageId      String?         @map("facebook_page_id") @db.VarChar(100)
+  niche               String?         @db.VarChar(255)
+  metadata            Json?
   createdAt           DateTime        @default(now()) @map("created_at")
   updatedAt           DateTime        @updatedAt @map("updated_at")
 
@@ -249,13 +315,33 @@ model Lead {
   job            CollectionJob?   @relation(fields: [jobId], references: [id], onDelete: SetNull)
   rawLeadData    RawLeadData[]
   dataProvenance DataProvenance[]
+  history        LeadHistory[]
 
   @@index([userId, score(sort: Desc)])
   @@index([userId, status])
+  @@index([retentionUntil])
   @@index([userId, temperature])
   @@index([userId, city])
   @@index([userId, createdAt])
   @@map("leads")
+}
+
+// TASK-5 intake-review: historico de mudancas de campos do lead
+model LeadHistory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  field      String   @db.VarChar(100)
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  // TASK-9 (CL-225): snapshot completo pre-merge para permitir undo
+  snapshot   Json?
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, changedAt(sort: Desc)])
+  @@index([changedAt])
+  @@map("lead_history")
 }
 
 model DataProvenance {
@@ -300,6 +386,8 @@ model ApiCredential {
   isActive     Boolean  @default(true) @map("is_active")
   usageCount   Int      @default(0) @map("usage_count")
   usageResetAt DateTime? @map("usage_reset_at")
+  expiresAt    DateTime? @map("expires_at")
+  expiringNotifiedAt DateTime? @map("expiring_notified_at")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -321,6 +409,64 @@ model ScoringRule {
   @@map("scoring_rules")
 }
 
+model ScoringRuleHistory {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ruleId      String   @map("rule_id") @db.Uuid
+  snapshot    Json
+  changedBy   String?  @map("changed_by") @db.Uuid
+  changeReason String? @map("change_reason") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([ruleId, createdAt])
+  @@map("scoring_rule_history")
+}
+
+enum DuplicateStatus {
+  PENDING
+  MERGED
+  KEEP_BOTH
+  REJECTED
+  UNDONE
+}
+
+model DuplicateCandidate {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  primaryLeadId   String          @map("primary_lead_id") @db.Uuid
+  candidateLeadId String          @map("candidate_lead_id") @db.Uuid
+  similarity      Float
+  reasons         String[]        @default([])
+  // TASK-9 (CL-223..226): enum forte + campos de merge/undo + auditoria
+  status          DuplicateStatus @default(PENDING)
+  resolution      String?         @db.VarChar(20)
+  resolvedBy      String?         @map("resolved_by") @db.Uuid
+  resolvedAt      DateTime?       @map("resolved_at")
+  mergedAt        DateTime?       @map("merged_at")
+  mergedBy        String?         @map("merged_by") @db.Uuid
+  undoneAt        DateTime?       @map("undone_at")
+  undoneBy        String?         @map("undone_by") @db.Uuid
+  mergeSnapshot   Json?           @map("merge_snapshot")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@unique([primaryLeadId, candidateLeadId])
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("duplicate_candidates")
+}
+
+model PitchVersion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId      String   @map("lead_id") @db.Uuid
+  content     String
+  tone        String?  @db.VarChar(50)
+  provider    String?  @db.VarChar(50)
+  changedBy   String?  @map("changed_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([leadId, createdAt])
+  @@map("pitch_versions")
+}
+
 model Notification {
   id        String    @id @default(uuid())
   userId    String    @map("user_id")
@@ -339,6 +485,41 @@ model Notification {
   @@map("notifications")
 }
 
+/// Preferencias de notificacao por (usuario, evento).
+/// `channels` eh um subconjunto de ['push','email','in-app'].
+/// Origem: INTAKE-REVIEW TASK-9 / CL-133.
+model NotificationPreference {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  event     String   @db.VarChar(50)
+  channels  String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, event], name: "userId_event")
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+/// Web Push subscriptions (TASK-7 / CL-138). Um usuario pode ter N devices.
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
 model LoginAttempt {
   id        String   @id @default(uuid())
   email     String   @db.VarChar(255)
@@ -349,6 +530,21 @@ model LoginAttempt {
   @@index([email, timestamp])
   @@index([ipAddress, timestamp])
   @@map("login_attempts")
+}
+
+/// Anexos vinculados a Lead. Origem: INTAKE-REVIEW TASK-13 (CL-209).
+model Attachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  url        String
+  filename   String   @db.VarChar(500)
+  mimeType   String   @map("mime_type") @db.VarChar(100)
+  size       Int
+  uploadedBy String?  @map("uploaded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([leadId])
+  @@map("attachments")
 }
 
 model AuditLog {
@@ -367,4 +563,268 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// TASK-22 intake-review: historico de exports async para download posterior.
+enum ExportHistoryStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum ExportFormat {
+  CSV
+  JSON
+  VCF
+}
+
+model ExportHistory {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  format      ExportFormat        @default(CSV)
+  status      ExportHistoryStatus @default(PENDING)
+  filters     Json?
+  rowCount    Int?                @map("row_count")
+  fileUrl     String?             @map("file_url")
+  fileSize    Int?                @map("file_size")
+  error       String?
+  startedAt   DateTime?           @map("started_at")
+  completedAt DateTime?           @map("completed_at")
+  expiresAt   DateTime?           @map("expires_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("export_history")
+}
+
+model Region {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  uf        String   @unique @db.VarChar(2)
+  name      String   @db.VarChar(100)
+  capital   String   @db.VarChar(100)
+  cities    String[] @default([])
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([archived])
+  @@map("regions")
+}
+
+model Niche {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug      String   @unique @db.VarChar(100)
+  label     String   @db.VarChar(255)
+  keywords  String[] @default([])
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([archived])
+  @@map("niches")
+}
+
+// TASK-2 intake-review (CL-310, CL-403, CL-495): waitlist publica da landing.
+model WaitlistEntry {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String         @unique @db.VarChar(255)
+  name          String?        @db.VarChar(255)
+  businessType  BusinessType?  @map("business_type")
+  status        WaitlistStatus @default(PENDING)
+  invitedAt     DateTime?      @map("invited_at")
+  invitedById   String?        @map("invited_by_id") @db.Uuid
+  ip            String?        @db.VarChar(45)
+  userAgent     String?        @map("user_agent") @db.VarChar(500)
+  consentLgpd   Boolean        @default(false) @map("consent_lgpd")
+  consentId     String?        @map("consent_id") @db.Uuid
+  retentionUntil DateTime?     @map("retention_until")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([retentionUntil])
+  @@map("waitlist_entries")
+}
+
+// TASK-2 intake-review (CL-311, CL-403, CL-494): mensagens de contato da landing.
+model ContactMessage {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String        @db.VarChar(255)
+  name         String        @db.VarChar(255)
+  subject      String        @db.VarChar(255)
+  message      String        @db.Text
+  status       ContactStatus @default(NEW)
+  repliedAt    DateTime?     @map("replied_at")
+  repliedById  String?       @map("replied_by_id") @db.Uuid
+  replyContent String?       @map("reply_content") @db.Text
+  ip           String?       @db.VarChar(45)
+  userAgent    String?       @map("user_agent") @db.VarChar(500)
+  consentLgpd  Boolean       @default(false) @map("consent_lgpd")
+  consentId    String?       @map("consent_id") @db.Uuid
+  retentionUntil DateTime?   @map("retention_until")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([retentionUntil])
+  @@map("contact_messages")
+}
+
+// TASK-3 intake-review (CL-312): registro de consent LGPD da landing.
+model LandingConsent {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ipHash            String   @map("ip_hash") @db.VarChar(64)
+  userAgent         String   @map("user_agent") @db.VarChar(500)
+  version           String   @db.VarChar(20)
+  categories        String[] @default([])
+  waitlistEntryId   String?  @map("waitlist_entry_id") @db.Uuid
+  contactMessageId  String?  @map("contact_message_id") @db.Uuid
+  acceptedAt        DateTime @default(now()) @map("accepted_at")
+
+  @@index([ipHash])
+  @@index([acceptedAt])
+  @@map("landing_consents")
+}
+
+enum UsageKind {
+  API
+  LLM
+}
+
+model ApiUsageLog {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider      String    @db.VarChar(100)
+  callType      String    @map("call_type") @db.VarChar(50)
+  creditCost    Int       @default(1) @map("credit_cost")
+  userId        String?   @map("user_id") @db.Uuid
+  jobId         String?   @map("job_id") @db.Uuid
+  leadId        String?   @map("lead_id") @db.Uuid
+  metadata      Json?
+  timestamp     DateTime  @default(now())
+  // TASK-10 intake-review (CL-216/CL-243): LLM cost tracking (ADR-0006)
+  kind          UsageKind @default(API)
+  model         String?   @db.VarChar(100)
+  operation     String?   @db.VarChar(100)
+  inputTokens   Int?      @map("input_tokens")
+  outputTokens  Int?      @map("output_tokens")
+  costUsd       Decimal?  @db.Decimal(10, 6) @map("cost_usd")
+  latencyMs     Int?      @map("latency_ms")
+  correlationId String?   @map("correlation_id") @db.VarChar(100)
+
+  @@index([provider, timestamp])
+  @@index([provider, callType, timestamp])
+  @@index([userId, timestamp])
+  @@index([kind, timestamp])
+  @@map("api_usage_logs")
+}
+
+// TASK-13 intake-review: configuracao de sistema (alertas, thresholds, limites)
+// e historico de alertas enviados para dedupe diario.
+model SystemConfig {
+  key       String   @id @db.VarChar(120)
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@map("system_config")
+}
+
+model SentAlert {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule      String   @db.VarChar(80)
+  dayKey    String   @map("day_key") @db.VarChar(20)
+  payload   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([rule, dayKey])
+  @@index([createdAt])
+  @@map("sent_alerts")
+}
+
+// TASK-18/ST005 intake-review (CL-283): notas de contato estruturadas.
+// Mantemos `Lead.notes` livre para compat; este model registra interacoes
+// canal-resultado com timestamp e autor.
+enum ContactChannel {
+  WHATSAPP
+  EMAIL
+  TELEFONE
+  PRESENCIAL
+  OUTRO
+}
+
+enum ContactOutcome {
+  NO_ANSWER
+  ANSWERED
+  INTERESTED
+  REJECTED
+  SCHEDULED
+}
+
+model ContactEvent {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId    String         @map("lead_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  channel   ContactChannel
+  outcome   ContactOutcome
+  note      String?        @db.Text
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  @@index([leadId, createdAt])
+  @@index([userId, createdAt])
+  @@map("contact_events")
+}
+
+// TASK-16 intake-review (CL-267, CL-490): tags customizadas por operador
+// + visoes de filtros salvas. Per-user (nao compartilhadas).
+model LeadTag {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId    String   @map("lead_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  label     String   @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([leadId, userId, label])
+  @@index([userId, label])
+  @@map("lead_tags")
+}
+
+model SavedView {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String   @db.VarChar(120)
+  filters   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, name])
+  @@index([userId, createdAt])
+  @@map("saved_views")
+}
+
+// TASK-15 intake-review (CL-173): fila local como fallback ao trigger.dev.
+// Semantica:
+//  - `kind` identifica o job (ex.: 'export', 'enrichment').
+//  - `payloadHash` = sha256(kind + canonical(payload)) para idempotencia.
+//  - `status`: PENDING -> LEASED -> DONE | FAILED.
+//  - Lease via `UPDATE ... WHERE id = ANY (SELECT ... FOR UPDATE SKIP LOCKED ...)`
+//    — suporta multiplas replicas sem duplo processamento.
+//  - Retry expo backoff: attempts = 0..3; runAt = now + 2^attempts min.
+model LocalQueueJob {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind        String    @db.VarChar(80)
+  payloadHash String    @map("payload_hash") @db.VarChar(64)
+  payload     Json
+  status      String    @default("PENDING") @db.VarChar(20)
+  attempts    Int       @default(0)
+  leasedUntil DateTime? @map("leased_until")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  runAt       DateTime  @default(now()) @map("run_at")
+
+  @@unique([kind, payloadHash])
+  @@index([status, runAt])
+  @@map("local_queue_jobs")
 }

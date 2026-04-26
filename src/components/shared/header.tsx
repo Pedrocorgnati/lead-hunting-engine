@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, ChevronRight, User, LogOut } from 'lucide-react'
+import { Menu, ChevronRight, User, LogOut, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useUnreadCount } from '@/lib/hooks/use-unread-count'
 import { AvatarInitials } from './avatar-initials'
 import { Routes, UserRole } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
@@ -52,6 +53,7 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
   const { user, isAdmin, loading, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const breadcrumbs = useBreadcrumbs()
+  const { count: unreadCount } = useUnreadCount(Boolean(user))
 
   return (
     <header data-testid="header" className="flex h-14 items-center gap-4 px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -101,6 +103,31 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
 
       {/* Actions */}
       <div data-testid="header-actions" className="flex items-center gap-2">
+        {user && (
+          <Link
+            href="/notifications"
+            data-testid="header-notifications-link"
+            aria-label={
+              unreadCount > 0
+                ? `${unreadCount} notifica${unreadCount === 1 ? 'cao nao lida' : 'coes nao lidas'}`
+                : 'Notificacoes'
+            }
+            className={cn(
+              'relative inline-flex items-center justify-center rounded-lg p-2 min-h-[40px] min-w-[40px] text-foreground',
+              'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+          >
+            <Bell className="h-5 w-5" aria-hidden={true} />
+            {unreadCount > 0 && (
+              <span
+                data-testid="header-notifications-badge"
+                className="absolute top-0 right-0 inline-flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-[18px] text-destructive-foreground"
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
         <ThemeToggle />
         {/* User menu */}
         {loading ? (

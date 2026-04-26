@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/shared/app-shell'
 import { AuthProvider } from '@/components/shared/auth-provider'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import type { UserProfile } from '@/lib/hooks/use-auth'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { Routes } from '@/lib/constants/routes'
@@ -28,7 +30,13 @@ export default async function AppLayout({
 
   return (
     <AuthProvider initialUser={initialUser}>
-      <AppShell>{children}</AppShell>
+      <AppShell>
+        <div className="px-6 pt-4">
+          <Breadcrumbs />
+        </div>
+        {children}
+        <KeyboardShortcuts />
+      </AppShell>
     </AuthProvider>
   )
 }

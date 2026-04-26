@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { AvatarInitials } from '@/components/shared/avatar-initials'
+import { AvatarUploader } from '@/components/profile/AvatarUploader'
 import { updateProfile } from '@/actions/profile'
 import type { UserProfileDto } from '@/actions/profile'
 import { UserRole, Messages } from '@/lib/constants'
@@ -31,8 +30,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
-  const [avatarUrl] = useState(profile.avatarUrl ?? '')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [, setAvatarUrl] = useState(profile.avatarUrl ?? null)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -49,38 +47,14 @@ export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
     }
   }
 
-  function handleAvatarClick() {
-    toast.info(Messages.INFO.AVATAR_COMING_SOON)
-  }
-
   return (
     <form data-testid="perfil-form" onSubmit={handleSubmit(onSubmit)} className="rounded-lg border bg-card p-6 space-y-6">
       {/* Avatar */}
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={handleAvatarClick}
-          className="relative group cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Trocar foto de perfil"
-          role="button"
-        >
-          <AvatarInitials name={profile.name || 'U'} size="lg" />
-          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
-            <Camera className="h-5 w-5 text-white" />
-          </div>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          aria-hidden="true"
-        />
-        <div>
-          <p className="text-sm font-medium text-foreground">Foto de perfil</p>
-          <p className="text-xs text-muted-foreground">JPG, PNG. Máx 2MB.</p>
-        </div>
-      </div>
+      <AvatarUploader
+        initialUrl={profile.avatarUrl ?? null}
+        displayName={profile.name || 'U'}
+        onChange={setAvatarUrl}
+      />
 
       {/* Name input */}
       <div className="space-y-1.5">

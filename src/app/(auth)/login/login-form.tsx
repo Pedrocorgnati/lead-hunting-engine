@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Routes } from '@/lib/constants'
+import { useToast } from '@/lib/hooks/use-toast'
+import { sanitizeRedirect } from '@/lib/auth/sanitize-redirect'
 
 const loginSchema = z.object({
   email: z
@@ -24,8 +26,20 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const toast = useToast()
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+
+  // TASK-6 (CL-189): toast "sessao expirada" quando middleware redirecionou
+  const sessionExpiredShown = useRef(false)
+  useEffect(() => {
+    if (sessionExpiredShown.current) return
+    if (searchParams?.get('reason') === 'session_expired') {
+      sessionExpiredShown.current = true
+      toast.error('Sessao expirada. Entre novamente.')
+    }
+  }, [searchParams, toast])
 
   const {
     register,
@@ -61,7 +75,8 @@ export function LoginForm() {
         return
       }
 
-      router.push(Routes.DASHBOARD)
+      const redirectTo = sanitizeRedirect(searchParams?.get('redirectTo'), Routes.DASHBOARD)
+      router.push(redirectTo)
       router.refresh()
     } catch {
       setServerError('Serviço temporariamente indisponível. Tente novamente em instantes.')

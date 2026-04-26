@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ConfirmationDialog } from '@/components/ui/modal'
+import { ReauthDialog } from '@/components/auth/ReauthDialog'
 import { requestAccountDeletion } from '@/actions/profile'
 import { formatDate } from '@/lib/utils/format'
 
@@ -13,6 +14,7 @@ interface DeletionRequestSectionProps {
 
 export function DeletionRequestSection({ deletionRequestedAt }: DeletionRequestSectionProps) {
   const [open, setOpen] = useState(false)
+  const [reauthOpen, setReauthOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [requested, setRequested] = useState(!!deletionRequestedAt)
 
@@ -58,12 +60,24 @@ export function DeletionRequestSection({ deletionRequestedAt }: DeletionRequestS
             variant="destructive"
             size="sm"
             data-testid="perfil-delete-account-button"
-            onClick={() => setOpen(true)}
+            onClick={() => setReauthOpen(true)}
           >
             Solicitar exclusão de conta
           </Button>
         </>
       )}
+
+      {/* TASK-18/ST003 (CL-043): re-autenticacao antes do confirm */}
+      <ReauthDialog
+        open={reauthOpen}
+        title="Confirme sua identidade"
+        description="Para solicitar a exclusão da conta, digite sua senha atual."
+        onClose={() => setReauthOpen(false)}
+        onSuccess={() => {
+          setReauthOpen(false)
+          setOpen(true)
+        }}
+      />
 
       <ConfirmationDialog
         open={open}

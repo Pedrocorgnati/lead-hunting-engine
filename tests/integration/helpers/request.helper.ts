@@ -41,7 +41,7 @@ export function makeRequest(
     }
   }
 
-  const init: RequestInit = { method }
+  const init: { method: string; body?: string; headers?: Record<string, string> } = { method }
 
   if (options.body !== undefined) {
     init.body = JSON.stringify(options.body)
@@ -53,7 +53,11 @@ export function makeRequest(
     init.headers = options.headers
   }
 
-  return new NextRequest(url.toString(), init)
+  // NextRequest usa um RequestInit proprio mais restritivo (signal: AbortSignal | undefined,
+  // nao aceita null). O init dos testes e simples (method/body/headers) e nao usa signal,
+  // entao omitimos a tipagem explicita para evitar conflito entre os dois RequestInits do DOM/Next.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new NextRequest(url.toString(), init as any)
 }
 
 /**
@@ -68,12 +72,16 @@ export async function parseResponseJson<T = unknown>(
 /**
  * Extrai params de rota para simular o segundo argumento de handlers dinâmicos.
  *
+ * Next.js 16 trata `params` como uma Promise. O retorno é tipado de forma
+ * flexível (`any`) para casar com qualquer assinatura de handler sem exigir
+ * generics nos call sites — os testes de integração validam o comportamento
+ * real da rota, não o refinamento estático do tipo.
+ *
  * Uso:
  *   const context = makeRouteContext({ id: 'uuid-aqui' })
  *   const res = await GET(req, context)
  */
-export function makeRouteContext(
-  params: Record<string, string>,
-): { params: Promise<Record<string, string>> } {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function makeRouteContext(params: Record<string, string>): any {
   return { params: Promise.resolve(params) }
 }

@@ -6,6 +6,7 @@ import { normalizeRawLead, sanitizeRawJson } from '@/lib/workers/utils/data-norm
 import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
 import { Limits } from '@/lib/constants/limits'
 import { getPrisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import type { DataSource as DataSourceType } from '@/lib/constants/enums'
 
 export interface CollectLeadsPayload {
@@ -141,7 +142,7 @@ export const collectLeadsTask = task({
             siteTitle,
             siteMobileFriendly,
             sourceUrl: normalized.website ?? null,
-            rawJson: sanitizeRawJson(normalized.rawJson),
+            rawJson: sanitizeRawJson(normalized.rawJson) as Prisma.InputJsonValue,
           },
           update: {}, // Não sobrescreve se externalId já existe
         })

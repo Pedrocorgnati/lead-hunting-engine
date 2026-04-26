@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { configService } from '@/services/config.service'
 import { CredentialProvider, CREDENTIAL_PROVIDER_MAP } from '@/lib/constants/enums'
+import { DEFAULT_SCORING_RULES as CANONICAL_SCORING_RULES } from '@/lib/scoring/default-rules'
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -18,20 +19,20 @@ export interface CredentialDto {
 }
 
 export interface ScoringRule {
+  /** UUID vindo do DB. Ausente em DEFAULT_SCORING_RULES (fallback antes do seed). */
+  id?: string
   dimension: string
   label: string
   description: string
   weight: number
 }
 
-export const DEFAULT_SCORING_RULES: ScoringRule[] = [
-  { dimension: 'website_presence', label: 'Presença Web', description: 'Possui site? HTTPS? Mobile-friendly?', weight: 20 },
-  { dimension: 'social_presence', label: 'Presença Social', description: 'Instagram, Facebook, LinkedIn, Google Meu Negócio', weight: 20 },
-  { dimension: 'reviews', label: 'Avaliações', description: 'Quantidade e qualidade de avaliações online', weight: 20 },
-  { dimension: 'location', label: 'Localização', description: 'Relevância geográfica e presença local', weight: 15 },
-  { dimension: 'digital_maturity', label: 'Maturidade Digital', description: 'Nível geral de presença e maturidade digital', weight: 15 },
-  { dimension: 'digital_gap', label: 'Gap Digital', description: 'Oportunidade de melhoria identificada', weight: 10 },
-]
+export const DEFAULT_SCORING_RULES: ScoringRule[] = CANONICAL_SCORING_RULES.map(r => ({
+  dimension: r.slug,
+  label: r.name,
+  description: r.description,
+  weight: r.weight,
+}))
 
 // ─── Credentials ──────────────────────────────────────────────────────────────
 
@@ -138,6 +139,7 @@ export async function getScoringRules(): Promise<ScoringRule[]> {
   const rules = await configService.getScoringRules()
   if (rules.length === 0) return DEFAULT_SCORING_RULES
   return rules.map(r => ({
+    id: r.id,
     dimension: r.slug,
     label: r.name,
     description: r.description ?? '',

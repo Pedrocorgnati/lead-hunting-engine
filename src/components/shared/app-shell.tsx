@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
+import { LegalFooter } from './legal-footer'
 import { BottomNavigation } from '@/components/mobile/bottom-navigation'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 
@@ -28,6 +29,7 @@ export function AppShell({ children }: AppShellProps) {
           className="flex-1 overflow-y-auto p-4 pb-20 md:pb-6 md:p-6 lg:p-8 focus-visible:outline-none"
         >
           <ErrorBoundary>{children}</ErrorBoundary>
+          <LegalFooter />
         </main>
         <BottomNavigation />
       </div>

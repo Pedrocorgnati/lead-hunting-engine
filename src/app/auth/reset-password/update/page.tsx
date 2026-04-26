@@ -51,7 +51,9 @@ function UpdatePasswordForm() {
 
   async function onSubmit(data: UpdateData) {
     setError(null)
-    const result = await apiClient.post(API_ROUTES.AUTH_UPDATE_PASSWORD, {
+    const result = await apiClient.post<{
+      data: { message: string; forceRelogin?: boolean; reason?: string }
+    }>(API_ROUTES.AUTH_UPDATE_PASSWORD, {
       password: data.password,
     })
     if (result.error) {
@@ -61,8 +63,19 @@ function UpdatePasswordForm() {
       return
     }
     setSuccess(true)
-    toast.success('Senha atualizada com sucesso!')
-    setTimeout(() => router.push(Routes.LOGIN), 2000)
+    // TASK-4/ST001: servidor invalidou todas as sessoes; avisa o usuario
+    // e redireciona para /login com reason=password_changed.
+    const forceRelogin = result.data?.data?.forceRelogin === true
+    const reason = result.data?.data?.reason ?? 'password_changed'
+    if (forceRelogin) {
+      toast.success('Senha alterada. Por seguranca, faca login novamente.')
+    } else {
+      toast.success('Senha atualizada com sucesso!')
+    }
+    setTimeout(
+      () => router.push(`${Routes.LOGIN}?reason=${encodeURIComponent(reason)}`),
+      2000
+    )
   }
 
   if (success) {

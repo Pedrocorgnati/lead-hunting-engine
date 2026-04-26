@@ -12,6 +12,16 @@ const envSchema = z.object({
     .regex(/^[0-9a-f]+$/i, 'ENCRYPTION_KEY deve ser hexadecimal'),
   TRIGGER_SECRET_KEY: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().url('APP_URL deve ser uma URL válida'),
+  INSTAGRAM_GRAPH_TOKEN: z.string().optional(),
+  FACEBOOK_GRAPH_TOKEN: z.string().optional(),
+  CRON_SECRET_KEY: z.string().optional(),
+  // TASK-1/ST006 (CL-309): analytics da landing (opcionais em dev)
+  NEXT_PUBLIC_GA_ID: z
+    .string()
+    .regex(/^G-[A-Z0-9]+$/, 'NEXT_PUBLIC_GA_ID deve comecar com "G-"')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>

@@ -29,3 +29,31 @@ export interface ScraperProvider {
   name: string
   search(params: BusinessSearchParams, apiKey: string): Promise<BusinessResult[]>
 }
+
+// ─── Social Providers ────────────────────────────────────────────────────────
+
+export interface SocialSearchParams {
+  query: string
+  location?: string
+  /** Direct handle override — skip search, fetch profile by handle */
+  handle?: string
+}
+
+export interface SocialProfileData {
+  handle: string | null
+  followers: number | null
+  bio: string | null
+  externalLink: string | null
+  lastPostAt: Date | null
+  postsLast30d: number | null
+  engagementRate: number | null
+  /** True when page/account shows signs of abandonment */
+  abandonedSignal: boolean
+  source: string
+  rawJson: Record<string, unknown>
+}
+
+export interface SocialProvider {
+  name: string
+  collect(params: SocialSearchParams, apiKey: string): Promise<SocialProfileData[]>
+}

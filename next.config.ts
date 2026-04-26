@@ -4,9 +4,52 @@ import createNextIntlPlugin from 'next-intl/plugin'
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const isDev = process.env.NODE_ENV === 'development'
+const sentryEnabled = !isDev && !!process.env.NEXT_PUBLIC_SENTRY_DSN
+
+function withSentryIfEnabled<T>(config: T): T {
+  if (!sentryEnabled) return config
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { withSentryConfig } = require('@sentry/nextjs') as {
+      withSentryConfig: (c: T, opts: Record<string, unknown>) => T
+    }
+    return withSentryConfig(config, {
+      silent: true,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      tunnelRoute: '/monitoring',
+      hideSourceMaps: true,
+      disableLogger: true,
+    })
+  } catch {
+    return config
+  }
+}
+
+const supabaseStorageHost = (() => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) return null
+  try {
+    return new URL(url).hostname
+  } catch {
+    return null
+  }
+})()
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  images: {
+    remotePatterns: supabaseStorageHost
+      ? [
+          {
+            protocol: 'https',
+            hostname: supabaseStorageHost,
+            pathname: '/storage/v1/object/public/**',
+          },
+        ]
+      : [],
+  },
   async headers() {
     return [
       {
@@ -58,4 +101,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+export default withSentryIfEnabled(withNextIntl(nextConfig))

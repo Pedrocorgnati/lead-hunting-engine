@@ -11,6 +11,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Users, Database, Activity, Mail, Key, RefreshCw } from 'lucide-react'
 import { useToast } from '@/lib/hooks/use-toast'
+import { ApiUsageBreakdown } from '@/components/admin/ApiUsageBreakdown'
+import { RadarUsageChart } from '@/components/admin/RadarUsageChart'
+import { ProductMetricsCards } from '@/components/admin/product-metrics-cards'
+import { MetricsComparePanel } from '@/components/admin/MetricsComparePanel'
+import { CollectionsTimelineChart } from '@/components/admin/CollectionsTimelineChart'
+import { AlertsSettings } from '@/components/admin/AlertsSettings'
+import { FalsePositiveGlobalCard } from '@/components/admin/FalsePositiveGlobalCard'
 
 interface MetricCardProps {
   icon: React.ReactNode
@@ -113,6 +120,11 @@ export default function MetricasPage() {
         </Button>
       </div>
 
+      <ProductMetricsCards />
+
+      {/* TASK-25/ST004 (CL-109): falso-positivo global */}
+      <FalsePositiveGlobalCard />
+
       {isLoading && !metrics && <MetricsSkeleton />}
 
       {error && !metrics && (
@@ -163,6 +175,12 @@ export default function MetricasPage() {
           />
         </div>
       )}
+
+      <MetricsComparePanel />
+      <CollectionsTimelineChart />
+      <ApiUsageBreakdown />
+      <RadarUsageChart />
+      <AlertsSettings />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
+import { JobCostBadge } from '@/components/jobs/JobCostBadge'
 
 export const metadata: Metadata = { title: 'Detalhe da Coleta' }
 
@@ -64,9 +65,12 @@ export default async function CollectionDetailPage({ params }: CollectionDetailP
             </span>
           </div>
         </div>
-        <Badge variant={statusInfo?.variant ?? 'secondary'} data-testid="collection-detail-status">
-          {statusInfo?.label ?? job.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <JobCostBadge jobId={job.id} status={job.status} />
+          <Badge variant={statusInfo?.variant ?? 'secondary'} data-testid="collection-detail-status">
+            {statusInfo?.label ?? job.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Progress & Stats */}

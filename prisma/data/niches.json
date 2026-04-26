@@ -1,0 +1,14 @@
+[
+  { "slug": "restaurante", "label": "Restaurantes e Bares", "keywords": ["restaurante", "bar", "pizzaria", "lanchonete", "churrascaria"] },
+  { "slug": "salao-de-beleza", "label": "Salões de Beleza e Estética", "keywords": ["salão de beleza", "barbearia", "estética", "manicure", "cabeleireiro"] },
+  { "slug": "clinica-medica", "label": "Clínicas Médicas e Odontológicas", "keywords": ["clínica médica", "consultório", "dentista", "odontologia", "clínica"] },
+  { "slug": "academia", "label": "Academias e Crossfit", "keywords": ["academia", "crossfit", "musculação", "fitness", "pilates"] },
+  { "slug": "pet-shop", "label": "Pet Shops e Veterinárias", "keywords": ["pet shop", "veterinária", "banho e tosa", "ração"] },
+  { "slug": "farmacia", "label": "Farmácias e Drogarias", "keywords": ["farmácia", "drogaria", "manipulação", "farmácia de manipulação"] },
+  { "slug": "advocacia", "label": "Advocacia e Contabilidade", "keywords": ["advogado", "escritório de advocacia", "contador", "contabilidade"] },
+  { "slug": "imobiliaria", "label": "Imobiliárias e Corretores", "keywords": ["imobiliária", "corretor", "imóveis", "aluguel"] },
+  { "slug": "auto-servicos", "label": "Auto Serviços e Oficinas", "keywords": ["oficina mecânica", "auto peças", "lava rápido", "borracharia"] },
+  { "slug": "comercio-local", "label": "Comércio Local e Varejo", "keywords": ["mercearia", "mercado", "loja", "comércio", "varejo"] },
+  { "slug": "servicos-domesticos", "label": "Serviços Domésticos e Reformas", "keywords": ["pedreiro", "eletricista", "encanador", "reforma", "pintor"] },
+  { "slug": "educacao", "label": "Educação e Cursos", "keywords": ["escola", "curso", "reforço escolar", "idiomas", "pré-vestibular"] }
+]

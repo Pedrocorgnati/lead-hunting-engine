@@ -1,4 +1,4 @@
-import { DedupEngine, stringSimilarity } from '../dedup-engine'
+import { DedupEngine, RADAR_NEW_BADGE_WINDOW_MS, stringSimilarity } from '../dedup-engine'
 
 describe('stringSimilarity', () => {
   it('[SUCCESS] retorna 1 para strings idênticas', () => {
@@ -54,5 +54,48 @@ describe('DedupEngine.deduplicateWithinBatch', () => {
       { name: 'Único', address: null, externalId: 'ext-1' },
     ])
     expect(result).toHaveLength(1)
+  })
+})
+
+// INTAKE-REVIEW TASK-2 (CL-103): marcacao de origem RADAR
+describe('DedupEngine.isLeadNewFromRadar', () => {
+  it('retorna false quando metadata e nulo ou vazio', () => {
+    expect(DedupEngine.isLeadNewFromRadar(null)).toBe(false)
+    expect(DedupEngine.isLeadNewFromRadar({})).toBe(false)
+  })
+
+  it('retorna false quando isNewFromRadar esta ausente', () => {
+    expect(DedupEngine.isLeadNewFromRadar({ radarJobIds: ['job-1'] })).toBe(false)
+  })
+
+  it('retorna true dentro da janela de 24h', () => {
+    const now = new Date('2026-04-21T12:00:00Z')
+    const metadata = {
+      isNewFromRadar: true,
+      newFromRadarSince: new Date('2026-04-21T00:00:00Z').toISOString(),
+    }
+    expect(DedupEngine.isLeadNewFromRadar(metadata, now)).toBe(true)
+  })
+
+  it('retorna false apos janela de 24h', () => {
+    const now = new Date('2026-04-22T12:00:00Z')
+    const metadata = {
+      isNewFromRadar: true,
+      newFromRadarSince: new Date('2026-04-21T00:00:00Z').toISOString(),
+    }
+    expect(DedupEngine.isLeadNewFromRadar(metadata, now)).toBe(false)
+  })
+
+  it('retorna false quando newFromRadarSince e invalido', () => {
+    expect(
+      DedupEngine.isLeadNewFromRadar({
+        isNewFromRadar: true,
+        newFromRadarSince: 'not-a-date',
+      }),
+    ).toBe(false)
+  })
+
+  it('RADAR_NEW_BADGE_WINDOW_MS vale 24h', () => {
+    expect(RADAR_NEW_BADGE_WINDOW_MS).toBe(24 * 60 * 60 * 1000)
   })
 })

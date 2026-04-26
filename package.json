@@ -65,8 +65,15 @@
     "zod": "^4.3.6",
     "zxcvbn": "^4.4.2"
   },
+  "optionalDependencies": {
+    "@sentry/nextjs": "^8.0.0"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "playwright": "^1.52.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "@types/puppeteer-extra-plugin-stealth": "*",
     "@types/bcryptjs": "^2.4.6",
     "@types/dompurify": "^3.0.5",
     "@types/jest": "^30.0.0",

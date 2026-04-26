@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/utils/format'
 import { Limits } from '@/lib/constants/limits'
 import { Routes } from '@/lib/constants'
 import { getJobs, createJob, getJobStatus, cancelJob } from '@/actions/jobs'
+import { QuotaBadge } from '@/components/coletas/QuotaBadge'
 import type { CollectionJobSummary } from '@/lib/types/entities'
 import { JobStatus, JOB_STATUS_MAP } from '@/lib/constants/enums'
 
@@ -192,7 +193,13 @@ function CollectionForm({ onSuccess, onCancel }: { onSuccess: (job: CollectionJo
         maxResults: data.maxResults,
         createdAt: new Date().toISOString(),
       })
-    } catch {
+    } catch (err) {
+      // CL-228: QuotaExceededError (JOB_050/JOB_053) expoe code + message clara
+      const maybeQuota = err as { name?: string; code?: string; message?: string } | null
+      if (maybeQuota?.name === 'QuotaExceededError' || maybeQuota?.code === 'JOB_050' || maybeQuota?.code === 'JOB_053') {
+        toast.error(maybeQuota.message ?? 'Quota atingida. Aguarde ou ajuste o limite.')
+        return
+      }
       toast.error('Erro ao criar coleta. Verifique os dados e tente novamente.')
     }
   }
@@ -314,6 +321,7 @@ export default function ColetasPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  const [quotaRefresh, setQuotaRefresh] = useState(0)
 
   useEffect(() => {
     getJobs()
@@ -333,6 +341,7 @@ export default function ColetasPage() {
   const handleNewJob = (job: CollectionJobSummary) => {
     setJobs(prev => [job, ...prev])
     setCreateOpen(false)
+    setQuotaRefresh(v => v + 1)
   }
 
   const handleCancelConfirm = async () => {
@@ -346,6 +355,7 @@ export default function ColetasPage() {
           : j
       ))
       toast.success('Coleta cancelada.')
+      setQuotaRefresh(v => v + 1)
     } catch {
       toast.error('Erro ao cancelar coleta.')
     } finally {
@@ -358,11 +368,12 @@ export default function ColetasPage() {
     <main data-testid="coletas-page" className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
+        <div className="space-y-2">
           <h1 className="text-2xl font-bold text-foreground">Coletas</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Histórico e progresso das suas coletas de leads
           </p>
+          <QuotaBadge refreshKey={quotaRefresh} />
         </div>
         <Button
           onClick={() => setCreateOpen(true)}

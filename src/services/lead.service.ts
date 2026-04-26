@@ -44,6 +44,7 @@ export class LeadService {
       scoreMin,
       scoreMax,
       search,
+      recency,
     } = query
 
     // Construir filtro WHERE (RLS: sempre filtrar por userId)
@@ -53,6 +54,14 @@ export class LeadService {
     if (temperature) where.temperature = temperature
     if (city) where.city = { contains: city, mode: 'insensitive' }
     if (niche) where.category = { contains: niche, mode: 'insensitive' }
+
+    if (recency) {
+      const hoursMap: Record<string, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 }
+      const hours = hoursMap[recency]
+      if (hours) {
+        where.createdAt = { gte: new Date(Date.now() - hours * 60 * 60 * 1000) }
+      }
+    }
 
     if (scoreMin !== undefined || scoreMax !== undefined) {
       where.score = {
@@ -193,11 +202,23 @@ export class LeadService {
       throw err
     }
 
+    const RETENTION_DAYS = 15
+    const now = new Date()
+
+    const retentionUpdate: Record<string, unknown> = {}
+    // DISQUALIFIED e FALSE_POSITIVE disparam janela de retencao para descarte seguro
+    if (data.status === 'DISQUALIFIED' || data.status === 'FALSE_POSITIVE') {
+      retentionUpdate.retentionUntil = new Date(now.getTime() + RETENTION_DAYS * 86_400_000)
+    } else {
+      retentionUpdate.retentionUntil = null
+    }
+
     return prisma.lead.update({
       where: { id: leadId },
       data: {
         status: data.status as Lead['status'],
-        ...(data.status === 'CONTACTED' ? { contactedAt: new Date() } : {}),
+        ...(data.status === 'CONTACTED' ? { contactedAt: now } : {}),
+        ...retentionUpdate,
       },
     }) as Promise<Lead>
   }

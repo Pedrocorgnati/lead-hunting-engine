@@ -1,0 +1,20 @@
+{
+  "runStart": {
+    "data": { "id": "abc-run-123" }
+  },
+  "runStatus": {
+    "data": {
+      "status": "SUCCEEDED",
+      "defaultDatasetId": "dataset-xyz-789"
+    }
+  },
+  "datasetItems": [
+    {
+      "username": "cliente_teste_ig",
+      "followersCount": 12400,
+      "biography": "Biografia anonimizada para testes — setor varejo",
+      "externalUrl": "https://example.com/cliente",
+      "latestPost": { "timestamp": "2026-03-15T10:00:00.000Z" }
+    }
+  ]
+}

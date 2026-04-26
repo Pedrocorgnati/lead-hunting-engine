@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "q": "Os dados coletados respeitam a LGPD?",
+      "a": "Sim. Coletamos apenas dados públicos de contato B2B (empresas, não pessoas físicas) com base em legítimo interesse (Art. 7, IX da LGPD). Nenhum dado pessoal sensível é tratado. Canal de remoção disponível em cada lead."
+    },
+    {
+      "q": "De onde vêm os leads?",
+      "a": "Google Maps, sites públicos, Instagram, Facebook, SERP do Google e outras fontes B2B. Todas as fontes são rastreáveis no lead (data provenance) para garantir auditoria e qualidade."
+    },
+    {
+      "q": "Em quanto tempo recebo o primeiro lote de leads?",
+      "a": "Uma coleta típica (500 leads, 1 cidade, 1 nicho) roda em 5 a 15 minutos. Coletas maiores rodam em segundo plano e você recebe notificação quando finalizam."
+    },
+    {
+      "q": "Posso exportar os leads para meu CRM?",
+      "a": "Sim. Exportamos em CSV, JSON e formato BudgetFlow (para agências que precificam por lead). API REST disponível nos planos Pro e Scale."
+    },
+    {
+      "q": "E se os leads não forem qualificados?",
+      "a": "O scoring automático classifica cada lead em COLD/WARM/HOT com base em sinais reais (site, redes sociais, avaliações, ecommerce). Leads ruins podem ser marcados como falso-positivo e não contam na sua quota."
+    },
+    {
+      "q": "Posso cancelar quando quiser?",
+      "a": "Sim. Cancelamento em 1 clique, sem multa, mantendo acesso até o fim do ciclo pago. Exportação de todos os seus dados disponível a qualquer momento."
+    }
+  ]
+}

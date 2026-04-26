@@ -9,6 +9,8 @@ import { generatePitch } from '@/lib/pitch/pitch-generator'
 import { TONE_OPTIONS } from '@/lib/pitch/tone-config'
 import { LLMUnavailableError, HallucinatedPitchError, PITCH_ERROR_CODES } from '@/lib/pitch/errors'
 import { PITCH_CACHE_TTL_MS } from '@/lib/pitch/constants'
+import { snapshotPitchVersion } from '@/lib/services/pitch-version-service'
+import { limits } from '@/lib/rate-limiter'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -51,6 +53,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const user = await requireAuth()
+    limits.generatePitch(user.id)
+
     const { id } = await params
 
     const body = await req.json().catch(() => null)
@@ -136,6 +140,17 @@ export async function POST(req: NextRequest, { params }: Params) {
       tone
     )
 
+    // Snapshot versao anterior antes de sobrescrever (TASK-11 / CL-199)
+    if (lead.pitchContent) {
+      await snapshotPitchVersion({
+        leadId: id,
+        content: lead.pitchContent,
+        tone: lead.pitchTone,
+        provider: null,
+        changedBy: user.id,
+      })
+    }
+
     // Persistir no Lead (ADR-PITCH-001: sem tabela separada)
     await prisma.lead.update({
       where: { id },
@@ -154,9 +169,10 @@ export async function POST(req: NextRequest, { params }: Params) {
           error: {
             code: PITCH_ERROR_CODES.LLM_UNAVAILABLE,
             message:
-              'O serviço de geração de pitch está temporariamente indisponível. O lead foi salvo sem pitch — tente regenerar em instantes.',
+              'O serviço de geração de pitch está temporariamente indisponível. Use um template manual ou tente regenerar em instantes.',
           },
-          retryable: true,
+          canRetry: true,
+          suggestTemplates: true,
         },
         { status: 503 }
       )
@@ -169,8 +185,10 @@ export async function POST(req: NextRequest, { params }: Params) {
           error: {
             code: PITCH_ERROR_CODES.HALLUCINATED,
             message:
-              'Não foi possível gerar um pitch confiável para este lead. Use o editor manual para criar o pitch.',
+              'Pitch inválido detectado (conteúdo alucinado). Escolha um template manual para este lead.',
           },
+          canRetry: false,
+          suggestTemplates: true,
           issues: (error as HallucinatedPitchError).issues,
         },
         { status: 422 }
@@ -190,6 +208,20 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json()
     const validated = UpdateLeadPitchSchema.parse(body)
+
+    const previous = await prisma.lead.findFirst({
+      where: { id, userId: user.id },
+      select: { pitchContent: true, pitchTone: true },
+    })
+    if (previous?.pitchContent) {
+      await snapshotPitchVersion({
+        leadId: id,
+        content: previous.pitchContent,
+        tone: previous.pitchTone,
+        provider: null,
+        changedBy: user.id,
+      })
+    }
 
     const lead = await leadService.updatePitch(id, user.id, validated)
     return successResponse(lead)

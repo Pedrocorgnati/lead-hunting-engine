@@ -145,8 +145,7 @@ describe('GET /api/v1/leads/count', () => {
   })
 
   it('[CENÁRIO 1] deve retornar contagens agregadas para o dashboard', async () => {
-    const req = makeRequest('GET', '/api/v1/leads/count')
-    const res = await countLeads(req)
+    const res = await countLeads()
     const body = await parseResponseJson<{
       data: {
         total: number

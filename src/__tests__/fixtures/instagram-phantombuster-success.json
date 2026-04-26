@@ -1,0 +1,8 @@
+{
+  "launch": { "containerId": "pb-container-001" },
+  "status": {
+    "status": "finished",
+    "exitCode": 0,
+    "resultObject": "[{\"username\":\"cliente_pb\",\"followersCount\":980,\"biography\":\"bio anonimizada PB\",\"externalUrl\":null,\"lastPostTimestamp\":1736640000,\"postsCount\":42}]"
+  }
+}

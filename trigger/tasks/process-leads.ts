@@ -6,6 +6,7 @@ import { ProvenanceService } from '@/lib/intelligence/provenance/provenance-serv
 import { DedupEngine, type DedupResult } from '@/lib/intelligence/dedup-engine'
 import { LeadStatus, EnrichmentStatus } from '@/lib/constants/enums'
 import { getPrisma } from '@/lib/prisma'
+import { dispatchLeadHot } from '@/lib/notifications/dispatcher'
 
 export interface ProcessLeadsPayload {
   jobId: string
@@ -144,6 +145,14 @@ export const processLeadsTask = task({
           await prisma.rawLeadData.update({
             where: { id: raw.id },
             data: { leadId },
+          })
+
+          // TASK-11 CL-211: notificar "lead quente" quando score > 80
+          await dispatchLeadHot(payload.userId, {
+            id: leadId,
+            businessName: enriched.name,
+            score: scoreResult.totalScore,
+            city: enriched.city,
           })
         }
 

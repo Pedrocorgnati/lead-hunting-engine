@@ -6,6 +6,8 @@ import { Routes } from '@/lib/constants'
 import { getDashboardStats, getRecentLeads } from '@/actions/leads'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { DashboardMetrics } from './_components/DashboardMetrics'
+import { TOTAL_ONBOARDING_STEPS } from '@/lib/schemas/onboarding'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -46,9 +48,13 @@ export default async function DashboardPage() {
 
   const profile = await prisma.userProfile.findUnique({
     where: { id: user.id },
-    select: { onboardingCompletedAt: true },
+    select: { onboardingCompletedAt: true, onboardingStep: true },
   })
   if (!profile?.onboardingCompletedAt) redirect('/onboarding')
+
+  const onboardingStep = profile?.onboardingStep ?? 0
+  const showOnboardingBanner =
+    !profile?.onboardingCompletedAt || onboardingStep < TOTAL_ONBOARDING_STEPS
 
   const [stats, recentLeads] = await Promise.all([
     getDashboardStats(),
@@ -57,6 +63,30 @@ export default async function DashboardPage() {
 
   return (
     <div data-testid="dashboard-page" className="space-y-6">
+      {showOnboardingBanner && (
+        <div
+          data-testid="dashboard-onboarding-banner"
+          role="status"
+          className="flex flex-col gap-2 rounded-lg border border-primary/40 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Finalize sua configuração inicial
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Passo {onboardingStep} de {TOTAL_ONBOARDING_STEPS} — complete para habilitar todas as coletas.
+            </p>
+          </div>
+          <Link
+            href={Routes.ONBOARDING}
+            data-testid="dashboard-onboarding-banner-cta"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Continuar onboarding
+          </Link>
+        </div>
+      )}
+
       {/* Page header */}
       <div data-testid="dashboard-page-header">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
@@ -86,6 +116,9 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Dashboard metrics (TASK-10) */}
+      <DashboardMetrics />
 
       {/* Recent leads */}
       <div data-testid="dashboard-recent-leads" className="space-y-3">

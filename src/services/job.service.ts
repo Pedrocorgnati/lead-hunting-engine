@@ -3,6 +3,7 @@ import { CollectionJobStatus } from '@/lib/constants/enums'
 import { AuthError } from '@/lib/auth'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { JOB_052 } from '@/constants/errors'
+import { quotaEnforcer } from '@/lib/services/quota-enforcer'
 import type { CreateJobInput } from '@/schemas/job.schema'
 import type { CollectionJob } from '@prisma/client'
 
@@ -16,6 +17,11 @@ export class JobService {
   }
 
   async create(data: CreateJobInput, userId: string): Promise<CollectionJob> {
+    // Guard CL-112 + CL-228 (INTAKE-REVIEW TASK-3): enforcement centralizado
+    // de quota mensal + maxConcurrentJobs. QuotaExceededError expoe code/httpStatus
+    // para o handleApiError (429 com JOB_050 ou JOB_053).
+    await quotaEnforcer.assertCanCreateJob(userId)
+
     const job = await prisma.collectionJob.create({
       data: {
         userId,

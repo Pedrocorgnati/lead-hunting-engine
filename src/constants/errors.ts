@@ -47,6 +47,7 @@ export const INVITE_080 = { code: 'INVITE_080', httpStatus: 404, userMessage: 'C
 // ─── Jobs (JOB) ──────────────────────────────────────
 export const JOB_020 = { code: 'JOB_020', httpStatus: 400, userMessage: 'Os parâmetros da coleta são inválidos.', technicalMessage: 'Invalid job parameters: {details}' }
 export const JOB_050 = { code: 'JOB_050', httpStatus: 429, userMessage: 'Você atingiu o limite de coletas simultâneas.', technicalMessage: 'Concurrent job limit reached for user: {userId}' }
+export const JOB_053 = { code: 'JOB_053', httpStatus: 429, userMessage: 'Você atingiu sua quota mensal de leads. Aumente o limite em Admin → Configurações ou aguarde o próximo mês.', technicalMessage: 'Monthly lead quota reached for user: {userId} ({used}/{max})' }
 export const JOB_051 = { code: 'JOB_051', httpStatus: 403, userMessage: 'Você não tem acesso a esta coleta.', technicalMessage: 'Job ownership mismatch: user {userId} != owner {ownerId}' }
 export const JOB_052 = { code: 'JOB_052', httpStatus: 409, userMessage: 'Esta coleta não pode ser cancelada pois já foi concluída, falhou ou foi cancelada.', technicalMessage: 'Cannot cancel job in terminal status: {status}' }
 export const JOB_080 = { code: 'JOB_080', httpStatus: 404, userMessage: 'Coleta não encontrada.', technicalMessage: 'Collection job not found: {jobId}' }
@@ -59,6 +60,16 @@ export const LEAD_080 = { code: 'LEAD_080', httpStatus: 404, userMessage: 'Lead 
 
 // ─── Export (EXPORT) ─────────────────────────────────
 export const EXPORT_050 = { code: 'EXPORT_050', httpStatus: 400, userMessage: 'A exportação não pode conter mais de 1.000 registros por vez.', technicalMessage: 'Export record limit exceeded: {count}' }
+// TASK-8 intake-review (CL-297): limite hard do export sincrono. Acima disso, usar async export (TASK-22).
+export const EXPORT_MAX_ROWS = 10_000
+export const EXPORT_MAX_ROWS_EXCEEDED = { code: 'EXPORT_MAX_ROWS_EXCEEDED', httpStatus: 413, userMessage: 'Exportação excede o limite síncrono. Use a exportação assíncrona para arquivos grandes.', technicalMessage: 'Sync export limit exceeded: {count} > {max}' }
+
+// ─── Landing / Waitlist (LANDING) ────────────────────
+// TASK-2 intake-review (CL-317, CL-326, CL-403)
+export const LANDING_RATE_LIMITED = { code: 'LANDING_RATE_LIMITED', httpStatus: 429, userMessage: 'Muitas tentativas. Aguarde um minuto e tente novamente.', technicalMessage: 'Landing form rate-limited for IP {ip}' }
+export const WAITLIST_DUPLICATE = { code: 'WAITLIST_DUPLICATE', httpStatus: 409, userMessage: 'Este email ja esta na waitlist.', technicalMessage: 'Waitlist duplicate email: {email}' }
+export const CONTACT_SPAM = { code: 'CONTACT_SPAM', httpStatus: 400, userMessage: 'Nao foi possivel enviar sua mensagem. Tente novamente mais tarde.', technicalMessage: 'Contact form flagged as spam: {reason}' }
+export const LGPD_CONSENT_REQUIRED = { code: 'LGPD_CONSENT_REQUIRED', httpStatus: 422, userMessage: 'Aceite a politica de privacidade para continuar.', technicalMessage: 'LGPD consent missing for form submission' }
 
 // ─── Config (CONFIG) ─────────────────────────────────
 export const CONFIG_050 = { code: 'CONFIG_050', httpStatus: 500, userMessage: 'Não foi possível processar a credencial.', technicalMessage: 'Credential encryption/decryption failed: {reason}' }
@@ -68,6 +79,12 @@ export const CONFIG_081 = { code: 'CONFIG_081', httpStatus: 404, userMessage: 'R
 // ─── Pitch (PITCH) ──────────────────────────────────
 export const PITCH_050 = { code: 'PITCH_050', httpStatus: 503, userMessage: 'O serviço de geração de pitch está temporariamente indisponível.', technicalMessage: 'LLM service unavailable: {reason}' }
 export const PITCH_051 = { code: 'PITCH_051', httpStatus: 422, userMessage: 'Não foi possível gerar um pitch confiável para este lead.', technicalMessage: 'Pitch generation failed validation: {reason}' }
+
+// ─── Resilience (SYS/RATE) ──────────────────────────
+// TASK-19 intake-review (CL-506, CL-507, CL-508)
+export const MAINTENANCE_MODE = { code: 'MAINTENANCE_MODE', httpStatus: 503, userMessage: 'Estamos em manutenção. Voltamos em instantes.', technicalMessage: 'Application in maintenance mode — MAINTENANCE_MODE env flag active' }
+export const FORBIDDEN_ORIGIN = { code: 'FORBIDDEN_ORIGIN', httpStatus: 403, userMessage: 'Origem da requisição não autorizada.', technicalMessage: 'Request origin not allow-listed: {origin}' }
+export const RATE_LIMITED_GLOBAL = { code: 'RATE_LIMITED_GLOBAL', httpStatus: 429, userMessage: 'Serviço temporariamente sobrecarregado. Tente novamente em instantes.', technicalMessage: 'Global rate limit exceeded: {window}' }
 
 // ─── Helper ─────────────────────────────────────────
 

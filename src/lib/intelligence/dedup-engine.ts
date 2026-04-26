@@ -1,4 +1,5 @@
 import { getPrisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 
 export interface DedupCandidate {
   name: string
@@ -10,6 +11,15 @@ export interface DedupResult {
   isDuplicate: boolean
   existingLeadId: string | null
   similarity: number
+}
+
+export const RADAR_NEW_BADGE_WINDOW_MS = 24 * 60 * 60 * 1000
+
+interface RadarMetadata {
+  radarJobIds?: string[]
+  isNewFromRadar?: boolean
+  newFromRadarSince?: string
+  [k: string]: unknown
 }
 
 const SIMILARITY_THRESHOLD = 0.85
@@ -79,6 +89,79 @@ export class DedupEngine {
     }
 
     return Array.from(seen.values())
+  }
+
+  /**
+   * Registra associacao entre um Lead existente e um CollectionJob de origem=RADAR.
+   * Acumula jobIds em `Lead.metadata.radarJobIds[]` (sem duplicar) e atualiza o timestamp.
+   * Chamado pelo pipeline apos dedup quando origin=RADAR e o lead ja existia (update path).
+   */
+  static async recordRadarJobAssociation(leadId: string, jobId: string): Promise<void> {
+    const prisma = getPrisma()
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { metadata: true },
+    })
+    if (!lead) return
+
+    const current = (lead.metadata as RadarMetadata | null) ?? {}
+    const existingIds = Array.isArray(current.radarJobIds) ? current.radarJobIds : []
+    if (existingIds.includes(jobId)) return
+
+    const nextMetadata: RadarMetadata = {
+      ...current,
+      radarJobIds: [...existingIds, jobId],
+      // Update path: lead ja existia, nao e novo. Zera flag se estiver setada.
+      isNewFromRadar: false,
+    }
+
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { metadata: nextMetadata as unknown as Prisma.InputJsonValue },
+    })
+  }
+
+  /**
+   * Marca um Lead recem-criado a partir de um job Radar como "novo" para fins de badge UI.
+   * Deve ser chamado pelo pipeline apenas no create path (dedup retornou isDuplicate=false).
+   * A UI filtra por `metadata.isNewFromRadar && (now - newFromRadarSince) < 24h`.
+   */
+  static async markAsNewFromRadar(leadId: string, jobId: string): Promise<void> {
+    const prisma = getPrisma()
+    const now = new Date().toISOString()
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { metadata: true },
+    })
+    if (!lead) return
+
+    const current = (lead.metadata as RadarMetadata | null) ?? {}
+    const nextMetadata: RadarMetadata = {
+      ...current,
+      radarJobIds: Array.from(new Set([...(current.radarJobIds ?? []), jobId])),
+      isNewFromRadar: true,
+      newFromRadarSince: now,
+    }
+
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { metadata: nextMetadata as unknown as Prisma.InputJsonValue },
+    })
+  }
+
+  /**
+   * Predicado puro: lead deve exibir badge "novo" no Radar?
+   */
+  static isLeadNewFromRadar(
+    metadata: unknown,
+    now: Date = new Date(),
+  ): boolean {
+    if (!metadata || typeof metadata !== 'object') return false
+    const m = metadata as RadarMetadata
+    if (!m.isNewFromRadar || !m.newFromRadarSince) return false
+    const since = Date.parse(m.newFromRadarSince)
+    if (Number.isNaN(since)) return false
+    return now.getTime() - since < RADAR_NEW_BADGE_WINDOW_MS
   }
 }
 

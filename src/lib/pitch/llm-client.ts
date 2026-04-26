@@ -1,11 +1,26 @@
 import { getApiKey } from '@/lib/workers/utils/get-credential'
 import { LLM_MAX_INPUT_TOKENS, LLM_MAX_OUTPUT_TOKENS } from './constants'
+import { withLlmCost } from '@/lib/observability/llm-cost'
 
 export interface LLMResult {
   content: string
   provider: string
+  model: string
   inputTokens: number
   outputTokens: number
+}
+
+/**
+ * Contexto opcional para rastreabilidade de custo (TASK-10).
+ * Quando fornecido, a chamada e registrada em `api_usage_logs` com
+ * kind=LLM, tokens, custo em USD e latencia.
+ */
+export interface LLMCostContext {
+  operation: string
+  userId?: string | null
+  jobId?: string | null
+  leadId?: string | null
+  correlationId?: string | null
 }
 
 export class LLMUnavailableError extends Error {
@@ -15,15 +30,49 @@ export class LLMUnavailableError extends Error {
   }
 }
 
+async function instrumented(
+  provider: string,
+  model: string,
+  costCtx: LLMCostContext | undefined,
+  call: () => Promise<LLMResult>
+): Promise<LLMResult> {
+  if (!costCtx) return call()
+  return withLlmCost(
+    {
+      provider,
+      model,
+      operation: costCtx.operation,
+      userId: costCtx.userId ?? null,
+      jobId: costCtx.jobId ?? null,
+      leadId: costCtx.leadId ?? null,
+      correlationId: costCtx.correlationId ?? null,
+    },
+    async () => {
+      const result = await call()
+      return {
+        result,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+      }
+    }
+  )
+}
+
 export async function generateWithLLM(
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  costCtx?: LLMCostContext
 ): Promise<LLMResult> {
   // Tentar Anthropic primeiro
   const anthropicKey = await getApiKey('anthropic')
   if (anthropicKey) {
     try {
-      return await generateWithAnthropic(anthropicKey, systemPrompt, userPrompt)
+      return await instrumented(
+        'anthropic',
+        'claude-haiku-4-5-20251001',
+        costCtx,
+        () => generateWithAnthropic(anthropicKey, systemPrompt, userPrompt)
+      )
     } catch (e) {
       console.warn('Anthropic falhou, tentando OpenAI:', (e as Error).message)
     }
@@ -33,7 +82,9 @@ export async function generateWithLLM(
   const openaiKey = await getApiKey('openai')
   if (openaiKey) {
     try {
-      return await generateWithOpenAI(openaiKey, systemPrompt, userPrompt)
+      return await instrumented('openai', 'gpt-4o-mini', costCtx, () =>
+        generateWithOpenAI(openaiKey, systemPrompt, userPrompt)
+      )
     } catch (e) {
       console.warn('OpenAI falhou:', (e as Error).message)
     }
@@ -66,6 +117,7 @@ async function generateWithAnthropic(
   return {
     content,
     provider: 'anthropic',
+    model: 'claude-haiku-4-5-20251001',
     inputTokens: response.usage.input_tokens,
     outputTokens: response.usage.output_tokens,
   }
@@ -93,6 +145,7 @@ async function generateWithOpenAI(
   return {
     content,
     provider: 'openai',
+    model: 'gpt-4o-mini',
     inputTokens: response.usage?.prompt_tokens ?? 0,
     outputTokens: response.usage?.completion_tokens ?? 0,
   }

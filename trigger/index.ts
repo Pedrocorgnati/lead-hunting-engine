@@ -2,3 +2,4 @@
 export * from './tasks/collect-leads'
 export * from './tasks/process-site'
 export * from './tasks/process-leads'
+export * from './tasks/run-export'

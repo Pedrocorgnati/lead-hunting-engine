@@ -11,6 +11,7 @@
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { seedScoringRules } from './scoring-rules'
+import { seedRegionsAndNiches } from './regions-niches'
 
 const prisma = new PrismaClient()
 
@@ -20,7 +21,10 @@ async function main() {
   // Regras de scoring padrão — obrigatórias para o sistema calcular pontuação
   await seedScoringRules(prisma)
 
-  console.log('✅ Prod seed concluído: scoring_rules inicializadas')
+  // Regiões (27 UFs) + Nichos padrão (12) — base taxonômica para coletas
+  await seedRegionsAndNiches(prisma)
+
+  console.log('✅ Prod seed concluído: scoring_rules + regions + niches inicializados')
 }
 
 main()

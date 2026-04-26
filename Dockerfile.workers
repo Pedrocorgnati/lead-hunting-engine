@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/playwright:v1.52.0-noble
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=optional
+
+COPY . .
+
+RUN npx playwright install chromium --with-deps
+
+# TASK-20/ST001 (CL-509): HEALTHCHECK baseado em heartbeat file.
+# Workers escrevem /tmp/worker-heartbeat a cada 30s via cron/scheduler;
+# healthcheck falha se o arquivo nao foi atualizado nos ultimos 90s.
+HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=2 \
+  CMD test -f /tmp/worker-heartbeat && \
+      test $(( $(date +%s) - $(stat -c %Y /tmp/worker-heartbeat) )) -lt 90 || exit 1
+
+CMD ["node", "-e", "console.log('Workers container ready')"]

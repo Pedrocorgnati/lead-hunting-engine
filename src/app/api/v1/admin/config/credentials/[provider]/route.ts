@@ -22,13 +22,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const { provider } = await params
-    await configService.deleteCredential({ provider })
+    const ipAddress =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      undefined
+    await configService.deleteCredential({ provider }, admin.id, ipAddress)
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     return handleApiError(error)

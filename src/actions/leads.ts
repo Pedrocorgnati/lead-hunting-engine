@@ -59,6 +59,13 @@ export interface LeadDetailView {
     collectedAt: Date
     confidence: unknown
   }[]
+  // TASK-3 intake-review: sinais estruturados
+  isWhatsappChannel: boolean | null
+  hasEcommerce: boolean | null
+  ecommercePlatform: string | null
+  analyticsPixels: string[]
+  // TASK-4 intake-review: sinais de oportunidade granulares
+  signals: string[]
 }
 
 // ─── Helper interno para obter userId autenticado ────────────────────────────
@@ -148,6 +155,8 @@ export async function getLeads(params?: {
   scoreMax?: number
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  /** CL-174: filtro rapido de janela temporal (24h | 7d | 30d) */
+  recency?: '24h' | '7d' | '30d'
 }): Promise<{ data: LeadSummary[]; total: number; pages: number }> {
   const userId = await getAuthenticatedUserId()
 
@@ -159,6 +168,11 @@ export async function getLeads(params?: {
   if (params?.status) where.status = params.status
   if (params?.type) where.opportunities = { has: params.type }
   if (params?.city) where.city = { contains: params.city, mode: 'insensitive' }
+  if (params?.recency) {
+    const hoursMap = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 } as const
+    const hours = hoursMap[params.recency]
+    where.createdAt = { gte: new Date(Date.now() - hours * 60 * 60 * 1000) }
+  }
   if (params?.search) {
     where.OR = [
       { businessName: { contains: params.search, mode: 'insensitive' } },
@@ -263,6 +277,11 @@ export async function getLead(id: string): Promise<LeadDetailView | null> {
     pitchTone: lead.pitchTone,
     createdAt: lead.createdAt,
     updatedAt: lead.updatedAt,
+    isWhatsappChannel: lead.isWhatsappChannel ?? null,
+    hasEcommerce: lead.hasEcommerce ?? null,
+    ecommercePlatform: lead.ecommercePlatform ?? null,
+    analyticsPixels: lead.analyticsPixels ?? [],
+    signals: lead.signals ?? [],
     provenance: lead.dataProvenance.map((p) => ({
       id: p.id,
       field: p.field,

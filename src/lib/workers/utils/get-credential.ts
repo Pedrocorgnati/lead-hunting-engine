@@ -3,13 +3,15 @@ import { CryptoUtil } from '@/lib/services/crypto-util'
 
 // Map from provider slug used in workers to CredentialProvider stored in DB
 const PROVIDER_SLUG_MAP: Record<string, string> = {
-  'google-places': 'GOOGLE_PLACES',
-  'outscraper':    'OUTSCRAPER',
-  'apify':         'APIFY',
-  'here-maps':     'HERE_MAPS',
-  'tomtom':        'TOMTOM',
-  'openai':        'OPENAI',
-  'anthropic':     'ANTHROPIC',
+  'google-places':   'GOOGLE_PLACES',
+  'outscraper':      'OUTSCRAPER',
+  'apify':           'APIFY',
+  'here-maps':       'HERE_MAPS',
+  'tomtom':          'TOMTOM',
+  'openai':          'OPENAI',
+  'anthropic':       'ANTHROPIC',
+  'instagram-graph': 'INSTAGRAM_GRAPH',
+  'facebook-graph':  'FACEBOOK_GRAPH',
 }
 
 /**

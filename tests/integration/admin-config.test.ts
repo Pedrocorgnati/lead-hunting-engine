@@ -18,7 +18,7 @@ jest.mock('@/lib/auth')
 import { GET as listCredentials } from '@/app/api/v1/admin/config/credentials/route'
 import { PUT as upsertCredential, DELETE as deleteCredential } from '@/app/api/v1/admin/config/credentials/[provider]/route'
 import { GET as listScoringRules } from '@/app/api/v1/admin/config/scoring-rules/route'
-import { PUT as updateScoringRule } from '@/app/api/v1/admin/config/scoring-rules/[id]/route'
+import { PATCH as updateScoringRule } from '@/app/api/v1/admin/config/scoring-rules/[id]/route'
 import { requireAuth, requireAdmin } from '@/lib/auth'
 import { makeRequest, makeRouteContext, parseResponseJson } from './helpers/request.helper'
 import { setupAdminMock, setupUnauthenticatedMock } from './helpers/auth.helper'
@@ -45,8 +45,7 @@ describe('GET /api/v1/admin/config/credentials', () => {
   })
 
   it('[CENÁRIO 1] deve listar credenciais SEM expor encryptedKey (THREAT-005)', async () => {
-    const req = makeRequest('GET', '/api/v1/admin/config/credentials')
-    const res = await listCredentials(req)
+    const res = await listCredentials()
     const body = await parseResponseJson<{ data: Array<Record<string, unknown>> }>(res)
 
     expect(res.status).toBe(200)
@@ -64,8 +63,7 @@ describe('GET /api/v1/admin/config/credentials', () => {
   it('[CENÁRIO 3] deve retornar 403 para OPERATOR acessando credenciais (AUTH_004)', async () => {
     setupAdminMock(requireAdmin as jest.Mock, 'OPERATOR')
 
-    const req = makeRequest('GET', '/api/v1/admin/config/credentials')
-    const res = await listCredentials(req)
+    const res = await listCredentials()
 
     expect(res.status).toBe(403)
   })
@@ -73,8 +71,7 @@ describe('GET /api/v1/admin/config/credentials', () => {
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {
     setupUnauthenticatedMock(requireAdmin as jest.Mock)
 
-    const req = makeRequest('GET', '/api/v1/admin/config/credentials')
-    const res = await listCredentials(req)
+    const res = await listCredentials()
 
     expect(res.status).toBe(401)
   })
@@ -145,8 +142,7 @@ describe('GET /api/v1/admin/config/scoring-rules', () => {
   })
 
   it('[CENÁRIO 1] deve listar scoring rules seedadas', async () => {
-    const req = makeRequest('GET', '/api/v1/admin/config/scoring-rules')
-    const res = await listScoringRules(req)
+    const res = await listScoringRules()
     const body = await parseResponseJson<{
       data: Array<{ id: string; name: string; weight: number; isActive: boolean }>
     }>(res)
@@ -171,8 +167,7 @@ describe('GET /api/v1/admin/config/scoring-rules', () => {
   it('[CENÁRIO 3] deve retornar 403 para OPERATOR', async () => {
     setupAdminMock(requireAdmin as jest.Mock, 'OPERATOR')
 
-    const req = makeRequest('GET', '/api/v1/admin/config/scoring-rules')
-    const res = await listScoringRules(req)
+    const res = await listScoringRules()
 
     expect(res.status).toBe(403)
   })

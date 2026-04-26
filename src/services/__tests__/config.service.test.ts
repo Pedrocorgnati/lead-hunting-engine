@@ -14,6 +14,7 @@ jest.mock('@/lib/prisma', () => ({
       update: jest.fn(),
       updateMany: jest.fn(),
       upsert: jest.fn(),
+      deleteMany: jest.fn(),
     },
     $transaction: jest.fn(),
   },
@@ -55,6 +56,7 @@ function getPrisma() {
       update: jest.Mock
       updateMany: jest.Mock
       upsert: jest.Mock
+      deleteMany: jest.Mock
     }
     $transaction: jest.Mock
   }

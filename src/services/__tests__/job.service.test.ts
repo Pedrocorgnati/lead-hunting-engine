@@ -9,7 +9,13 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      count: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
+    },
+    userProfile: {
+      findUnique: jest.fn().mockResolvedValue({ leadsPerMonthMax: 500, maxConcurrentJobs: 3 }),
+    },
+    lead: {
+      count: jest.fn().mockResolvedValue(0),
     },
   },
 }))

@@ -34,6 +34,8 @@ export const LeadListQuerySchema = z.object({
   scoreMin: z.coerce.number().int().min(0).max(10).optional(),
   scoreMax: z.coerce.number().int().min(0).max(10).optional(),
   search: z.string().optional(),
+  /** Filtro rapido por janela temporal — CL-174 */
+  recency: z.enum(['24h', '7d', '30d']).optional(),
 })
 
 export type UpdateLeadStatusInput = z.infer<typeof UpdateLeadStatusSchema>

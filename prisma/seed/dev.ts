@@ -28,6 +28,7 @@ import {
 const STATUS_NEGOTIATING  = 'NEGOTIATING'  as unknown as LeadStatus
 const STATUS_DISQUALIFIED = 'DISQUALIFIED' as unknown as LeadStatus
 import { seedScoringRules } from './scoring-rules'
+import { seedRegionsAndNiches } from './regions-niches'
 
 const prisma = new PrismaClient()
 
@@ -94,6 +95,7 @@ async function main() {
   // =========================================================================
 
   await seedScoringRules(prisma)
+  await seedRegionsAndNiches(prisma)
 
   // ApiCredential — ativa (google_places)
   await prisma.apiCredential.upsert({

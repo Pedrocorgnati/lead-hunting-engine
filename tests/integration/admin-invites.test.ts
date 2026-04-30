@@ -22,7 +22,7 @@ jest.mock('next/headers', () => ({
 import { GET as listInvites, POST as createInvite } from '@/app/api/v1/admin/invites/route'
 import { DELETE as revokeInvite } from '@/app/api/v1/admin/invites/[id]/route'
 import { POST as resendInvite } from '@/app/api/v1/admin/invites/[id]/resend/route'
-import { requireAdmin, requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { createServerClient } from '@supabase/ssr'
 import { makeRequest, makeRouteContext, parseResponseJson } from './helpers/request.helper'
 import { setupAdminMock, setupUnauthenticatedMock } from './helpers/auth.helper'

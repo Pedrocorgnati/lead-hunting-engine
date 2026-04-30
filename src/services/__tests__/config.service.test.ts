@@ -179,7 +179,7 @@ describe('ConfigService', () => {
       getPrisma().apiCredential.findUnique.mockResolvedValue(null)
       await expect(
         service.deleteCredential({ provider: 'OPENAI' })
-      ).rejects.toThrow('CONFIG_080')
+      ).rejects.toMatchObject({ code: 'CONFIG_080', httpStatus: 404 })
     })
 
     it('should delete credential by id and log audit', async () => {
@@ -216,7 +216,7 @@ describe('ConfigService', () => {
       expect(result.message).toContain('CONFIG_050')
     })
 
-    it('should validate Anthropic key format — valid prefix', async () => {
+    it('should validate Anthropic key via live API call — valid', async () => {
       getCrypto().decrypt.mockReturnValueOnce('sk-ant-valid-key')
       getPrisma().apiCredential.findUnique.mockResolvedValue({
         id: 'cred-1',
@@ -224,12 +224,22 @@ describe('ConfigService', () => {
         encryptedKey: 'enc:tag',
         iv: 'iv',
       })
+      const fetchSpy = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(new Response(JSON.stringify({ data: [] }), { status: 200 }))
       const result = await service.testCredential('ANTHROPIC')
       expect(result.ok).toBe(true)
-      expect(result.message).toContain('formato de chave válido')
+      expect(result.message).toContain('Anthropic')
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.anthropic.com/v1/models',
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'x-api-key': 'sk-ant-valid-key' }),
+        }),
+      )
+      fetchSpy.mockRestore()
     })
 
-    it('should validate Anthropic key format — invalid prefix', async () => {
+    it('should report Anthropic 401 as invalid', async () => {
       getCrypto().decrypt.mockReturnValueOnce('sk-invalid')
       getPrisma().apiCredential.findUnique.mockResolvedValue({
         id: 'cred-1',
@@ -237,8 +247,13 @@ describe('ConfigService', () => {
         encryptedKey: 'enc:tag',
         iv: 'iv',
       })
+      const fetchSpy = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, statusText: 'Unauthorized' }))
       const result = await service.testCredential('ANTHROPIC')
       expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/401|invalida/)
+      fetchSpy.mockRestore()
     })
   })
 

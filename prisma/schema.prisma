@@ -124,6 +124,7 @@ model UserProfile {
   maxConcurrentJobs       Int       @default(3)   @map("max_concurrent_jobs")
   deactivatedAt           DateTime? @map("deactivated_at")
   mustResetPassword       Boolean   @default(false) @map("must_reset_password")
+  tags                    String[]  @default([])
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @updatedAt @map("updated_at")
 
@@ -136,7 +137,9 @@ model UserProfile {
   notifications  Notification[]
   notificationPrefs NotificationPreference[]
   pushSubscriptions PushSubscription[]
+  npsResponses      NpsResponse[]
 
+  @@index([tags], type: Gin)
   @@map("user_profiles")
 }
 
@@ -578,6 +581,8 @@ enum ExportFormat {
   CSV
   JSON
   VCF
+  // M12-G03: alinha BUDGET.md "quatro formatos diferentes (planilha)".
+  XLSX
 }
 
 model ExportHistory {
@@ -733,6 +738,25 @@ model SystemConfig {
   @@map("system_config")
 }
 
+// M14-G-006: respostas de NPS in-app (0-10 + comentario opcional).
+// Trigger condicional: usuario elegivel apos N dias ativo OU N leads coletados,
+// com cooldown configuravel via SystemConfig (nps_*).
+model NpsResponse {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  score         Int
+  comment       String?  @db.Text
+  submittedAt   DateTime @default(now()) @map("submitted_at")
+  userAgent     String?  @map("user_agent") @db.VarChar(500)
+  surveyVersion String   @default("v1") @map("survey_version") @db.VarChar(20)
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([submittedAt])
+  @@map("nps_responses")
+}
+
 model SentAlert {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   rule      String   @db.VarChar(80)
@@ -827,4 +851,75 @@ model LocalQueueJob {
   @@unique([kind, payloadHash])
   @@index([status, runAt])
   @@map("local_queue_jobs")
+}
+
+// ─────────────────────────────────────────
+// FEATURE FLAGS — module-16 (Fase 2)
+// ADR-0042: provider local Postgres-backed
+// ─────────────────────────────────────────
+
+model FeatureFlag {
+  id                 String   @id @default(cuid())
+  /// Nome canonico `dominio.modulo.sub_feature` (snake_case, 3 partes).
+  name               String   @unique @db.VarChar(120)
+  description        String?  @db.VarChar(500)
+  ownerModule        String   @map("owner_module") @db.VarChar(100)
+  /// Valor default quando nenhum env override existe. JSON: bool|number|string|object.
+  defaultValue       Json     @map("default_value")
+  /// Tags para filtro (ex: ["billing", "canary"]).
+  tags               String[] @default([])
+  /// Mapa env -> valor JSON. Suporta payload `{rollout_pct, target_value, fallback_value}`.
+  envValues          Json     @default("{}") @map("env_values")
+  /// Id do provider externo (LaunchDarkly/GrowthBook). Vazio enquanto local.
+  externalProviderId String?  @map("external_provider_id") @db.VarChar(200)
+  archivedAt         DateTime? @map("archived_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String   @map("created_by") @db.VarChar(64)
+
+  changes            FeatureFlagChange[]
+  usages             FeatureFlagUsage[]
+
+  @@index([ownerModule])
+  @@index([tags])
+  @@index([archivedAt])
+  @@map("feature_flags")
+}
+
+model FeatureFlagChange {
+  id             String      @id @default(cuid())
+  flag           FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  flagId         String      @map("flag_id")
+  /// Ambiente afetado: development | preview | production.
+  env            String      @db.VarChar(20)
+  /// Tipo de mudanca: created | updated_default | env_value_set | env_value_cleared | metadata_updated | deleted
+  kind           String      @db.VarChar(40)
+  beforeValue    Json        @map("before_value")
+  afterValue     Json        @map("after_value")
+  reason         String      @db.VarChar(500)
+  changedBy      String      @map("changed_by") @db.VarChar(64)
+  changedByEmail String      @map("changed_by_email") @db.VarChar(180)
+  ipAddress      String      @map("ip_address") @db.VarChar(64)
+  userAgent      String?     @map("user_agent") @db.VarChar(500)
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@index([flagId, createdAt])
+  @@index([changedBy, createdAt])
+  @@index([env, createdAt])
+  @@map("feature_flag_changes")
+}
+
+model FeatureFlagUsage {
+  id        String      @id @default(cuid())
+  flag      FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  flagId    String      @map("flag_id")
+  filePath  String      @map("file_path") @db.VarChar(400)
+  lineStart Int         @map("line_start")
+  lineEnd   Int         @map("line_end")
+  snippet   String      @db.VarChar(500)
+  scannedAt DateTime    @default(now()) @map("scanned_at")
+
+  @@index([flagId])
+  @@index([filePath])
+  @@map("feature_flag_usages")
 }

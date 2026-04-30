@@ -56,9 +56,9 @@ export async function getCredentials(): Promise<CredentialDto[]> {
 /**
  * Cria ou atualiza credencial de API para o provider.
  * INFRA-002: criptografia AES-256-GCM via CryptoUtil.
+ * Label é determinado canonicamente por CREDENTIAL_PROVIDER_MAP — não é campo editável.
  */
 export async function createCredential(data: {
-  label: string
   provider: CredentialProvider
   apiKey: string
 }): Promise<{ id: string }> {
@@ -73,12 +73,12 @@ export async function createCredential(data: {
 }
 
 /**
- * Atualiza label ou chave de uma credencial existente.
+ * Atualiza a chave de uma credencial existente.
  * Identifica a credencial pelo id (uuid).
  */
 export async function updateCredential(
   id: string,
-  data: { label?: string; apiKey?: string },
+  data: { apiKey?: string },
 ): Promise<{ success: boolean }> {
   const user = await requireAdmin()
   if (data.apiKey) {

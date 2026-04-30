@@ -136,7 +136,7 @@ export function ScoringImpactPreview({ ruleSlug, newWeight, currentWeight }: Pro
       </div>
       {sampled && (
         <p className="text-[10px] text-muted-foreground">
-          Amostra de 1000 de {totalLeads} leads.
+          Previa baseada nos 1000 leads mais recentes (de {totalLeads} totais).
         </p>
       )}
     </div>

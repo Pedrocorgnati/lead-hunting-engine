@@ -12,7 +12,8 @@ import type { Prisma } from '@prisma/client'
 
 export interface QueueExportInput {
   userId: string
-  format: 'CSV' | 'JSON' | 'VCF'
+  // M12-G03: XLSX adicionado como 4o formato (BUDGET.md "planilha em quatro formatos").
+  format: 'CSV' | 'JSON' | 'VCF' | 'XLSX'
   filters: Prisma.InputJsonValue
   estimatedRowCount: number
 }

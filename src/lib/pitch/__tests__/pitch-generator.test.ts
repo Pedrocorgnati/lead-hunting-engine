@@ -113,4 +113,37 @@ describe('generatePitch', () => {
       LLMUnavailableError
     )
   })
+
+  it('propaga costCtx para generateWithLLM quando fornecido (M11-G01)', async () => {
+    generateWithLLM.mockResolvedValueOnce(llmResult(VALID_PITCH))
+
+    const ctx = {
+      operation: 'pitch.generate',
+      userId: 'u-1',
+      leadId: 'l-1',
+      jobId: null,
+      correlationId: null,
+    }
+    await generatePitch(makeLead(), 'formal', ctx)
+
+    expect(generateWithLLM).toHaveBeenCalledTimes(1)
+    expect(generateWithLLM).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      ctx
+    )
+  })
+
+  it('chama generateWithLLM com costCtx undefined quando nao fornecido (back-compat)', async () => {
+    generateWithLLM.mockResolvedValueOnce(llmResult(VALID_PITCH))
+
+    await generatePitch(makeLead(), 'formal')
+
+    expect(generateWithLLM).toHaveBeenCalledTimes(1)
+    expect(generateWithLLM).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      undefined
+    )
+  })
 })

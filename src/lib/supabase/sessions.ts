@@ -89,11 +89,11 @@ export async function markCurrentSession(
   sessions: UserSession[],
   currentUserAgent: string | null,
   currentIp: string | null,
-): Promise<UserSession & { isCurrent?: boolean }[]> {
+): Promise<Array<UserSession & { isCurrent?: boolean }>> {
   return sessions.map((s) => ({
     ...s,
     isCurrent: Boolean(
       currentUserAgent && currentIp && s.userAgent === currentUserAgent && s.ip === currentIp,
     ),
-  })) as UserSession[] & { isCurrent?: boolean }[]
+  }))
 }

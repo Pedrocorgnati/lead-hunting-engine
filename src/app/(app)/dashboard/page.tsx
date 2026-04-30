@@ -7,7 +7,7 @@ import { getDashboardStats, getRecentLeads } from '@/actions/leads'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { DashboardMetrics } from './_components/DashboardMetrics'
-import { TOTAL_ONBOARDING_STEPS } from '@/lib/schemas/onboarding'
+import { getTotalOnboardingSteps } from '@/lib/schemas/onboarding'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -48,13 +48,14 @@ export default async function DashboardPage() {
 
   const profile = await prisma.userProfile.findUnique({
     where: { id: user.id },
-    select: { onboardingCompletedAt: true, onboardingStep: true },
+    select: { onboardingCompletedAt: true, onboardingStep: true, role: true },
   })
   if (!profile?.onboardingCompletedAt) redirect('/onboarding')
 
   const onboardingStep = profile?.onboardingStep ?? 0
+  const totalOnboardingSteps = getTotalOnboardingSteps(profile.role)
   const showOnboardingBanner =
-    !profile?.onboardingCompletedAt || onboardingStep < TOTAL_ONBOARDING_STEPS
+    !profile?.onboardingCompletedAt || onboardingStep < totalOnboardingSteps
 
   const [stats, recentLeads] = await Promise.all([
     getDashboardStats(),
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
               Finalize sua configuração inicial
             </p>
             <p className="text-xs text-muted-foreground">
-              Passo {onboardingStep} de {TOTAL_ONBOARDING_STEPS} — complete para habilitar todas as coletas.
+              Passo {onboardingStep} de {totalOnboardingSteps} — complete para habilitar todas as coletas.
             </p>
           </div>
           <Link

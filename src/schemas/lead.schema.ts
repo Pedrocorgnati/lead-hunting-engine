@@ -31,8 +31,8 @@ export const LeadListQuerySchema = z.object({
   niche: z.string().optional(),
   status: z.string().optional(),
   temperature: z.string().optional(),
-  scoreMin: z.coerce.number().int().min(0).max(10).optional(),
-  scoreMax: z.coerce.number().int().min(0).max(10).optional(),
+  scoreMin: z.coerce.number().int().min(0).max(100).optional(),
+  scoreMax: z.coerce.number().int().min(0).max(100).optional(),
   search: z.string().optional(),
   /** Filtro rapido por janela temporal — CL-174 */
   recency: z.enum(['24h', '7d', '30d']).optional(),

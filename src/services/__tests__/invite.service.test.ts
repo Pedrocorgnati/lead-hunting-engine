@@ -38,7 +38,7 @@ jest.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
-import { InviteService, InviteError } from '../invite.service'
+import { InviteService } from '../invite.service'
 import { prisma } from '@/lib/prisma'
 import { AuthService } from '@/lib/services/auth-service'
 
@@ -262,6 +262,77 @@ describe('InviteService', () => {
 
       // transaction foi chamado — o conteúdo são promises internas dos mocks
       expect(mockTransaction).toHaveBeenCalled()
+    })
+  })
+
+  // ─────────────────────────────────────────────
+  // resend — state guards (Codex C1)
+  // ─────────────────────────────────────────────
+
+  describe('resend', () => {
+    it('deve lançar INVITE_080 quando convite não encontrado', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce(null)
+      await expect(service.resend('missing')).rejects.toMatchObject({ code: 'INVITE_080' })
+    })
+
+    it('deve lançar INVITE_052 quando status é ACCEPTED', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'ACCEPTED' })
+      await expect(service.resend('invite-1')).rejects.toMatchObject({ code: 'INVITE_052' })
+    })
+
+    it('deve lançar INVITE_053 quando status é REVOKED', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'REVOKED' })
+      await expect(service.resend('invite-1')).rejects.toMatchObject({ code: 'INVITE_053' })
+    })
+
+    it('deve renovar expiresAt quando convite PENDING', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'PENDING' })
+      const inviteUpdate = prisma.invite.update as jest.Mock
+      inviteUpdate.mockResolvedValueOnce({ ...VALID_INVITE, status: 'PENDING' })
+      await service.resend('invite-1')
+      expect(inviteUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'invite-1' },
+          data: expect.objectContaining({ status: 'PENDING' }),
+        }),
+      )
+    })
+  })
+
+  // ─────────────────────────────────────────────
+  // revoke — state guards (Codex C2)
+  // ─────────────────────────────────────────────
+
+  describe('revoke', () => {
+    it('deve lançar INVITE_080 quando convite não encontrado', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce(null)
+      await expect(service.revoke('missing')).rejects.toMatchObject({ code: 'INVITE_080' })
+    })
+
+    it('deve lançar INVITE_054 quando status é ACCEPTED', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'ACCEPTED' })
+      await expect(service.revoke('invite-1')).rejects.toMatchObject({ code: 'INVITE_054' })
+    })
+
+    it('deve lançar INVITE_055 quando status já é REVOKED', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'REVOKED' })
+      await expect(service.revoke('invite-1')).rejects.toMatchObject({ code: 'INVITE_055' })
+    })
+
+    it('deve lançar INVITE_056 quando status é EXPIRED', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'EXPIRED' })
+      await expect(service.revoke('invite-1')).rejects.toMatchObject({ code: 'INVITE_056' })
+    })
+
+    it('deve revogar convite PENDING com sucesso', async () => {
+      mockInviteFindUnique.mockResolvedValueOnce({ ...VALID_INVITE, status: 'PENDING' })
+      const inviteUpdate = prisma.invite.update as jest.Mock
+      inviteUpdate.mockResolvedValueOnce({})
+      await service.revoke('invite-1')
+      expect(inviteUpdate).toHaveBeenCalledWith({
+        where: { id: 'invite-1' },
+        data: { status: 'REVOKED' },
+      })
     })
   })
 })

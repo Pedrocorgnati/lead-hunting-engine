@@ -49,3 +49,12 @@ export class CryptoUtil {
     return `${apiKey.slice(0, 4)}${'*'.repeat(Math.max(apiKey.length - 8, 4))}${apiKey.slice(-4)}`
   }
 }
+
+// Packed format ApiCredential.encryptedKey: "ciphertext:authTag"; iv stays in its own column.
+export function unpackEncrypted(packed: string): { encryptedKey: string; authTag: string } {
+  const [encryptedKey, authTag] = packed.split(':')
+  if (!encryptedKey || !authTag) {
+    throw new Error('Invalid packed encrypted format — expected "ciphertext:authTag".')
+  }
+  return { encryptedKey, authTag }
+}

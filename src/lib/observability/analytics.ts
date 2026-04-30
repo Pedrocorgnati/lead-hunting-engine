@@ -47,3 +47,31 @@ export function trackEvent(
 export function trackPageView(path: string): void {
   trackEvent('page_view', { path })
 }
+
+// M14-G-011: eventos especificos do programa piloto.
+// Disparados pelos services no ponto de mudanca de estado, NAO pelo cliente,
+// para garantir que o evento ocorre mesmo se o usuario sair da pagina.
+//
+// Side note: como este modulo so funciona no client (gtag/plausible vivem em
+// `window`), os helpers abaixo sao tambem chamaveis no server, mas viram no-op.
+// Para tracking server-side completo, integrar com `api-usage-logger` futuro.
+
+export function trackPilotInviteAccepted(userId: string, tag: string): void {
+  trackEvent('pilot_invite_accepted', { userId, tag })
+}
+
+export function trackNpsSubmitted(
+  userId: string,
+  score: number,
+  bucket: 'detractor' | 'passive' | 'promoter',
+): void {
+  trackEvent('nps_submitted', { userId, score, bucket })
+}
+
+export function trackPilotFirstCollection(userId: string, jobId: string): void {
+  trackEvent('pilot_first_collection', { userId, jobId })
+}
+
+export function trackPilotFirstHotLead(userId: string, leadId: string): void {
+  trackEvent('pilot_first_hot_lead', { userId, leadId })
+}

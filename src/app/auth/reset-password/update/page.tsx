@@ -110,7 +110,8 @@ function UpdatePasswordForm() {
           <p
             id="update-password-error"
             className="text-xs text-destructive flex items-center gap-1"
-            role="alert"
+            role="status"
+            aria-live="polite"
           >
             <AlertCircle className="w-3 h-3" aria-hidden="true" />
             {errors.password.message}
@@ -140,7 +141,8 @@ function UpdatePasswordForm() {
           <p
             id="update-confirm-error"
             className="text-xs text-destructive flex items-center gap-1"
-            role="alert"
+            role="status"
+            aria-live="polite"
           >
             <AlertCircle className="w-3 h-3" aria-hidden="true" />
             {errors.confirmPassword.message}
@@ -149,7 +151,7 @@ function UpdatePasswordForm() {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" aria-live="assertive" className="text-sm text-destructive">
           {error}
         </p>
       )}

@@ -9,15 +9,14 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/lib/hooks/use-toast'
 import { createCredential, updateCredential } from '@/actions/config'
 import { CredentialProvider, CREDENTIAL_PROVIDER_MAP } from '@/lib/constants/enums'
+import { trackEvent } from '@/lib/utils/analytics'
 
 const createSchema = z.object({
-  label: z.string().min(1, 'Rótulo é obrigatório.').max(100),
   provider: z.nativeEnum(CredentialProvider),
   apiKey: z.string().min(1, 'Chave de API é obrigatória.'),
 })
 
 const editSchema = z.object({
-  label: z.string().min(1, 'Rótulo é obrigatório.').max(100),
   apiKey: z.string().optional(),
 })
 
@@ -25,7 +24,7 @@ type CreateFormData = z.infer<typeof createSchema>
 type EditFormData = z.infer<typeof editSchema>
 
 interface CredentialFormProps {
-  editing?: { id: string; provider: string; label: string }
+  editing?: { id: string; provider: string }
   onSuccess: () => void
   onCancel: () => void
 }
@@ -41,18 +40,19 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
 
   const editForm = useForm<EditFormData>({
     resolver: zodResolver(editSchema),
-    defaultValues: { label: editing?.label ?? '', apiKey: '' },
+    defaultValues: { apiKey: '' },
   })
 
-  // Unificamos apenas o que for comum (formState) — register e typed por form
-  // para evitar union-of-signatures que o TS nao consegue chamar.
   const { formState: { errors, isSubmitting } } = isEdit ? editForm : createForm
-  const registerLabel = isEdit ? editForm.register('label') : createForm.register('label')
   const registerApiKey = isEdit ? editForm.register('apiKey') : createForm.register('apiKey')
 
   const onSubmitCreate = async (data: CreateFormData) => {
     try {
-      await createCredential(data)
+      await createCredential({
+        provider: data.provider,
+        apiKey: data.apiKey,
+      })
+      trackEvent('credential_saved', { provider: data.provider, action: 'create' })
       toast.success('Credencial adicionada.')
       onSuccess()
     } catch {
@@ -64,9 +64,9 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
     if (!editing) return
     try {
       await updateCredential(editing.id, {
-        label: data.label,
         apiKey: data.apiKey || undefined,
       })
+      trackEvent('credential_saved', { provider: editing.provider, action: 'update' })
       toast.success('Credencial atualizada.')
       onSuccess()
     } catch {
@@ -96,6 +96,18 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
+          <p className="text-xs text-muted-foreground">
+            Nao sabe onde gerar a chave?{' '}
+            <a
+              href="/docs/admin/credentials-setup.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              Veja o guia por provedor
+            </a>
+            .
+          </p>
         </div>
       )}
 
@@ -109,20 +121,6 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
       )}
 
       <div className="space-y-1.5">
-        <Label htmlFor="cred-label">Rótulo <span aria-hidden="true">*</span></Label>
-        <Input
-          id="cred-label"
-          placeholder="Ex: Google Places Produção"
-          autoFocus
-          disabled={isSubmitting}
-          aria-required="true"
-          aria-invalid={!!errors.label}
-          {...registerLabel}
-        />
-        {errors.label && <p role="alert" className="text-xs text-destructive">{errors.label.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
         <Label htmlFor="cred-key">
           {isEdit ? 'Nova chave (deixe vazio para manter)' : 'Chave de API'}
           {!isEdit && <span aria-hidden="true"> *</span>}
@@ -131,6 +129,7 @@ export function CredentialForm({ editing, onSuccess, onCancel }: CredentialFormP
           id="cred-key"
           type="password"
           autoComplete="off"
+          autoFocus
           placeholder={isEdit ? '••••••••••••' : 'sk-...'}
           disabled={isSubmitting}
           aria-required={!isEdit ? 'true' : undefined}

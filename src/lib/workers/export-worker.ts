@@ -24,19 +24,24 @@ import { captureException } from '@/lib/observability/sentry'
 import { dispatch } from '@/lib/notifications/dispatcher'
 import { leadsToJson, type ExportableLead } from '@/lib/export/json'
 import { leadsToVcf } from '@/lib/export/vcf'
+import { leadsToXlsxBuffer } from '@/lib/export/xlsx'
 import { getExportSettings } from '@/lib/services/system-config'
 import type { Prisma } from '@prisma/client'
 
 const BUCKET = 'exports'
-const MIME: Record<'CSV' | 'JSON' | 'VCF', string> = {
+// M12-B3: XLSX adicionado ao worker async (Codex caught: dispatcher aceitava XLSX, worker so processava CSV/JSON/VCF)
+type ExportFormat = 'CSV' | 'JSON' | 'VCF' | 'XLSX'
+const MIME: Record<ExportFormat, string> = {
   CSV: 'text/csv; charset=utf-8',
   JSON: 'application/json; charset=utf-8',
   VCF: 'text/vcard; charset=utf-8',
+  XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
-const EXT: Record<'CSV' | 'JSON' | 'VCF', string> = {
+const EXT: Record<ExportFormat, string> = {
   CSV: 'csv',
   JSON: 'json',
   VCF: 'vcf',
+  XLSX: 'xlsx',
 }
 
 function csvEscape(val: unknown): string {
@@ -68,16 +73,21 @@ function leadsToCsv(leads: ExportableLead[]): string {
   return [headers.join(','), ...rows].join('\n')
 }
 
+// M12-B3: serialize agora retorna string OU Uint8Array (XLSX e binario)
 function serialize(
-  format: 'CSV' | 'JSON' | 'VCF',
+  format: ExportFormat,
   leads: ExportableLead[],
   filters: Prisma.JsonValue
-): string {
+): string | Uint8Array {
   switch (format) {
     case 'JSON':
       return leadsToJson(leads, (filters ?? {}) as Record<string, unknown>)
     case 'VCF':
       return leadsToVcf(leads)
+    case 'XLSX': {
+      const buf = leadsToXlsxBuffer(leads)
+      return new Uint8Array(buf)
+    }
     case 'CSV':
     default:
       return leadsToCsv(leads)
@@ -91,6 +101,15 @@ function filtersToWhere(filters: Prisma.JsonValue, userId: string): Record<strin
   if (f.temperature) where.temperature = f.temperature
   if (f.city) where.city = { contains: String(f.city), mode: 'insensitive' }
   if (f.niche) where.category = { contains: String(f.niche), mode: 'insensitive' }
+  // M12-B1: type (opportunity) + recency tambem propagados ao worker async
+  if (f.type) where.opportunities = { has: String(f.type) }
+  if (f.recency) {
+    const hoursMap: Record<string, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 }
+    const hours = hoursMap[String(f.recency)]
+    if (hours) {
+      where.createdAt = { gte: new Date(Date.now() - hours * 60 * 60 * 1000) }
+    }
+  }
   if (f.scoreMin !== undefined || f.scoreMax !== undefined) {
     where.score = {
       ...(f.scoreMin !== undefined ? { gte: Number(f.scoreMin) } : {}),
@@ -137,15 +156,21 @@ export async function runExportWorker(exportId: string): Promise<void> {
       },
     })
 
-    const format = row.format as 'CSV' | 'JSON' | 'VCF'
+    const format = row.format as ExportFormat
     const body = serialize(format, leads as ExportableLead[], row.filters)
     const ext = EXT[format]
     const filePath = `${row.userId}/${exportId}.${ext}`
 
+    // M12-B3: upload aceita string (CSV/JSON/VCF) ou ArrayBuffer (XLSX binario).
+    // Convertemos Uint8Array -> ArrayBuffer fatiado para evitar incompatibilidade BlobPart.
     const supabase = createAdminClient()
+    const uploadBody: ArrayBuffer | string =
+      typeof body === 'string'
+        ? body
+        : (body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength) as ArrayBuffer)
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(filePath, new Blob([body], { type: MIME[format] }), {
+      .upload(filePath, new Blob([uploadBody], { type: MIME[format] }), {
         contentType: MIME[format],
         upsert: true,
       })
@@ -160,13 +185,14 @@ export async function runExportWorker(exportId: string): Promise<void> {
     }
 
     const expiresAt = new Date(Date.now() + ttlSec * 1000)
+    const fileSize = typeof body === 'string' ? body.length : body.byteLength
 
     await prisma.exportHistory.update({
       where: { id: exportId },
       data: {
         status: 'COMPLETED',
         fileUrl: signed.signedUrl,
-        fileSize: body.length,
+        fileSize,
         rowCount: leads.length,
         completedAt: new Date(),
         expiresAt,

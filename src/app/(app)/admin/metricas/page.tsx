@@ -18,6 +18,7 @@ import { MetricsComparePanel } from '@/components/admin/MetricsComparePanel'
 import { CollectionsTimelineChart } from '@/components/admin/CollectionsTimelineChart'
 import { AlertsSettings } from '@/components/admin/AlertsSettings'
 import { FalsePositiveGlobalCard } from '@/components/admin/FalsePositiveGlobalCard'
+import { trackEvent } from '@/lib/utils/analytics'
 
 interface MetricCardProps {
   icon: React.ReactNode
@@ -96,6 +97,7 @@ export default function MetricasPage() {
 
   useEffect(() => {
     fetchMetrics()
+    trackEvent('admin_metrics_viewed')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

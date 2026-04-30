@@ -88,6 +88,7 @@ describe('GET /api/v1/invites/[token]', () => {
 
 describe('POST /api/v1/invites/[token]/activate', () => {
   // Mock Supabase para simular criação de usuário e login
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function mockSupabaseActivation(userId: string) {
     const mockClient = {
       auth: {

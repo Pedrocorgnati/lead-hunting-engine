@@ -1,15 +1,21 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/lib/hooks/use-toast'
 
+// M12-B1: aceitar todas as 9 dimensoes herdadas do /leads (Codex caught: filters perdiam de /leads para /exportar)
 interface ExportFilters {
   status?: string
   type?: string
   search?: string
+  city?: string
+  niche?: string
+  temperature?: string
   scoreMin?: number
   scoreMax?: number
+  recency?: string
 }
 
 interface Props {
@@ -17,16 +23,19 @@ interface Props {
   onClose: () => void
 }
 
-type ExportFormat = 'CSV' | 'JSON' | 'VCF'
+// M12-G03: XLSX adicionado como 4o formato (BUDGET.md "planilha em quatro formatos").
+type ExportFormat = 'CSV' | 'JSON' | 'VCF' | 'XLSX'
 
-const EXT: Record<ExportFormat, string> = { CSV: 'csv', JSON: 'json', VCF: 'vcf' }
+const EXT: Record<ExportFormat, string> = { CSV: 'csv', JSON: 'json', VCF: 'vcf', XLSX: 'xlsx' }
 const FORMATS: Array<{ value: ExportFormat; label: string; hint: string }> = [
   { value: 'CSV', label: 'CSV', hint: 'Planilhas (Excel, Sheets)' },
+  { value: 'XLSX', label: 'Excel', hint: 'Planilha nativa (.xlsx)' },
   { value: 'JSON', label: 'JSON', hint: 'Integracoes e scripts' },
   { value: 'VCF', label: 'vCard', hint: 'Agenda de contatos' },
 ]
 
 export function ExportForm({ activeFilters = {}, onClose }: Props) {
+  const router = useRouter()
   const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,15 +57,35 @@ export function ExportForm({ activeFilters = {}, onClose }: Props) {
       })
 
       if (res.status === 413) {
+        // M12-B2 round 2 (Codex caught): copy original prometia fila para >10k mas
+        // o backend retorna 413 antes de enfileirar acima do EXPORT_MAX_ROWS sincrono.
+        // Mensagem alinhada com o comportamento real.
         setError(
-          'O resultado dos filtros ultrapassa 10.000 leads. Use a exportacao assincrona (em breve).'
+          'O resultado dos filtros ultrapassa 10.000 leads, que e o limite sincrono. Refine os filtros (ex: estreite cidade, nicho, temperatura ou score) para reduzir o volume.'
         )
         return
       }
+
+      // M12-B2: tratar 202 (fila assincrona) como dispatch — NAO baixar o JSON como arquivo
+      if (res.status === 202) {
+        const payload = (await res.json().catch(() => ({}))) as {
+          data?: { exportId?: string; count?: number; message?: string }
+        }
+        const count = payload?.data?.count ?? 0
+        toast.success(
+          `Exportacao enfileirada (${count} leads). Voce sera notificado e pode acompanhar em /exports.`
+        )
+        onClose()
+        // Direciona o usuario para a pagina de historico de exports
+        router.push('/exports')
+        return
+      }
+
       if (!res.ok) {
         throw new Error('Erro ao gerar exportacao. Tente novamente.')
       }
 
+      // 200 OK -> download sincrono
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

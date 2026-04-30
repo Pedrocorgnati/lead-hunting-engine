@@ -3,9 +3,11 @@ import type { Config } from 'jest'
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/src', '<rootDir>/trigger'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // module-16: stub server-only no ambiente jest (vide src/lib/feature-flags)
+    '^server-only$': '<rootDir>/src/__tests__/__mocks__/server-only.ts',
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
   transform: {

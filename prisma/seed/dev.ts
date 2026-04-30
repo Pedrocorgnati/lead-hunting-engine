@@ -960,6 +960,40 @@ async function main() {
 
   console.log('  ✓ AuditLogs (5)')
 
+  // ─── FeatureFlags (module-16, Fase 2) ───────────────────────────────────────
+  // Cobre: TASK-4/ST007. Idempotente via upsert por `name`.
+
+  await prisma.featureFlag.upsert({
+    where: { name: 'system.healthcheck.echo' },
+    create: {
+      id: 'sysflag_healthcheck_echo',
+      name: 'system.healthcheck.echo',
+      description: 'Flag canonica usada pelo healthcheck /api/v1/health/feature-flags.',
+      ownerModule: 'module-16-feature-flags-foundation',
+      defaultValue: true,
+      tags: ['system', 'healthcheck'],
+      envValues: {},
+      createdBy: 'system',
+    },
+    update: {},
+  })
+
+  await prisma.featureFlag.upsert({
+    where: { name: 'fase2.outreach.whatsapp_enabled' },
+    create: {
+      name: 'fase2.outreach.whatsapp_enabled',
+      description: 'Habilita o gateway WhatsApp Business no module-22 (Fase 2 / outreach).',
+      ownerModule: 'module-22-outreach-engine',
+      defaultValue: false,
+      tags: ['fase2', 'outreach', 'canary'],
+      envValues: {},
+      createdBy: 'system',
+    },
+    update: {},
+  })
+
+  console.log('  ✓ FeatureFlags (2)')
+
   // ─── Sumário ────────────────────────────────────────────────────────────────
 
   console.log('\n🎉 Dev seed concluído com sucesso!')

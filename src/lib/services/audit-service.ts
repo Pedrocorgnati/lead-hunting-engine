@@ -11,6 +11,9 @@ export type AuditAction =
   | 'scoring_rule.updated'
   | 'scoring_rule.reset'
   | 'user.deletion_requested'
+  | 'user.deletion_cancelled'
+  // M3-G03: DSAR (LGPD Art. 18 V) — exportacao de dados pessoais
+  | 'profile.data_exported'
   | 'lead.status_changed'
   | 'lead.false_positive'
   | 'collection.started'
@@ -52,6 +55,13 @@ export type AuditAction =
   | 'admin.alerts_thresholds_updated'
   // TASK-23 intake-review (CL-079): admin copia valor de credencial via opaque token
   | 'ADMIN_CREDENTIAL_COPIED'
+  // REMEDIATION M3-G02: hard-delete pos-15d via cron LGPD
+  | 'lgpd.hard_delete'
+  | 'user.deletion_completed'
+  // M14-G-006: NPS in-app
+  | 'nps.submitted'
+  // M14-G-010: cohort piloto via tags do usuario
+  | 'user.tags_updated'
 
 interface AuditLogParams {
   userId?: string

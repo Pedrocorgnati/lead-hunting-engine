@@ -8,20 +8,26 @@ import { limits } from '@/lib/rate-limiter'
 import { EXPORT_MAX_ROWS } from '@/constants/errors'
 import { leadsToJson, type ExportableLead } from '@/lib/export/json'
 import { leadsToVcf } from '@/lib/export/vcf'
+import { leadsToXlsxBuffer } from '@/lib/export/xlsx'
 import { shouldQueueAsync, queueAsyncExport } from '@/lib/export/dispatcher'
 
-const ExportFormat = z.enum(['CSV', 'JSON', 'VCF'])
+// M12-G03: XLSX adicionado como 4o formato (alinha BUDGET.md "planilha em quatro formatos").
+const ExportFormat = z.enum(['CSV', 'JSON', 'VCF', 'XLSX'])
 
 const ExportSchema = z.object({
   status: z.nativeEnum(LeadStatus).optional(),
   temperature: z.nativeEnum(LeadTemperature).optional(),
   city: z.string().max(255).optional(),
   niche: z.string().max(255).optional(),
-  scoreMin: z.number().int().min(0).max(10).optional(),
-  scoreMax: z.number().int().min(0).max(10).optional(),
+  // M12-B4: score scale 0-100 (alinhado com radar/seeds; corrige bug Codex)
+  scoreMin: z.number().int().min(0).max(100).optional(),
+  scoreMax: z.number().int().min(0).max(100).optional(),
   search: z.string().max(255).optional(),
+  // M12-B1: aceitar type (opportunity) e recency para herdar filtros de /leads (Codex caught: 2 dimensoes faltando)
+  type: z.string().max(50).optional(),
+  recency: z.enum(['24h', '7d', '30d']).optional(),
   format: z
-    .union([ExportFormat, z.literal('csv'), z.literal('json'), z.literal('vcf')])
+    .union([ExportFormat, z.literal('csv'), z.literal('json'), z.literal('vcf'), z.literal('xlsx')])
     .default('CSV')
     .transform((v) => v.toUpperCase() as z.infer<typeof ExportFormat>),
 })
@@ -30,11 +36,13 @@ const MIME: Record<z.infer<typeof ExportFormat>, string> = {
   CSV: 'text/csv; charset=utf-8',
   JSON: 'application/json; charset=utf-8',
   VCF: 'text/vcard; charset=utf-8',
+  XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 const EXT: Record<z.infer<typeof ExportFormat>, string> = {
   CSV: 'csv',
   JSON: 'json',
   VCF: 'vcf',
+  XLSX: 'xlsx',
 }
 
 function csvEscape(val: unknown): string {
@@ -97,7 +105,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { status, temperature, city, niche, scoreMin, scoreMax, search, format } =
+    const { status, temperature, city, niche, scoreMin, scoreMax, search, type, recency, format } =
       parsed.data
 
     const where: Record<string, unknown> = { userId: user.id }
@@ -105,6 +113,14 @@ export async function POST(request: NextRequest) {
     if (temperature) where.temperature = temperature
     if (city) where.city = { contains: city, mode: 'insensitive' }
     if (niche) where.category = { contains: niche, mode: 'insensitive' }
+    // M12-B1: type=opportunity filter (alinha com getLeads em src/actions/leads.ts:173)
+    if (type) where.opportunities = { has: type }
+    // M12-B1: recency window (alinha com getLeads:177-181)
+    if (recency) {
+      const hoursMap = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 } as const
+      const hours = hoursMap[recency]
+      where.createdAt = { gte: new Date(Date.now() - hours * 60 * 60 * 1000) }
+    }
     if (scoreMin !== undefined || scoreMax !== undefined) {
       where.score = {
         ...(scoreMin !== undefined ? { gte: scoreMin } : {}),
@@ -139,7 +155,9 @@ export async function POST(request: NextRequest) {
       const queued = await queueAsyncExport({
         userId: user.id,
         format,
-        filters: JSON.parse(JSON.stringify({ status, temperature, city, niche, scoreMin, scoreMax, search })),
+        filters: JSON.parse(
+          JSON.stringify({ status, temperature, city, niche, scoreMin, scoreMax, search, type, recency })
+        ),
         estimatedRowCount: count,
       })
       return NextResponse.json(
@@ -178,6 +196,21 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // M12-G03: XLSX retorna binario (Buffer), demais formatos retornam string.
+    const filename = `leads-export-${new Date().toISOString().slice(0, 10)}.${EXT[format]}`
+    const commonHeaders = {
+      'Content-Type': MIME[format],
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'X-Export-Count': String(leads.length),
+      'X-Export-Format': format,
+    }
+
+    if (format === 'XLSX') {
+      const buffer = leadsToXlsxBuffer(leads as ExportableLead[])
+      // Buffer -> Uint8Array para satisfazer BodyInit do NextResponse.
+      return new NextResponse(new Uint8Array(buffer), { status: 200, headers: commonHeaders })
+    }
+
     let content: string
     switch (format) {
       case 'JSON':
@@ -199,16 +232,7 @@ export async function POST(request: NextRequest) {
         content = leadsToCsv(leads as ExportableLead[])
     }
 
-    const filename = `leads-export-${new Date().toISOString().slice(0, 10)}.${EXT[format]}`
-    return new NextResponse(content, {
-      status: 200,
-      headers: {
-        'Content-Type': MIME[format],
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'X-Export-Count': String(leads.length),
-        'X-Export-Format': format,
-      },
-    })
+    return new NextResponse(content, { status: 200, headers: commonHeaders })
   } catch (error) {
     return handleApiError(error)
   }

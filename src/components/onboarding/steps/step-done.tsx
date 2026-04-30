@@ -3,8 +3,10 @@
 import { PartyPopper } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { OnboardingData } from '@/lib/schemas/onboarding'
+import type { UserRole } from '@/lib/constants/enums'
 
 interface Props {
+  role: UserRole
   data?: OnboardingData
   onStartTour: () => void
   onSkipTour: () => void
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function StepDone({
+  role,
   data,
   onStartTour,
   onSkipTour,
@@ -21,11 +24,15 @@ export function StepDone({
 }: Props) {
   const niches = data?.niches ?? []
   const regions = data?.regions ?? []
-  const integrations = data?.integrations?.integrations?.filter((i) => i.configured) ?? []
   const firstRegion = regions[0]
   const firstCity = firstRegion?.cities?.[0]
+  const isAdmin = role === 'ADMIN'
   const canDispatch =
-    !!onStartFirstCollection && niches.length > 0 && !!firstRegion && !!firstCity
+    isAdmin
+    && !!onStartFirstCollection
+    && niches.length > 0
+    && !!firstRegion
+    && !!firstCity
 
   return (
     <div className="w-full space-y-4 text-center" data-testid="onboarding-step-done">
@@ -53,10 +60,6 @@ export function StepDone({
         <div className="flex justify-between gap-2">
           <dt className="text-muted-foreground">Regiões</dt>
           <dd className="font-medium">{regions.length}</dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-muted-foreground">Integrações marcadas</dt>
-          <dd className="font-medium">{integrations.length}</dd>
         </div>
       </dl>
 

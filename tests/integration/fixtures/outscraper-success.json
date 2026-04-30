@@ -1,0 +1,56 @@
+{
+  "status": "Success",
+  "data": [
+    [
+      {
+        "place_id": "ChIJfix-osc-success-001",
+        "google_id": "0x94ce5f4a:0x111aaa",
+        "name": "Pizzaria Bella Napoli",
+        "full_address": "Rua Augusta, 1500 - Consolacao, Sao Paulo - SP",
+        "city": "Sao Paulo",
+        "state": "SP",
+        "phone": "+55 11 3256-7800",
+        "site": "https://www.bellanapoli-fixture.example",
+        "type": "Restaurante italiano",
+        "subtypes": ["Italian restaurant", "Pizzeria"],
+        "rating": 4.5,
+        "reviews": 320,
+        "latitude": -23.5557,
+        "longitude": -46.6606,
+        "_pii_test_payload": {
+          "owner_email": "marco.napoli@personal-fixture.example",
+          "owner_cpf": "123.456.789-00",
+          "note": "Campo proposital para validar sanitizeRawJson em ST004 cenario PII"
+        }
+      },
+      {
+        "place_id": "ChIJfix-osc-success-002",
+        "name": "Cantina Romana",
+        "full_address": "Av. Paulista, 2200 - Bela Vista, Sao Paulo - SP",
+        "city": "Sao Paulo",
+        "state": "SP",
+        "phone": "+55 11 3287-1422",
+        "site": "https://cantina-romana-fixture.example",
+        "type": "Restaurante italiano",
+        "rating": 4.2,
+        "reviews": 187,
+        "latitude": -23.5614,
+        "longitude": -46.6558
+      },
+      {
+        "place_id": "ChIJfix-osc-success-003",
+        "name": "Forno a Lenha do Bairro",
+        "full_address": "Rua dos Pinheiros, 800 - Pinheiros, Sao Paulo - SP",
+        "city": "Sao Paulo",
+        "state": "SP",
+        "phone": "+55 11 3812-9090",
+        "site": "https://fornoalenha-fixture.example",
+        "type": "Pizzaria",
+        "rating": 4.7,
+        "reviews": 542,
+        "latitude": -23.5664,
+        "longitude": -46.6831
+      }
+    ]
+  ]
+}

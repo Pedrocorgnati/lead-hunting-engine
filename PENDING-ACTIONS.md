@@ -144,3 +144,40 @@ Findings do `/skill:mcp-codex` Level 2 (senior-qa-architect + senior-adversarial
 - `npm run lint`: 17 errors + 47 warnings (era 19 + 46)
 - `npm run build`: **FAIL** — `pg` pulled into Client Component bundle (pre-existente; `src/app/(app)/admin/convites/page.tsx` importa `src/services/invite.service.ts` → `src/lib/prisma.ts` → `pg`). Requer mover para Server Component puro ou API route. Nao introduzido pela remediacao.
 - `npm test`: **350/352 PASS** (2 pre-existing logic failures em `config.service.test.ts`, `scoring.test.ts`)
+
+---
+
+## Milestone 13 — Pendencias /auto-flow delivery-pre milestone-13 (2026-04-29)
+
+Acoes que exigem intervencao humana ou dependem de ambiente production. Documentadas em `output/docs/lead-hunting-engine/delivery/remediation/REMEDIATION-M13-G*.md`.
+
+### Bloqueadores de sign-off da Milestone 13
+
+| Gap | Descricao | Acao | Doc |
+|-----|-----------|------|-----|
+| **M13-G01** | Deploy producao Vercel + URL publica | `vercel login && vercel link && vercel --prod` + configurar 14 env vars RUNTIME via `vercel env add` (DATABASE_URL, MASTER_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, SUPABASE_*, TRIGGER_SECRET_KEY, NEXTAUTH_SECRET, SENTRY_DSN, etc); registrar URL final em `.claude/projects/lead-hunting-engine.json#basic_flow.vercel_link` | REMEDIATION-M13-G01.md |
+| **M13-G05** | Migrations Prisma deploy contra Supabase production | `prisma migrate deploy` com DATABASE_URL/DIRECT_URL apontando para producao; archivar log em `reports/ci/m13-prisma-migrate-deploy.log`; validar com `prisma migrate status` + `psql \dt` | REMEDIATION-M13-G05.md |
+| **M13-G08** | Lighthouse + p95 TTFB pos-deploy | Apos M13-G01: `npx lighthouse {url}/dashboard --preset=desktop` + mobile; Sentry trace 7-day -> p95 TTFB; archivar em `reports/lighthouse/`; alvo Lighthouse >= 90 + TTFB p95 < 250ms | REMEDIATION-M13-G08.md |
+
+### Tech debt aceito (nao bloqueia sign-off)
+
+| Gap | Descricao | Plano |
+|-----|-----------|-------|
+| **M13-G07** | ESLint 17 errors react-compiler/react-hooks pre-existentes | Tratar em milestone de manutencao pos-entrega — `react-hooks/rules-of-hooks` em `admin/metricas`, `dev/DataTestOverlay`; `react-compiler/error` em `admin/configuracoes`, `radar`, `landing/{Contact,Waitlist}Form`, `NotificationPermissionBanner`, `coletas/QuotaBadge` |
+| **M13-G10** | 8 issues baixos remanescentes do INTEGRATION-REPORT (B1-B8) | Tech debt operacional: Routes.COLLECTION_NEW orphan, lead-status-badge display dup, profile-form aria, hamburger touch-target, error boundaries por rota, 4 paginas sem metadata.title, /admin/scoring RBAC page-level |
+| **M13-G11** | Suite Playwright completa (4 fluxos faltantes) | TODOs documentados em `tests/e2e/smoke.spec.ts`: coleta real disparada do zero, geracao de pitch, mudanca de lifecycle, convite admin -> aceite -> primeiro acesso operador. Ja resolvido criticamente via `npm run smoke` |
+
+### Decisao registrada
+
+| Gap | Decisao |
+|-----|---------|
+| **M13-G06** | Onboarding wizard simplificado oficialmente para 2 steps (Welcome + Done). Detalhes em REMEDIATION-M13-G06.md. ISSUE-E2E-01 / BLOQUEADOR-E2E-01 do INTEGRATION-REPORT considerados resolvidos por decisao de produto. |
+
+### Gaps remediados em codigo (apenas referencia)
+
+| Gap | Status | Onde |
+|-----|--------|------|
+| M13-G02 | CORRIGIDO | `output/workspace/lead-hunting-engine/README.md` reescrito + `MANUAL.md` novo |
+| M13-G03 | CORRIGIDO | `output/wbs/lead-hunting-engine/INTEGRATION-REPORT.md` v1.1 — veredito reemitido APROVADO COM RESSALVAS |
+| M13-G04 | CORRIGIDO | `tests/e2e/smoke.spec.ts` novo + `package.json` scripts `smoke` + `test:e2e` |
+| M13-G09 | TEMPLATE | `output/docs/lead-hunting-engine/delivery/remediation/REMEDIATION-M13-G09.md` (preenchido em sign-off) |

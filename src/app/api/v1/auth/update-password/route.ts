@@ -8,7 +8,9 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limiter'
 import { AuditService } from '@/lib/services/audit-service'
 import { prisma } from '@/lib/prisma'
 
-// TASK-0/ST002: Rate limit — 3 requests/min por IP (update-password)
+// TASK-0/ST002 (M3-G07): Rate limit 3/min por IP (mais restritivo que login).
+// update-password e operacao destrutiva (revoga TODAS as sessoes via signOut global)
+// e nao tem retentativa rapida legitima — security-by-default acima de UX.
 const RATE_LIMIT = 3
 
 export async function POST(request: NextRequest) {

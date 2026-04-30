@@ -233,3 +233,28 @@ CREATE POLICY "audit_logs_select"
 -- UPDATE/DELETE já são bloqueados por ausência de policy para authenticated.
 -- Para garantia extra (role customizada), descomentar:
 -- REVOKE UPDATE, DELETE ON "audit_logs" FROM authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- FEATURE FLAGS — module-16 (Fase 2)
+-- ADR-0042: leitura para autenticados, escrita exclusiva via service_role.
+-- audit_logs pattern aplicado a feature_flag_changes (imutavel).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE "feature_flags" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "feature_flag_changes" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "feature_flag_usages" ENABLE ROW LEVEL SECURITY;
+
+-- feature_flags: SELECT autenticados; mutacao apenas service_role (sem policy)
+CREATE POLICY "feature_flags_select_authenticated"
+    ON "feature_flags" FOR SELECT TO authenticated
+    USING (TRUE);
+
+-- feature_flag_changes: SELECT apenas ADMIN; INSERT apenas service_role; sem UPDATE/DELETE
+CREATE POLICY "feature_flag_changes_select_admin"
+    ON "feature_flag_changes" FOR SELECT TO authenticated
+    USING (public.is_admin());
+
+-- feature_flag_usages: SELECT apenas ADMIN; mutacao apenas service_role
+CREATE POLICY "feature_flag_usages_select_admin"
+    ON "feature_flag_usages" FOR SELECT TO authenticated
+    USING (public.is_admin());

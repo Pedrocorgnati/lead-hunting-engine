@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/lib/hooks/use-toast'
 import { getScoringRules, saveScoringRules, DEFAULT_SCORING_RULES } from '@/actions/config'
 import type { ScoringRule } from '@/actions/config'
+import { trackEvent } from '@/lib/utils/analytics'
 import { ScoringImpactPreview } from './ScoringImpactPreview'
 import { ScoringRuleHistoryModal } from './ScoringRuleHistoryModal'
 
@@ -56,6 +57,11 @@ export function ScoringRulesForm() {
     setSaving(true)
     try {
       await saveScoringRules(rules)
+      trackEvent('scoring_updated', {
+        rules_count: rules.length,
+        changed_count: changedRules.length,
+        total_weight: total,
+      })
       setOriginalRules(rules)
       setConfirmOpen(false)
       toast.success('Regras de scoring salvas.')

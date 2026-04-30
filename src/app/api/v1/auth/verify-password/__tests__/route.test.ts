@@ -84,7 +84,8 @@ describe('POST /api/v1/auth/verify-password', () => {
 
   it('429 when per-user rate-limit throws', async () => {
     authVerifyMock.mockImplementation(() => {
-      throw new RateLimitError('rate limit exceeded for auth-verify:user:user-1', 42, 1700000000)
+      // RateLimitError(retryAfter: number, reset: number) — assinatura real do helper.
+      throw new RateLimitError(42, 1700000000)
     })
     const res = await POST(mkReq({ currentPassword: 'pw' }))
     expect(res.status).toBe(429)
@@ -93,7 +94,7 @@ describe('POST /api/v1/auth/verify-password', () => {
   it('429 when per-IP rate-limit throws (horizontal stuffing blocked)', async () => {
     authVerifyMock.mockImplementation(() => undefined)
     authVerifyByIpMock.mockImplementation(() => {
-      throw new RateLimitError('rate limit exceeded for auth-verify:ip:1.2.3.4', 30, 1700000000)
+      throw new RateLimitError(30, 1700000000)
     })
     const res = await POST(mkReq({ currentPassword: 'pw' }))
     expect(res.status).toBe(429)

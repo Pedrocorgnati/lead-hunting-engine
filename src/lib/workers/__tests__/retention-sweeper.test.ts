@@ -88,17 +88,18 @@ describe('sweepWaitlist', () => {
 })
 
 describe('sweepContactMessages', () => {
-  it('hashes email, nulls name, replaces message with sentinel', async () => {
+  it('hashes email, anonymizes name, replaces message with sentinel', async () => {
     contactFind.mockResolvedValue([{ id: 'c1', email: 'client@test.com' }] as never)
     contactUpdate.mockResolvedValue({} as never)
 
     const res = await sweepContactMessages()
 
     expect(res.count).toBe(1)
-    const call = contactUpdate.mock.calls[0][0] as {
-      data: { email: string; name: null; message: string }
+    const call = contactUpdate.mock.calls[0][0] as unknown as {
+      data: { email: string; name: string; message: string }
     }
     expect(call.data.email).toMatch(/^sha256:/)
+    expect(call.data.name).toBe('[anonimizado]')
     expect(call.data.message).toBe('[anonimizado]')
   })
 })

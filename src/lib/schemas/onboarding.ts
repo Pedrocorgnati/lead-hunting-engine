@@ -1,12 +1,27 @@
 import { z } from 'zod'
+import type { UserRole } from '@/lib/constants/enums'
 
 /**
- * Schemas Zod para o wizard de onboarding (TASK-8).
- * Cada step tem um schema próprio; onboardingDataSchema é parcial pois o usuário
- * pode retomar em qualquer passo.
+ * Schemas Zod para o wizard de onboarding (TASK-1 + TASK-4 role-based).
+ *
+ * Promessa BUDGET.md entrega 7: 5 etapas para ADMIN, 3 etapas para OPERATOR.
+ * Cada step tem schema próprio; onboardingDataSchema é parcial pois o
+ * usuário pode retomar em qualquer passo e (para OPERATOR) pular conteúdo
+ * informativo.
  */
 
-export const TOTAL_ONBOARDING_STEPS = 5
+export const ADMIN_ONBOARDING_STEPS = 5
+export const OPERATOR_ONBOARDING_STEPS = 3
+
+/**
+ * Mantido para compatibilidade com chamadas antigas. Quem precisa do total
+ * correto por usuário deve consumir `getTotalOnboardingSteps(role)`.
+ */
+export const TOTAL_ONBOARDING_STEPS = ADMIN_ONBOARDING_STEPS
+
+export function getTotalOnboardingSteps(role: UserRole): number {
+  return role === 'OPERATOR' ? OPERATOR_ONBOARDING_STEPS : ADMIN_ONBOARDING_STEPS
+}
 
 export const companyTypeEnum = z.enum(['B2B', 'B2C', 'B2B2C'])
 
@@ -58,20 +73,33 @@ export const integrationsSchema = z.object({
   skipped: z.boolean().default(false),
 })
 
+export const operatorTourCompletedSchema = z.object({
+  coletas: z.boolean().default(false),
+  leads: z.boolean().default(false),
+})
+
 export const onboardingDataSchema = z
   .object({
     companyProfile: companyProfileSchema.optional(),
     niches: nichesSchema.shape.niches.optional(),
     regions: regionsSchema.shape.regions.optional(),
     integrations: integrationsSchema.optional(),
+    operatorTourCompleted: operatorTourCompletedSchema.optional(),
   })
   .strict()
 
+/**
+ * Schema do PATCH /api/v1/onboarding/progress.
+ * Aceita step até o máximo entre os roles (ADMIN_ONBOARDING_STEPS).
+ * Validação por role-aware (step <= getTotalOnboardingSteps(role)) acontece
+ * no route handler após `requireAuth`, pois aqui não conhecemos o role.
+ */
 export const onboardingProgressPatchSchema = z.object({
-  step: z.number().int().min(0).max(TOTAL_ONBOARDING_STEPS),
+  step: z.number().int().min(0).max(ADMIN_ONBOARDING_STEPS),
   data: onboardingDataSchema.optional(),
 })
 
 export type CompanyProfile = z.infer<typeof companyProfileSchema>
+export type OperatorTourCompleted = z.infer<typeof operatorTourCompletedSchema>
 export type OnboardingData = z.infer<typeof onboardingDataSchema>
 export type OnboardingProgressPatch = z.infer<typeof onboardingProgressPatchSchema>

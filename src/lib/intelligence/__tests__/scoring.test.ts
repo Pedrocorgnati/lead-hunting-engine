@@ -205,7 +205,7 @@ describe('classifyOpportunity — social signals', () => {
     expect(result).toBe(OpportunityType.A_NEEDS_SITE)
   })
 
-  it('does not override when site is reachable (even if FB abandoned)', () => {
+  it('promotes tier when FB abandoned and site reachable (reinforcer E -> D)', () => {
     const enriched: EnrichedLeadData = {
       ...baseEnriched,
       scores: { ...baseScores, businessMaturity: 10, digitalGap: 10 },
@@ -215,6 +215,6 @@ describe('classifyOpportunity — social signals', () => {
       enriched,
       { facebookAbandoned: true, siteReachable: true },
     )
-    expect(result).toBe(OpportunityType.E_SCALE)
+    expect(result).toBe(OpportunityType.D_NEEDS_ECOMMERCE)
   })
 })

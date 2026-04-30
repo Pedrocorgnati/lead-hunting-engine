@@ -5,9 +5,10 @@ import { handleApiError, successResponse } from '@/lib/api-utils'
 import { leadService } from '@/services/lead.service'
 import { UpdateLeadPitchSchema } from '@/schemas/lead.schema'
 import { prisma } from '@/lib/prisma'
-import { generatePitch } from '@/lib/pitch/pitch-generator'
+import { generatePitch, HallucinatedPitchError } from '@/lib/pitch/pitch-generator'
+import { LLMUnavailableError } from '@/lib/pitch/llm-client'
 import { TONE_OPTIONS } from '@/lib/pitch/tone-config'
-import { LLMUnavailableError, HallucinatedPitchError, PITCH_ERROR_CODES } from '@/lib/pitch/errors'
+import { PITCH_ERROR_CODES } from '@/lib/pitch/errors'
 import { PITCH_CACHE_TTL_MS } from '@/lib/pitch/constants'
 import { snapshotPitchVersion } from '@/lib/services/pitch-version-service'
 import { limits } from '@/lib/rate-limiter'
@@ -123,6 +124,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     const opportunityLabel =
       lead.opportunities?.[0] ?? 'C'
 
+    const correlationId = req.headers.get('x-correlation-id') ?? null
+
     const result = await generatePitch(
       {
         businessName: lead.businessName,
@@ -137,7 +140,14 @@ export async function POST(req: NextRequest, { params }: Params) {
         opportunityLabel: String(opportunityLabel),
         scoreBreakdown: breakdown,
       },
-      tone
+      tone,
+      {
+        operation: 'pitch.generate',
+        userId: user.id,
+        leadId: id,
+        jobId: null,
+        correlationId,
+      }
     )
 
     // Snapshot versao anterior antes de sobrescrever (TASK-11 / CL-199)

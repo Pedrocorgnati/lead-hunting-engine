@@ -28,3 +28,5 @@ export function createAdminClient(): SupabaseClient {
 
   return cached
 }
+
+export const getSupabaseAdmin = createAdminClient

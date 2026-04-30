@@ -83,7 +83,7 @@ export async function sweepContactMessages(): Promise<SweepResult> {
       where: { id: t.id },
       data: {
         email: sha256(t.email),
-        name: null,
+        name: '[anonimizado]',
         message: '[anonimizado]',
       },
     })
@@ -96,7 +96,7 @@ export async function sweepLandingConsents(): Promise<SweepResult> {
   const cutoff = daysAgo(days)
   const res = await prisma.landingConsent.updateMany({
     where: {
-      createdAt: { lt: cutoff },
+      acceptedAt: { lt: cutoff },
       NOT: { ipHash: { startsWith: 'anonymized:' } },
     },
     data: { ipHash: 'anonymized:expired' },

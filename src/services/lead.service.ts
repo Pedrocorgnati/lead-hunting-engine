@@ -10,6 +10,15 @@ import type {
   MarkFalsePositiveInput,
 } from '@/schemas/lead.schema'
 import type { Lead } from '@prisma/client'
+// M12-B5: state machine de transicao de status (Codex caught: PATCH sem invariantes)
+import {
+  asStatus,
+  computeStatusSideEffects,
+  InvalidTransitionError,
+  isValidTransition,
+  type LeadStatusValue,
+} from '@/lib/lead/transitions'
+import { trackLeadChanges } from '@/lib/intelligence/enrichment/enrichers/history-tracker'
 
 const LEAD_SUMMARY_SELECT = {
   id: true,
@@ -195,32 +204,48 @@ export class LeadService {
   }
 
   async updateStatus(leadId: string, userId: string, data: UpdateLeadStatusInput): Promise<Lead> {
-    // Verificar propriedade (IDOR prevention)
-    const existing = await prisma.lead.findFirst({ where: { id: leadId, userId }, select: { id: true } })
+    // Verificar propriedade (IDOR prevention) — busca completa para validar transicao
+    const existing = (await prisma.lead.findFirst({ where: { id: leadId, userId } })) as Lead | null
     if (!existing) {
       const err = Object.assign(new Error('Lead não encontrado.'), { code: 'LEAD_080', httpStatus: 404 })
       throw err
     }
 
-    const RETENTION_DAYS = 15
-    const now = new Date()
+    // M12-B5: validar transicao state machine antes de persistir
+    const fromStatus = asStatus(existing.status)
+    const toStatus = data.status as LeadStatusValue
 
-    const retentionUpdate: Record<string, unknown> = {}
-    // DISQUALIFIED e FALSE_POSITIVE disparam janela de retencao para descarte seguro
-    if (data.status === 'DISQUALIFIED' || data.status === 'FALSE_POSITIVE') {
-      retentionUpdate.retentionUntil = new Date(now.getTime() + RETENTION_DAYS * 86_400_000)
-    } else {
-      retentionUpdate.retentionUntil = null
+    // M12-B5 round 2 (Codex caught): same-status idempotente — nao reaplicar
+    // contactedAt/retentionUntil para evitar adulterar datas em retry/reenvio.
+    if (fromStatus === toStatus) {
+      return existing
     }
 
-    return prisma.lead.update({
+    if (!isValidTransition(fromStatus, toStatus)) {
+      throw new InvalidTransitionError(fromStatus, toStatus)
+    }
+
+    // M12-B5: efeitos colaterais canonicos (contactedAt + retentionUntil) — alinha
+    // com PATCH /api/v1/leads/[id] usando a mesma fonte de verdade.
+    const sideEffects = computeStatusSideEffects(toStatus)
+
+    const updated = (await prisma.lead.update({
       where: { id: leadId },
       data: {
-        status: data.status as Lead['status'],
-        ...(data.status === 'CONTACTED' ? { contactedAt: now } : {}),
-        ...retentionUpdate,
+        status: toStatus as Lead['status'],
+        ...(sideEffects.contactedAt ? { contactedAt: sideEffects.contactedAt } : {}),
+        retentionUntil: sideEffects.retentionUntil,
       },
-    }) as Promise<Lead>
+    })) as Lead
+
+    // M12-B5: registrar historico (best-effort, nao quebra response)
+    await trackLeadChanges(
+      leadId,
+      existing as unknown as Record<string, unknown>,
+      updated as unknown as Record<string, unknown>,
+    )
+
+    return updated
   }
 
   async updateNotes(leadId: string, userId: string, data: UpdateLeadNotesInput): Promise<Lead> {

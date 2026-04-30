@@ -50,6 +50,59 @@ jobs:
       - name: Run unit tests
         run: npm run test -- --ci --passWithNoTests
 
+  test-integration:
+    name: Integration Tests (jest, real DB)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    timeout-minutes: 15
+    # M2-5 / G-009 (herdado M1): destravado quando DATABASE_URL_TEST estiver
+    # configurado em GitHub > Settings > Secrets and variables > Actions.
+    # IMPORTANTE: requer secret DEDICADO (DATABASE_URL_TEST). NAO faz fallback
+    # para DATABASE_URL para evitar `migrate deploy` + `seed:test` em DB de prod.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_TEST }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_TEST }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_TEST }}
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL_TEST }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY_TEST }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Check DATABASE_URL_TEST secret (TEST DB ONLY)
+        id: check-db
+        run: |
+          if [ -z "${{ env.DATABASE_URL }}" ] || [ -z "${{ env.DIRECT_URL }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::warning ::DATABASE_URL_TEST/DIRECT_URL_TEST nao configurados — pulando integration tests. Configure secrets DEDICADOS (NAO reutilize prod): GitHub > Settings > Secrets and variables > Actions."
+          else
+            # Sanity guard: rejeitar URLs que apontam claramente para prod.
+            if echo "${{ env.DATABASE_URL }}" | grep -qiE "(prod|production|main)"; then
+              echo "::error ::DATABASE_URL_TEST parece apontar para producao. Recuse-se a rodar migrate deploy/seed contra prod."
+              exit 1
+            fi
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Install dependencies
+        if: steps.check-db.outputs.configured == 'true'
+        run: npm ci
+      - name: Generate Prisma Client
+        if: steps.check-db.outputs.configured == 'true'
+        run: npx prisma generate
+      - name: Run migrations on test DB (DATABASE_URL_TEST only)
+        if: steps.check-db.outputs.configured == 'true'
+        run: npx prisma migrate deploy
+      - name: Seed test data
+        if: steps.check-db.outputs.configured == 'true'
+        run: npm run seed:test
+      - name: Run integration tests
+        if: steps.check-db.outputs.configured == 'true'
+        run: npm run test:integration -- --ci
+
   build:
     name: Build
     runs-on: ubuntu-latest

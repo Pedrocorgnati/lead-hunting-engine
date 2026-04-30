@@ -151,6 +151,10 @@ export async function getLeads(params?: {
   type?: string
   status?: string
   city?: string
+  /** M12/G-001: filtro por niche (mapeia para Lead.category) */
+  niche?: string
+  /** M12/G-001: filtro por temperatura (COLD|WARM|HOT) */
+  temperature?: string
   scoreMin?: number
   scoreMax?: number
   sortBy?: string
@@ -168,6 +172,8 @@ export async function getLeads(params?: {
   if (params?.status) where.status = params.status
   if (params?.type) where.opportunities = { has: params.type }
   if (params?.city) where.city = { contains: params.city, mode: 'insensitive' }
+  if (params?.niche) where.category = { contains: params.niche, mode: 'insensitive' }
+  if (params?.temperature) where.temperature = params.temperature
   if (params?.recency) {
     const hoursMap = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 } as const
     const hours = hoursMap[params.recency]

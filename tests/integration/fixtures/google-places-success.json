@@ -1,0 +1,36 @@
+{
+  "status": "OK",
+  "results": [
+    {
+      "place_id": "ChIJfix-gp-success-001",
+      "name": "Pizzaria Bella Napoli",
+      "formatted_address": "Rua Augusta, 1500 - Consolacao, Sao Paulo - SP, 01304-001, Brasil",
+      "geometry": { "location": { "lat": -23.5557, "lng": -46.6606 } },
+      "rating": 4.5,
+      "user_ratings_total": 320,
+      "price_level": 2,
+      "types": ["restaurant", "food", "point_of_interest"],
+      "opening_hours": { "open_now": true }
+    },
+    {
+      "place_id": "ChIJfix-gp-success-002",
+      "name": "Cantina Romana",
+      "formatted_address": "Av. Paulista, 2200 - Bela Vista, Sao Paulo - SP, 01310-300, Brasil",
+      "geometry": { "location": { "lat": -23.5614, "lng": -46.6558 } },
+      "rating": 4.2,
+      "user_ratings_total": 187,
+      "price_level": 3,
+      "types": ["restaurant", "italian_restaurant"]
+    },
+    {
+      "place_id": "ChIJfix-gp-success-003",
+      "name": "Forno a Lenha do Bairro",
+      "formatted_address": "Rua dos Pinheiros, 800 - Pinheiros, Sao Paulo - SP, 05422-001, Brasil",
+      "geometry": { "location": { "lat": -23.5664, "lng": -46.6831 } },
+      "rating": 4.7,
+      "user_ratings_total": 542,
+      "price_level": 2,
+      "types": ["restaurant"]
+    }
+  ]
+}

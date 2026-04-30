@@ -6,6 +6,14 @@ import { errorResponse, LEAD_080 } from '@/constants/errors'
 import { prisma } from '@/lib/prisma'
 import { LeadPatchSchema } from '@/lib/schemas/lead'
 import { trackLeadChanges } from '@/lib/intelligence/enrichment/enrichers/history-tracker'
+// M12-B5: state machine + side-effects centralizados em transitions.ts
+import {
+  asStatus,
+  computeStatusSideEffects,
+  InvalidTransitionError,
+  isValidTransition,
+  type LeadStatusValue,
+} from '@/lib/lead/transitions'
 import type { Lead } from '@prisma/client'
 
 export async function GET(
@@ -49,19 +57,31 @@ export async function PATCH(
       return NextResponse.json(errorResponse(LEAD_080), { status: 404 })
     }
 
-    const RETENTION_DAYS = 15
-    const now = new Date()
+    // M12-B5: validar transicao + side-effects canonicos (alinha com leadService.updateStatus)
     const updateData: Record<string, unknown> = { ...data }
 
     if (data.status) {
-      if (data.status === 'CONTACTED') updateData.contactedAt = now
-      if (data.status === 'DISCARDED') {
-        updateData.retentionUntil = new Date(
-          now.getTime() + RETENTION_DAYS * 86_400_000
-        )
-      } else if (data.status !== 'FALSE_POSITIVE') {
-        updateData.retentionUntil = null
+      const fromStatus = asStatus(existing.status)
+      const toStatus = data.status as LeadStatusValue
+
+      // M12-B5 round 2 (Codex caught): same-status idempotente — remover do payload
+      // para nao regravar contactedAt/retentionUntil em retry/reenvio.
+      if (fromStatus === toStatus) {
+        delete updateData.status
+      } else {
+        if (!isValidTransition(fromStatus, toStatus)) {
+          throw new InvalidTransitionError(fromStatus, toStatus)
+        }
+        const sideEffects = computeStatusSideEffects(toStatus)
+        if (sideEffects.contactedAt) updateData.contactedAt = sideEffects.contactedAt
+        // retentionUntil sempre canonico (terminais + DISQUALIFIED -> data; ativos -> null)
+        updateData.retentionUntil = sideEffects.retentionUntil
       }
+    }
+
+    // Se updateData ficou sem campos efetivos (so status idempotente removido), retorna existing.
+    if (Object.keys(updateData).length === 0) {
+      return successResponse(existing)
     }
 
     const updated = (await prisma.lead.update({

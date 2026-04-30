@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { getInvites, createInvite, resendInvite, revokeInvite, getAuditLog } from '@/actions/invites'
-import { InviteError } from '@/services/invite.service'
+// InviteError class lives in a server-only module; client uses duck-typed code check.
 import type { InviteDto, AuditLogEntry } from '@/actions/invites'
 import { InviteStatus, INVITE_STATUS_MAP, UserRole } from '@/lib/constants/enums'
 
@@ -100,7 +100,7 @@ function InviteActions({ invite, onRevoke, onResend }: {
 function CreateInviteModal({ open, onClose, onSuccess }: {
   open: boolean
   onClose: () => void
-  onSuccess: (invite: InviteDto) => void
+  onSuccess: () => void | Promise<void>
 }) {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<CreateInviteFormData>({
     resolver: zodResolver(createInviteSchema),
@@ -113,18 +113,11 @@ function CreateInviteModal({ open, onClose, onSuccess }: {
       trackEvent('invite_sent', { email_domain: data.email.split('@')[1], role: data.role })
       toast.success('Convite enviado com sucesso!')
       reset()
-      onSuccess({
-        id: crypto.randomUUID(),
-        email: data.email,
-        role: data.role,
-        status: InviteStatus.PENDING,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString(),
-      })
+      // Refetch a lista a partir do server — preserva id real do invite criado
+      // e evita estado otimista desconectado do banco.
+      await onSuccess()
     } catch (err) {
-      const code = err instanceof InviteError
-        ? err.code
-        : (err as { code?: string }).code
+      const code = (err as { code?: string }).code
       if (code) {
         const messages: Record<string, string> = {
           INVITE_020: 'Este email já possui uma conta ativa.',
@@ -490,7 +483,11 @@ export default function AdminConvitesPage() {
       <CreateInviteModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onSuccess={invite => { setInvites(prev => [invite, ...prev]); setCreateOpen(false) }}
+        onSuccess={async () => {
+          const fresh = await getInvites()
+          setInvites(fresh)
+          setCreateOpen(false)
+        }}
       />
       <RevokeConfirmDialog
         invite={revokeTarget}

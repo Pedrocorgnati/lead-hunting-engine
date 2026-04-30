@@ -12,72 +12,63 @@ interface SidebarProps {
   onMobileClose: () => void
 }
 
-export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
-  const { isAdmin } = useAuth()
-  const drawerRef = useRef<HTMLDivElement>(null)
+interface NavContentProps {
+  collapsed: boolean
+  isAdmin: boolean
+  onToggleCollapsed: () => void
+  onItemClick?: () => void
+}
 
-  // Close mobile drawer on Escape
-  useEffect(() => {
-    function onKeyDown(e: globalThis.KeyboardEvent) {
-      if (e.key === 'Escape' && mobileOpen) onMobileClose()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [mobileOpen, onMobileClose])
-
-  // Focus trap for mobile drawer
-  function handleDrawerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (!mobileOpen) return
-    const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button, [tabindex]:not([tabindex="-1"])'
-    )
-    if (!focusable || focusable.length === 0) return
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-    if (e.key === 'Tab') {
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-  }
-
-  const NavContent = ({ onClick }: { onClick?: () => void }) => (
+// Componente top-level (fora de Sidebar) para evitar lint react-hooks/static-components.
+// Recebe estado/callbacks via props — sem dependencia de closure do componente pai.
+function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavContentProps) {
+  return (
     <>
-      {/* Logo */}
-      <div data-testid="sidebar-logo" className={cn('flex items-center gap-2 px-2 py-3 mb-2', collapsed && 'justify-center')}>
-        {!collapsed && (
-          <span className="text-lg font-bold text-primary">Lead Hunting</span>
-        )}
+      <div
+        data-testid="sidebar-logo"
+        className={cn('flex items-center gap-2 px-2 py-3 mb-2', collapsed && 'justify-center')}
+      >
+        {!collapsed && <span className="text-lg font-bold text-primary">Lead Hunting</span>}
       </div>
 
-      {/* App nav */}
-      <nav data-testid="sidebar-nav-main" aria-label="Navegação principal" className="flex flex-col gap-1">
+      <nav
+        data-testid="sidebar-nav-main"
+        aria-label="Navegação principal"
+        className="flex flex-col gap-1"
+      >
         {APP_NAV_ITEMS.map((item) => (
-          <NavItemComponent key={item.href} item={item} collapsed={collapsed} onClick={onClick} />
+          <NavItemComponent
+            key={item.href}
+            item={item}
+            collapsed={collapsed}
+            onClick={onItemClick}
+          />
         ))}
       </nav>
 
-      {/* Admin section */}
       {isAdmin && (
-        <nav data-testid="sidebar-nav-admin" aria-label="Administração" className="flex flex-col gap-1">
+        <nav
+          data-testid="sidebar-nav-admin"
+          aria-label="Administração"
+          className="flex flex-col gap-1"
+        >
           <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {!collapsed && 'Admin'}
           </div>
           {ADMIN_NAV_ITEMS.map((item) => (
-            <NavItemComponent key={item.href} item={item} collapsed={collapsed} onClick={onClick} />
+            <NavItemComponent
+              key={item.href}
+              item={item}
+              collapsed={collapsed}
+              onClick={onItemClick}
+            />
           ))}
         </nav>
       )}
 
-      {/* Collapse toggle — desktop only */}
       <button
         data-testid="sidebar-toggle-button"
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={onToggleCollapsed}
         aria-expanded={!collapsed}
         aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         className={cn(
@@ -98,10 +89,44 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       </button>
     </>
   )
+}
+
+export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(false)
+  const { isAdmin } = useAuth()
+  const drawerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.key === 'Escape' && mobileOpen) onMobileClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [mobileOpen, onMobileClose])
+
+  function handleDrawerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (!mobileOpen) return
+    const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button, [tabindex]:not([tabindex="-1"])'
+    )
+    if (!focusable || focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (e.key === 'Tab') {
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+  }
+
+  const toggleCollapsed = () => setCollapsed((c) => !c)
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside
         data-testid="sidebar"
         className={cn(
@@ -110,11 +135,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         )}
       >
         <div className={cn('flex h-full flex-col gap-1 p-2', collapsed && 'w-16')}>
-          <NavContent />
+          <NavContent collapsed={collapsed} isAdmin={isAdmin} onToggleCollapsed={toggleCollapsed} />
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
@@ -123,7 +147,6 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         />
       )}
 
-      {/* Mobile drawer */}
       <div
         ref={drawerRef}
         data-testid="sidebar-mobile-drawer"
@@ -137,7 +160,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         )}
       >
         <div className="flex h-full flex-col gap-1 p-2">
-          <NavContent onClick={onMobileClose} />
+          <NavContent
+            collapsed={collapsed}
+            isAdmin={isAdmin}
+            onToggleCollapsed={toggleCollapsed}
+            onItemClick={onMobileClose}
+          />
         </div>
       </div>
     </>

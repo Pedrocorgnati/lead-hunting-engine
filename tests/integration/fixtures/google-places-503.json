@@ -1,0 +1,7 @@
+{
+  "error": "Service Unavailable",
+  "status": "UNKNOWN_ERROR",
+  "_meta": {
+    "note": "Fixture: simula erro permanente HTTP 503. msw deve responder com status 503 quando este body for usado, para forcar a cascata para Outscraper."
+  }
+}

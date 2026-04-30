@@ -22,6 +22,11 @@ const envSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => undefined)),
   NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
+  // module-16 (Fase 2 / ADR-0042): provider de feature flags
+  FEATURE_FLAGS_PROVIDER: z.enum(['local', 'noop']).default('local'),
+  FEATURE_FLAGS_API_KEY: z.string().optional(),
+  FEATURE_FLAGS_CLIENT_KEY: z.string().optional(),
+  FEATURE_FLAGS_HOST: z.string().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>

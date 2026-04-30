@@ -1,5 +1,12 @@
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
+// TASK-MS4-T03 — bundle analyzer ativavel via `ANALYZE=true npm run build`.
+// O plugin envolve a config externa apos withSentryIfEnabled e withNextIntl.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+  openAnalyzer: false,
+})
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
@@ -101,4 +108,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSentryIfEnabled(withNextIntl(nextConfig))
+export default withBundleAnalyzer(withSentryIfEnabled(withNextIntl(nextConfig)))

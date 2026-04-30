@@ -1,10 +1,20 @@
+import { redirect } from 'next/navigation'
+import { getAuthenticatedUser } from '@/lib/auth'
+import { Routes } from '@/lib/constants/routes'
 import { AuditLogTable } from '@/components/admin/AuditLogTable'
 
 export const metadata = {
   title: 'Audit log',
 }
 
-export default function AdminAuditLogPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function AdminAuditLogPage() {
+  const user = await getAuthenticatedUser()
+  if (!user || user.role !== 'ADMIN') {
+    redirect(Routes.DASHBOARD)
+  }
+
   return (
     <div className="space-y-6 p-6">
       <div>

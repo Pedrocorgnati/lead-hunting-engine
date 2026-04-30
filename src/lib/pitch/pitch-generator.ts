@@ -1,5 +1,9 @@
 import { buildPitchPrompt, type LeadContext } from './prompt-builder'
-import { generateWithLLM, LLMUnavailableError } from './llm-client'
+import {
+  generateWithLLM,
+  LLMUnavailableError,
+  type LLMCostContext,
+} from './llm-client'
 import { validatePitch, type ValidationResult } from './anti-hallucination'
 import type { ToneOption } from './tone-config'
 import { ANTI_HALLUCINATION_MAX_RETRIES } from './constants'
@@ -17,7 +21,8 @@ export class HallucinatedPitchError extends Error {
 
 export async function generatePitch(
   lead: LeadContext,
-  tone: ToneOption
+  tone: ToneOption,
+  costCtx?: LLMCostContext
 ): Promise<{
   pitch: string
   provider: string
@@ -29,7 +34,7 @@ export async function generatePitch(
   let lastValidation: ValidationResult = { valid: false, issues: [] }
 
   for (let attempt = 1; attempt <= ANTI_HALLUCINATION_MAX_RETRIES; attempt++) {
-    const result = await generateWithLLM(systemPrompt, userPrompt)
+    const result = await generateWithLLM(systemPrompt, userPrompt, costCtx)
     const validation = validatePitch(result.content, lead)
 
     if (validation.valid) {

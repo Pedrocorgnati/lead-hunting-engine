@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { LoginForm } from './login-form'
 import { Check } from 'lucide-react'
 import Image from 'next/image'
@@ -99,7 +100,9 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <LoginForm />
+            <Suspense fallback={null}>
+              <LoginForm />
+            </Suspense>
           </div>
         </div>
       </div>

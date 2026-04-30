@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { Menu, ChevronRight, User, LogOut, Bell } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Menu, User, LogOut, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useUnreadCount } from '@/lib/hooks/use-unread-count'
 import { AvatarInitials } from './avatar-initials'
-import { Routes, UserRole } from '@/lib/constants'
+import { Routes } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
@@ -19,30 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
-
-const BREADCRUMB_LABELS: Record<string, string> = {
-  dashboard: 'Dashboard',
-  leads: 'Leads',
-  coletas: 'Coletas',
-  exportar: 'Exportar',
-  perfil: 'Perfil',
-  admin: 'Admin',
-  convites: 'Convites',
-  configuracoes: 'Configurações',
-  scoring: 'Scoring',
-  metricas: 'Métricas',
-}
-
-function useBreadcrumbs() {
-  const pathname = usePathname()
-  const segments = pathname.split('/').filter(Boolean)
-  return segments.map((segment, index) => {
-    const href = '/' + segments.slice(0, index + 1).join('/')
-    const label = BREADCRUMB_LABELS[segment] ?? segment
-    const isLast = index === segments.length - 1
-    return { href, label, isLast }
-  })
-}
+import { Breadcrumbs } from './breadcrumbs'
 
 interface HeaderProps {
   onMobileMenuOpen: () => void
@@ -52,7 +29,6 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
   const router = useRouter()
   const { user, isAdmin, loading, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const breadcrumbs = useBreadcrumbs()
   const { count: unreadCount } = useUnreadCount(Boolean(user))
 
   return (
@@ -78,28 +54,10 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
         <Menu className="h-5 w-5" aria-hidden={true} />
       </button>
 
-      {/* Breadcrumbs */}
-      <nav data-testid="header-breadcrumbs" className="flex-1 min-w-0" aria-label="Caminho de navegação">
-        <ol className="flex items-center gap-1 text-sm text-muted-foreground">
-          {breadcrumbs.map((crumb, index) => (
-            <li key={crumb.href} className="flex items-center gap-1">
-              {index > 0 && <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden={true} />}
-              {crumb.isLast ? (
-                <span className="font-medium text-foreground truncate" aria-current="page">
-                  {crumb.label}
-                </span>
-              ) : (
-                <Link
-                  href={crumb.href}
-                  className="hover:text-foreground transition-colors truncate"
-                >
-                  {crumb.label}
-                </Link>
-              )}
-            </li>
-          ))}
-        </ol>
-      </nav>
+      {/* Breadcrumbs (canonico em components/shared/breadcrumbs.tsx) */}
+      <div data-testid="header-breadcrumbs" className="flex-1 min-w-0">
+        <Breadcrumbs />
+      </div>
 
       {/* Actions */}
       <div data-testid="header-actions" className="flex items-center gap-2">

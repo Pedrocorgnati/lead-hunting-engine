@@ -260,8 +260,20 @@ export class ConfigService {
           return { ok: res.ok, message: res.ok ? 'OpenAI: chave válida' : `OpenAI: ${res.status}` }
         }
         case 'ANTHROPIC': {
-          const ok = apiKey.startsWith('sk-ant-')
-          return { ok, message: ok ? 'Anthropic: formato de chave válido' : 'Anthropic: formato inválido' }
+          // Live test: chamada minima ao endpoint /v1/models (GET).
+          // Anthropic retorna 200 com lista de modelos em chave valida; 401 em invalida.
+          const res = await fetch('https://api.anthropic.com/v1/models', {
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+          })
+          return {
+            ok: res.ok,
+            message: res.ok
+              ? 'Anthropic: chave valida'
+              : `Anthropic: ${res.status} ${res.statusText || 'invalida'}`,
+          }
         }
         case 'HERE_MAPS': {
           const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=test&apiKey=${apiKey}`)

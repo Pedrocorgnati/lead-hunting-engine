@@ -43,7 +43,16 @@ export function StepCompanyProfile({ initial, onSubmit, submitting }: Props) {
       <div className="space-y-1.5">
         <h2 className="text-xl font-semibold text-foreground">Perfil da empresa</h2>
         <p className="text-sm text-muted-foreground">
-          Conte quem você é para personalizar suas coletas.
+          Conte quem você é para personalizar suas coletas.{' '}
+          <a
+            href="/admin/onboarding-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+            data-testid="onboarding-company-profile-policy-link"
+          >
+            Veja como funciona
+          </a>
         </p>
       </div>
 

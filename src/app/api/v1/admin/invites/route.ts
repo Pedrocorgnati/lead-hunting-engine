@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { handleApiError, successResponse, paginatedResponse } from '@/lib/api-utils'
 import { inviteService } from '@/services/invite.service'

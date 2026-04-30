@@ -1,6 +1,13 @@
 export default function AppLoading() {
   return (
-    <div data-testid="app-loading" className="flex flex-col gap-4 p-4 md:p-6">
+    <div
+      data-testid="app-loading"
+      className="flex flex-col gap-4 p-4 md:p-6"
+      role="status"
+      aria-busy="true"
+      aria-live="polite"
+      aria-label="Carregando conteudo da pagina"
+    >
       {/* Page title skeleton */}
       <div className="h-8 w-48 rounded-lg bg-muted animate-pulse" />
       {/* Content skeleton — 4 cards */}

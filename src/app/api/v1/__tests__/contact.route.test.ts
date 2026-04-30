@@ -11,13 +11,13 @@ jest.mock('@/lib/prisma', () => ({
 const assertRateLimitMock = jest.fn()
 const getClientIpMock = jest.fn(() => '1.2.3.4')
 jest.mock('@/lib/rate-limiter', () => ({
-  assertRateLimit: (...a: unknown[]) => assertRateLimitMock(...a),
-  getClientIp: (...a: unknown[]) => getClientIpMock(...a),
+  assertRateLimit: (...a: unknown[]) => (assertRateLimitMock as (...x: unknown[]) => unknown)(...a),
+  getClientIp: (...a: unknown[]) => (getClientIpMock as (...x: unknown[]) => unknown)(...a),
 }))
 
 const notifyAdminsMock = jest.fn(async () => ({ count: 1 }))
 jest.mock('@/lib/notifications/admin-broadcast', () => ({
-  notifyAdmins: (...a: unknown[]) => notifyAdminsMock(...a),
+  notifyAdmins: (...a: unknown[]) => (notifyAdminsMock as (...x: unknown[]) => unknown)(...a),
 }))
 
 import { NextRequest } from 'next/server'

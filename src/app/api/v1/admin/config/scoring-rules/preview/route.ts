@@ -24,7 +24,9 @@ const PreviewSchema = z.object({
  *
  * Body: { ruleSlug: string, newWeight: 0..100 }
  * RBAC: ADMIN only. Tenant-scoped (userId da sessao).
- * Performance: limitado a amostra aleatoria de 1000 leads quando total > 1000.
+ * Performance: limitado aos 1000 leads MAIS RECENTES quando total > 1000
+ * (ordenado por updatedAt desc). Resposta inclui flag `sampled` + `sampleStrategy`
+ * para a UI sinalizar que o preview cobre apenas a janela recente, nao a base inteira.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +41,7 @@ export async function POST(request: NextRequest) {
       return successResponse({
         totalLeads: 0,
         sampled: false,
+        sampleStrategy: 'none',
         changes: {
           coldToWarm: 0,
           warmToHot: 0,
@@ -61,7 +64,6 @@ export async function POST(request: NextRequest) {
         scoreBreakdown: true,
       },
       take: sampled ? SAMPLE_LIMIT : totalLeads,
-      // amostragem simples: ordem do DB. Trade-off aceito: stats rapidos, nao cientificos.
       orderBy: sampled ? { updatedAt: 'desc' } : undefined,
     })
 
@@ -77,6 +79,8 @@ export async function POST(request: NextRequest) {
     return successResponse({
       totalLeads,
       sampled,
+      sampleStrategy: sampled ? 'recent_1000_by_updated_at' : 'full',
+      sampleSize: rows.length,
       changes,
     })
   } catch (error) {

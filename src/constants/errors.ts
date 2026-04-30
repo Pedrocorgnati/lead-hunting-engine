@@ -34,6 +34,9 @@ export const RATE_001 = { code: 'RATE_001', httpStatus: 429, userMessage: 'Você
 // ─── User Profile (USER) ────────────────────────────
 export const USER_050 = { code: 'USER_050', httpStatus: 409, userMessage: 'Sua solicitação de exclusão já foi registrada.', technicalMessage: 'Duplicate deletion request for user: {userId}' }
 export const USER_080 = { code: 'USER_080', httpStatus: 404, userMessage: 'Perfil de usuário não encontrado.', technicalMessage: 'User profile not found: {userId}' }
+// M3-G01: cancelamento de solicitacao de exclusao dentro da janela de 15 dias
+export const USER_081 = { code: 'USER_081', httpStatus: 404, userMessage: 'Não há solicitação de exclusão ativa para cancelar.', technicalMessage: 'No active deletion request to cancel for user: {userId}' }
+export const USER_082 = { code: 'USER_082', httpStatus: 410, userMessage: 'A janela de 15 dias para cancelar a exclusão expirou. Sua conta será removida em breve.', technicalMessage: 'Deletion cancellation window expired for user: {userId} (requested_at: {requestedAt})' }
 
 // ─── Invites (INVITE) ───────────────────────────────
 export const INVITE_001 = { code: 'INVITE_001', httpStatus: 403, userMessage: 'Apenas administradores podem gerar convites.', technicalMessage: 'Non-admin user attempted invite creation' }

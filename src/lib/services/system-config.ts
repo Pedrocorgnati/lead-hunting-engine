@@ -30,6 +30,12 @@ export type SystemConfigKey =
   | 'retention.landing_consent_days'
   | 'retention.export_history_days'
   | 'retention.lead_history_snapshot_days'
+  // M14-G-006/G-019: NPS in-app
+  | 'nps.enabled'
+  | 'nps.min_days_active'
+  | 'nps.min_leads_collected'
+  | 'nps.response_cooldown_days'
+  | 'nps.pilot_only'
 
 export const DEFAULTS: Record<SystemConfigKey, Prisma.JsonValue> = {
   'alert.llm.monthly_usd': { threshold: 50 },
@@ -42,6 +48,11 @@ export const DEFAULTS: Record<SystemConfigKey, Prisma.JsonValue> = {
   'retention.landing_consent_days': { value: 730 },
   'retention.export_history_days': { value: 30 },
   'retention.lead_history_snapshot_days': { value: 90 },
+  'nps.enabled': { value: true },
+  'nps.min_days_active': { value: 7 },
+  'nps.min_leads_collected': { value: 3 },
+  'nps.response_cooldown_days': { value: 90 },
+  'nps.pilot_only': { value: false },
 }
 
 // Cache em-memoria com TTL curto para reduzir queries em cron/hot-paths.

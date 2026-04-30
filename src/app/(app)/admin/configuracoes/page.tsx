@@ -16,6 +16,7 @@ import {
   getCredentials, deleteCredential, testCredential, toggleCredentialActive,
 } from '@/actions/config'
 import type { CredentialDto } from '@/actions/config'
+import { trackEvent } from '@/lib/utils/analytics'
 
 export default function AdminConfiguracoesPage() {
   const { isAdmin, loading: authLoading } = useAuth()
@@ -24,7 +25,7 @@ export default function AdminConfiguracoesPage() {
   const [credentials, setCredentials] = useState<CredentialDto[]>([])
   const [loadingCreds, setLoadingCreds] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState<{ id: string; provider: string; label: string } | undefined>()
+  const [editing, setEditing] = useState<{ id: string; provider: string } | undefined>()
 
   useEffect(() => {
     if (!authLoading && !isAdmin) router.replace(Routes.DASHBOARD)
@@ -52,7 +53,7 @@ export default function AdminConfiguracoesPage() {
   }
 
   const openEdit = (cred: CredentialDto) => {
-    setEditing({ id: cred.id, provider: cred.provider, label: cred.label })
+    setEditing({ id: cred.id, provider: cred.provider })
     setModalOpen(true)
   }
 
@@ -63,12 +64,17 @@ export default function AdminConfiguracoesPage() {
   }
 
   const handleDelete = async (id: string) => {
+    const cred = credentials.find(c => c.id === id)
     await deleteCredential(id)
+    if (cred) trackEvent('credential_deleted', { provider: cred.provider })
     fetchCredentials()
   }
 
   const handleTest = async (id: string) => {
-    return testCredential(id)
+    const cred = credentials.find(c => c.id === id)
+    const result = await testCredential(id)
+    if (cred) trackEvent('credential_tested', { provider: cred.provider, ok: result.success })
+    return result
   }
 
   const handleToggleActive = async (id: string, isActive: boolean) => {

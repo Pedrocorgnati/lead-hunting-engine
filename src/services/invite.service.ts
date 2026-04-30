@@ -179,6 +179,12 @@ export class InviteService {
   async resend(inviteId: string): Promise<Invite> {
     const invite = await prisma.invite.findUnique({ where: { id: inviteId } })
     if (!invite) throw new InviteError('INVITE_080', 'Convite não encontrado.')
+    if (invite.status === InviteStatus.ACCEPTED) {
+      throw new InviteError('INVITE_052', 'Este convite já foi aceito e não pode ser reenviado.')
+    }
+    if (invite.status === InviteStatus.REVOKED) {
+      throw new InviteError('INVITE_053', 'Este convite foi revogado e não pode ser reenviado.')
+    }
 
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + INVITE_TTL_DAYS)
@@ -190,6 +196,18 @@ export class InviteService {
   }
 
   async revoke(inviteId: string): Promise<void> {
+    const invite = await prisma.invite.findUnique({ where: { id: inviteId } })
+    if (!invite) throw new InviteError('INVITE_080', 'Convite não encontrado.')
+    if (invite.status === InviteStatus.ACCEPTED) {
+      throw new InviteError('INVITE_054', 'Este convite já foi aceito e não pode ser revogado.')
+    }
+    if (invite.status === InviteStatus.REVOKED) {
+      throw new InviteError('INVITE_055', 'Este convite já está revogado.')
+    }
+    if (invite.status === InviteStatus.EXPIRED) {
+      throw new InviteError('INVITE_056', 'Este convite já expirou.')
+    }
+
     await prisma.invite.update({
       where: { id: inviteId },
       data: { status: InviteStatus.REVOKED },

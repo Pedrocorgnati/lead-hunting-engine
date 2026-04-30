@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "note": "Fixture composto. msw deve servir 3 endpoints sequenciais: (1) POST /v2/acts/.../runs -> runStart, (2) GET /v2/actor-runs/{id} -> runStatus (RUNNING -> RUNNING -> SUCCEEDED), (3) GET /v2/datasets/{id}/items -> items. Garantia de 60-iter terminal stop validada quando runStatus retorna RUNNING ate 60 vezes."
+  },
+  "runStart": {
+    "data": {
+      "id": "run_fix_apify_001",
+      "actId": "compass~crawler-google-places",
+      "status": "READY",
+      "defaultDatasetId": "dataset_fix_apify_001"
+    }
+  },
+  "runStatusSucceeded": {
+    "data": {
+      "id": "run_fix_apify_001",
+      "status": "SUCCEEDED",
+      "defaultDatasetId": "dataset_fix_apify_001",
+      "stats": { "computeUnits": 0.42, "datasetItemCount": 2 }
+    }
+  },
+  "items": [
+    {
+      "placeId": "ChIJfix-apify-success-001",
+      "title": "Pizzaria Bella Napoli",
+      "address": "Rua Augusta, 1500 - Consolacao, Sao Paulo - SP",
+      "city": "Sao Paulo",
+      "state": "SP",
+      "phone": "+55 11 3256-7800",
+      "website": "https://www.bellanapoli-fixture.example",
+      "categoryName": "Italian restaurant",
+      "totalScore": 4.5,
+      "reviewsCount": 320,
+      "location": { "lat": -23.5557, "lng": -46.6606 },
+      "price": "$$"
+    },
+    {
+      "placeId": "ChIJfix-apify-success-002",
+      "title": "Forno a Lenha do Bairro",
+      "address": "Rua dos Pinheiros, 800 - Pinheiros, Sao Paulo - SP",
+      "city": "Sao Paulo",
+      "state": "SP",
+      "phone": "+55 11 3812-9090",
+      "website": "https://fornoalenha-fixture.example",
+      "categoryName": "Pizzeria",
+      "totalScore": 4.7,
+      "reviewsCount": 542,
+      "location": { "lat": -23.5664, "lng": -46.6831 },
+      "price": "$$"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Suspense } from 'react'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
@@ -98,7 +99,9 @@ export default function RootLayout({
             <DevOverlayLoader />
             <VercelAnalytics />
             <SpeedInsights />
-            <Analytics />
+            <Suspense fallback={null}>
+              <Analytics />
+            </Suspense>
             <WebVitals />
           </TooltipProvider>
         </ThemeProvider>

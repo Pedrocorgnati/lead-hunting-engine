@@ -7,6 +7,19 @@ on:
     branches: [main]
 
 jobs:
+  security-scan:
+    name: Secret Scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        with:
+          args: --redact --verbose --config=.gitleaks.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint-and-typecheck:
     name: Lint + Type Check
     runs-on: ubuntu-latest
@@ -102,6 +115,35 @@ jobs:
       - name: Run integration tests
         if: steps.check-db.outputs.configured == 'true'
         run: npm run test:integration -- --ci
+
+  openapi-drift:
+    name: OpenAPI Contract Drift Check
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/test
+      ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate OpenAPI spec
+        run: npm run openapi:generate
+      - name: Check for drift
+        run: |
+          if ! git diff --exit-code openapi.json; then
+            echo "::error ::openapi.json desatualizado. Execute 'npm run openapi:generate' localmente e commite o arquivo atualizado."
+            exit 1
+          fi
 
   build:
     name: Build

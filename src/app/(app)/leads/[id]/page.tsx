@@ -11,6 +11,7 @@ import { LeadSignals } from '@/components/leads/lead-signals'
 import { SignalsList } from '@/components/leads/signals-list'
 import { LeadHistoryTimeline } from '@/components/leads/LeadHistoryTimeline'
 import { PipelineTimeline } from '@/components/leads/PipelineTimeline'
+import { LeadScoreBreakdown } from '@/components/leads/LeadScoreBreakdown'
 import { LeadTagsEditor } from '@/components/leads/LeadTagsEditor'
 import { ContactEventForm } from '@/components/leads/ContactEventForm'
 import { BudgetFlowExport } from './_components/BudgetFlowExport'
@@ -120,6 +121,12 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
       {/* Interactive section: status, score, lifecycle, tabs */}
       <LeadDetailInteractive lead={interactiveData} />
+
+      {/* CL-262: breakdown explicavel do score por regra */}
+      <section data-testid="lead-score-breakdown" className="rounded-lg border bg-card p-4">
+        <h2 className="text-sm font-semibold text-foreground mb-3">Composição do score</h2>
+        <LeadScoreBreakdown leadId={lead.id} />
+      </section>
 
       {/* BudgetFlow: integração com ferramenta externa de orçamento (P003/P041) */}
       {/* RESOLVED: BudgetFlow não renderizado */}

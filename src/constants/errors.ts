@@ -24,6 +24,8 @@ export const SYS_004 = { code: 'SYS_004', httpStatus: 502, userMessage: 'Recebem
 export const AUTH_001 = { code: 'AUTH_001', httpStatus: 401, userMessage: 'Sessão expirada. Faça login novamente.', technicalMessage: 'JWT token invalid or expired: {reason}' }
 export const AUTH_002 = { code: 'AUTH_002', httpStatus: 401, userMessage: 'Email ou senha incorretos.', technicalMessage: 'Authentication failed: invalid credentials for email {emailHash}' }
 export const AUTH_003 = { code: 'AUTH_003', httpStatus: 429, userMessage: 'Muitas tentativas. Tente novamente em {seconds} segundos.', technicalMessage: 'Login rate limited by Supabase Auth' }
+// intake-review TASK-4 (CL-038): lockout progressivo por usuario
+export const AUTH_LOCKED_OUT = { code: 'AUTH_LOCKED_OUT', httpStatus: 429, userMessage: 'Conta temporariamente bloqueada por segurança. Tente novamente em {seconds} segundos.', technicalMessage: 'Exponential backoff lockout active for user key {key}' }
 export const AUTH_004 = { code: 'AUTH_004', httpStatus: 403, userMessage: 'Você não tem permissão para realizar esta ação.', technicalMessage: "Insufficient permission: user role '{userRole}' cannot perform '{action}'" }
 export const AUTH_005 = { code: 'AUTH_005', httpStatus: 410, userMessage: 'Este link de redefinição expirou. Solicite um novo.', technicalMessage: 'Password reset token expired or already used' }
 export const AUTH_006 = { code: 'AUTH_006', httpStatus: 401, userMessage: 'Esta operação requer confirmação de identidade.', technicalMessage: 'Re-authentication required for sensitive operation: {operation}' }

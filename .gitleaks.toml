@@ -1,0 +1,36 @@
+# Gitleaks config — Lead Hunting Engine
+# Estende ruleset default com allowlist do projeto.
+
+[extend]
+useDefault = true
+
+# Regras custom para padroes especificos do projeto
+[[rules]]
+id = "supabase-service-role"
+description = "Supabase service/secret role key"
+regex = '''sb_(service|secret)_[A-Za-z0-9_-]{20,}'''
+tags = ["supabase", "secret"]
+severity = "critical"
+
+[[rules]]
+id = "supabase-anon-key"
+description = "Supabase anon key (JWT format)"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}'''
+tags = ["supabase", "jwt"]
+severity = "high"
+
+[allowlist]
+description = "Allowlist de falsos positivos conhecidos"
+paths = [
+  '''^tests/fixtures/''',
+  '''^.*\.test\.(ts|tsx)$''',
+  '''^.*\.spec\.(ts|tsx)$''',
+  '''^.*\.test\.integration\.(ts|tsx)$''',
+]
+# Tokens de exemplo/placeholder usados em testes e documentacao
+regexes = [
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''test-anon-key''',
+  '''test-service-role-key''',
+  '''aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa''',
+]

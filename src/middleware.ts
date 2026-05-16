@@ -1,5 +1,6 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEPRECATED_ROUTES, buildDeprecationHeader } from '@/lib/api/deprecation'
 
 // TASK-19 (CL-502, CL-506): MAINTENANCE_MODE gate.
 // Ignora: /manutencao, /api/health (health check deve continuar respondendo),
@@ -53,6 +54,15 @@ export async function middleware(request: NextRequest) {
 
   const response = await updateSession(request)
   response.headers.set('x-correlation-id', correlationId)
+
+  // CL-468: inject X-API-Deprecation for deprecated routes
+  for (const [prefix, meta] of Object.entries(DEPRECATED_ROUTES)) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      response.headers.set('X-API-Deprecation', buildDeprecationHeader(meta.sunsetDate, meta.link))
+      break
+    }
+  }
+
   return response
 }
 

@@ -44,7 +44,7 @@ export default function LoginPage() {
             avoid: Gradientes, sombras, texto, complexidade excessiva
             */}
             <Image
-              src="/images/logo-symbol.svg"
+              src="/images/logo-symbol.png"
               alt="Lead Hunting Engine"
               width={120}
               height={120}

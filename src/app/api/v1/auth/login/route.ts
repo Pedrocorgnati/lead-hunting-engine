@@ -3,35 +3,57 @@ import { SignInSchema } from '@/schemas/auth.schema'
 import { handleApiError } from '@/lib/api-utils'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { errorResponse, AUTH_002, AUTH_003 } from '@/constants/errors'
+import { errorResponse, AUTH_002, AUTH_003, AUTH_LOCKED_OUT } from '@/constants/errors'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter'
+import { getLockState, recordFailure, recordSuccess } from '@/lib/auth/lockout-policy'
+import { AuditService } from '@/lib/services/audit-service'
 
-// TASK-AUDIT-2 / G2-001 — defesa em profundidade contra brute force.
+// G2-001 — defesa em profundidade contra brute force.
 // Bucket fino (par IP+email): protege a vitima identificada — 5 tentativas/60s.
-// Bucket grosseiro (so IP):   protege contra credential stuffing horizontal
-//                             do mesmo IP variando emails — 20/60s.
-// `x-forwarded-for` e confiavel pois o app roda atras do edge da Vercel,
-// que sobrescreve o header. Em qualquer outro deploy, revalidar trust boundary.
+// Bucket grosseiro (so IP):   protege contra credential stuffing horizontal — 20/60s.
 const LOGIN_PAIR_LIMIT = 5
 const LOGIN_IP_LIMIT = 20
 const LOGIN_WINDOW_SECONDS = 60
 
+function extractRequestContext(request: NextRequest): { ip: string; userAgent: string } {
+  return {
+    ip: getClientIp(request),
+    userAgent: request.headers.get('user-agent') ?? 'unknown',
+  }
+}
+
 export async function POST(request: NextRequest) {
-  const ipAddress = getClientIp(request)
+  const { ip: ipAddress, userAgent } = extractRequestContext(request)
 
   try {
     const body = await request.json()
     const validated = SignInSchema.parse(body)
-    // Normalizacao canonica para rate-limit + audit trail consistente.
     const emailKey = validated.email.toLowerCase().trim()
+    const lockoutKey = `lockout:email:${emailKey}`
 
-    // Bucket fino (IP + email) — bloqueio direcionado.
+    // 1. Gate: lockout exponencial por usuario (CL-038)
+    const lockState = getLockState(lockoutKey)
+    if (lockState.lockedUntil !== null && lockState.lockedUntil > Date.now()) {
+      const retryAfterSeconds = Math.ceil((lockState.lockedUntil - Date.now()) / 1000)
+      AuditService.log({
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        metadata: { emailAttempted: emailKey, reason: 'LOCKED_OUT', ip: ipAddress },
+        ipAddress,
+        userAgent,
+      }).catch(() => {})
+      return NextResponse.json(
+        errorResponse(AUTH_LOCKED_OUT, `Tente novamente em ${retryAfterSeconds} segundos.`),
+        { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } },
+      )
+    }
+
+    // 2. Gate: rate limit por par (IP + email) e por IP
     const rlPair = checkRateLimit(
       `auth-login:pair:${ipAddress}:${emailKey}`,
       LOGIN_PAIR_LIMIT,
       LOGIN_WINDOW_SECONDS,
     )
-    // Bucket grosseiro (so IP) — bloqueio horizontal contra credential stuffing.
     const rlIp = checkRateLimit(
       `auth-login:ip:${ipAddress}`,
       LOGIN_IP_LIMIT,
@@ -40,7 +62,6 @@ export async function POST(request: NextRequest) {
 
     if (!rlPair.success || !rlIp.success) {
       const retryAfter = Math.max(rlPair.retryAfter, rlIp.retryAfter)
-      // Audit: rate-limited tambem precisa de trail.
       prisma.loginAttempt
         .create({ data: { email: emailKey, ipAddress, success: false } })
         .catch(() => {})
@@ -50,19 +71,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 3. Autenticar via Supabase
     const supabase = await createClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email: validated.email,
       password: validated.password,
     })
 
-    // ST003 — TASK-AUDIT-1: registrar tentativa (brute-force audit trail)
+    // Fire-and-forget: audit brute-force trail (LoginAttempt legado)
     prisma.loginAttempt.create({
       data: { email: emailKey, ipAddress, success: !error },
-    }).catch(() => {/* fire-and-forget — não bloqueia o login */})
+    }).catch(() => {})
 
     if (error) {
-      // RESOLVED: mapeamento de 429 Supabase → AUTH_003 + Retry-After (SEC-005)
+      recordFailure(lockoutKey)
+      AuditService.log({
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        metadata: {
+          emailAttempted: emailKey,
+          reason: error.status === 429 ? 'SUPABASE_RATE_LIMITED' : 'INVALID_CREDENTIALS',
+          ip: ipAddress,
+        },
+        ipAddress,
+        userAgent,
+      }).catch(() => {})
+
       if (error.status === 429) {
         const retryAfter = parseInt(error.message.match(/\d+/)?.[0] ?? '60', 10)
         return NextResponse.json(
@@ -70,12 +104,23 @@ export async function POST(request: NextRequest) {
           { status: 429, headers: { 'Retry-After': String(retryAfter) } },
         )
       }
+      // Resposta generica — nao vaza existencia da conta (CL-038)
       return NextResponse.json(errorResponse(AUTH_002), { status: 401 })
     }
 
+    // 4. Sucesso: resetar lockout + audit LOGIN_SUCCESS
+    recordSuccess(lockoutKey)
     const profile = await prisma.userProfile.findUnique({
       where: { id: data.user.id },
     })
+    AuditService.log({
+      action: 'LOGIN_SUCCESS',
+      resource: 'auth',
+      userId: data.user.id,
+      metadata: { emailAttempted: emailKey, ip: ipAddress },
+      ipAddress,
+      userAgent,
+    }).catch(() => {})
 
     return NextResponse.json({ user: profile })
   } catch (error) {

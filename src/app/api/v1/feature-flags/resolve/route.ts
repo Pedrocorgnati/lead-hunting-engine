@@ -1,23 +1,29 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-utils'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter'
 import { resolveBatchInProvider } from '@/lib/feature-flags/provider'
 import { unsafeFeatureFlagName } from '@/lib/feature-flags/types'
+import { parseOverrideCookie, isOverrideAllowed } from '@/lib/feature-flags/cookie-override'
 import type { FeatureFlagContext } from '@/lib/feature-flags/types'
 
 /**
  * POST /api/v1/feature-flags/resolve
  *
- * Cobre: TASK-2/ST006.
+ * Cobre: TASK-2/ST006, TASK-5/ST003 (CL-565).
  *
- * Resolve um conjunto de flags em batch para o usuario autenticado.
+ * Resolve flags em batch para o usuario autenticado.
+ * Em staging: cookie `ff_override` sobrescreve resolucao individual.
+ * Em producao: cookie e ignorado silenciosamente.
+ *
  * Auth: sessao obrigatoria.
  * Rate limit: 10 req/min por user.
  */
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+
+const OVERRIDE_COOKIE = 'ff_override'
 
 const NameSchema = z
   .string()
@@ -34,7 +40,7 @@ const BodySchema = z.object({
     .optional(),
 })
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser()
     if (!user) {
@@ -68,7 +74,24 @@ export async function POST(request: Request) {
       custom: body.context?.custom as Record<string, never> | undefined,
     }
     const names = body.names.map((n) => unsafeFeatureFlagName(n))
-    const flags = await resolveBatchInProvider(names, ctx)
+
+    // Resolver via provider
+    const providerFlags = await resolveBatchInProvider(names, ctx)
+
+    // Aplicar overrides de cookie (staging/dev apenas — ignorado em prod)
+    let flags = providerFlags
+    if (isOverrideAllowed()) {
+      const rawCookie = request.cookies.get(OVERRIDE_COOKIE)?.value
+      const overrides = parseOverrideCookie(rawCookie)
+      if (Object.keys(overrides).length > 0) {
+        flags = { ...providerFlags }
+        for (const name of names) {
+          if (name in overrides) {
+            flags[name] = overrides[name]
+          }
+        }
+      }
+    }
 
     return NextResponse.json(
       { data: { flags, resolved_at: new Date().toISOString() } },

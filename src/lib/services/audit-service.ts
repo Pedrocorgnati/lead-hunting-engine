@@ -62,6 +62,9 @@ export type AuditAction =
   | 'nps.submitted'
   // M14-G-010: cohort piloto via tags do usuario
   | 'user.tags_updated'
+  // intake-review TASK-4 (CL-038, CL-041): trilha completa de autenticacao
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
 
 interface AuditLogParams {
   userId?: string
@@ -70,6 +73,7 @@ interface AuditLogParams {
   resourceId?: string
   metadata?: Record<string, string | number | boolean | null>
   ipAddress?: string
+  userAgent?: string
 }
 
 export class AuditService {
@@ -81,7 +85,10 @@ export class AuditService {
           action: params.action,
           resource: params.resource,
           resourceId: params.resourceId,
-          metadata: params.metadata ?? {},
+          metadata: {
+            ...(params.metadata ?? {}),
+            ...(params.userAgent ? { userAgent: params.userAgent } : {}),
+          },
           ipAddress: params.ipAddress,
         },
       })

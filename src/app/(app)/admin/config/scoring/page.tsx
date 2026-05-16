@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { ScoringRuleVersionCompare } from '@/components/admin/ScoringRuleVersionCompare'
 
 interface ScoringRule {
   id: string
@@ -153,6 +154,9 @@ export default function AdminScoringRulesPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* CL-145: diff visual de versoes (carrega historico sob demanda) */}
+              <ScoringRuleVersionCompare ruleId={rule.id} ruleName={rule.name} />
             </li>
           ))}
         </ul>

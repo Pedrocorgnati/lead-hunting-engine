@@ -923,3 +923,17 @@ model FeatureFlagUsage {
   @@index([filePath])
   @@map("feature_flag_usages")
 }
+
+// CL-340: tokens efemeros para undo de operacoes destrutivas (delete-tag, delete-note).
+// TTL curto (30s default) — registro consumido na primeira chamada e expirado por job de limpeza.
+model UndoToken {
+  token     String   @id @db.Uuid
+  leadId    String   @map("lead_id") @db.Uuid
+  payload   Json
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([leadId])
+  @@index([expiresAt])
+  @@map("undo_tokens")
+}

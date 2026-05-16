@@ -1,0 +1,9 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+        stages: [pre-commit, pre-push]
+        args:
+          - --config=.gitleaks.toml
+          - --redact

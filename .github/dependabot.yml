@@ -1,0 +1,46 @@
+version: 2
+
+updates:
+  # npm — dependencias da aplicacao
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    reviewers:
+      - "Pedrocorgnati"
+    groups:
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      development-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Ignorar majors automaticamente — requer revisao manual
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # github-actions — manter actions atualizadas
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    reviewers:
+      - "Pedrocorgnati"

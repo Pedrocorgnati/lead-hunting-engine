@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireSession } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 
 export interface ScoreRule {
   id: string
@@ -18,13 +18,13 @@ export interface ScoreBreakdownResponse {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireSession(req)
-  if (!session) return NextResponse.json({ error: { code: 'UNAUTHORIZED' } }, { status: 401 })
+  const { id } = await params
+  const user = await requireAuth()
 
   const lead = await prisma.lead.findFirst({
-    where: { id: params.id, organizationId: session.user.organizationId },
+    where: { id, userId: user.id },
     select: { score: true, scoreBreakdown: true },
   })
   if (!lead) return NextResponse.json({ error: { code: 'NOT_FOUND' } }, { status: 404 })

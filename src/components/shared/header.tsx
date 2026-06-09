@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Breadcrumbs } from './breadcrumbs'
+import { ProviderHealthIndicator } from './provider-health-indicator'
 
 interface HeaderProps {
   onMobileMenuOpen: () => void
@@ -86,6 +87,7 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
             )}
           </Link>
         )}
+        {isAdmin && <ProviderHealthIndicator />}
         <ThemeToggle />
         {/* User menu */}
         {loading ? (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ConfirmationDialog } from '@/components/ui/modal'
@@ -20,16 +21,24 @@ export function DeletionRequestSection({ deletionRequestedAt }: DeletionRequestS
   const [loading, setLoading] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
   const [requestedAt, setRequestedAt] = useState<string | null>(deletionRequestedAt)
+  const [now, setNow] = useState<number>(() => Date.now())
   const requested = !!requestedAt
 
   // M3-G01: countdown de dias restantes na janela de 15 dias
   const daysRemaining = useMemo(() => {
     if (!requestedAt) return null
     const requested = new Date(requestedAt).getTime()
-    const elapsedMs = Date.now() - requested
+    const elapsedMs = now - requested
     const elapsedDays = Math.floor(elapsedMs / (24 * 60 * 60 * 1000))
     return Math.max(0, DELETION_CANCEL_WINDOW_DAYS - elapsedDays)
-  }, [requestedAt])
+  }, [requestedAt, now])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now())
+    }, 60_000)
+    return () => clearInterval(timer)
+  }, [])
 
   const canCancel = daysRemaining !== null && daysRemaining > 0
 

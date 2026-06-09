@@ -14,7 +14,7 @@ const NOT_FOUND = {
 async function findOwned(id: string, userId: string, isAdmin: boolean) {
   return prisma.pitchTemplate.findFirst({
     where: isAdmin ? { id } : { id, userId },
-    select: { id: true, userId: true, isFavorite: true },
+    select: { id: true, userId: true, isFavorite: true, name: true, content: true, tone: true },
   })
 }
 
@@ -59,6 +59,15 @@ export async function PATCH(
     const data = PitchTemplateUpdateSchema.parse(raw)
 
     const updated = await prisma.$transaction(async (tx) => {
+      await tx.pitchTemplateVersion.create({
+        data: {
+          pitchTemplateId: id,
+          name: existing.name,
+          content: existing.content,
+          tone: existing.tone,
+        },
+      })
+
       if (data.isFavorite === true) {
         await tx.pitchTemplate.updateMany({
           where: { userId: existing.userId, isFavorite: true, NOT: { id } },

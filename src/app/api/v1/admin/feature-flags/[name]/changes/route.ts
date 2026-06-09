@@ -17,6 +17,10 @@ export const runtime = 'nodejs'
 const QuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
   cursor: z.string().optional(),
+  env: z.enum(['development', 'preview', 'production']).optional(),
+  kind: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
 })
 
 interface RouteCtx {
@@ -39,7 +43,7 @@ export async function GET(request: Request, ctx: RouteCtx) {
       limit: url.searchParams.get('limit') ?? undefined,
       cursor: url.searchParams.get('cursor') ?? undefined,
     })
-    const changes = await listChanges(flag.id, { limit: q.limit, cursor: q.cursor })
+    const changes = await listChanges(flag.id, { limit: q.limit, cursor: q.cursor, env: q.env, kind: q.kind, from: q.from, to: q.to })
     return NextResponse.json({ data: { changes } }, { status: 200 })
   } catch (error) {
     return handleApiError(error)

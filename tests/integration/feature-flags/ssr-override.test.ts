@@ -34,6 +34,7 @@ jest.mock('@/lib/feature-flags/provider', () => ({
 }))
 
 import { parseOverrideCookie, isOverrideAllowed } from '@/lib/feature-flags/cookie-override'
+import { resolveBatchInProvider } from '@/lib/feature-flags/provider'
 import { POST as resolveRoute } from '@/app/api/v1/feature-flags/resolve/route'
 import { makeRequest, parseResponseJson } from '../helpers/request.helper'
 
@@ -106,7 +107,6 @@ describe('POST /api/v1/feature-flags/resolve com cookie override', () => {
   })
 
   it('retorna valor do provider quando cookie nao presente', async () => {
-    const { resolveBatchInProvider } = require('@/lib/feature-flags/provider')
     ;(resolveBatchInProvider as jest.Mock).mockResolvedValueOnce({
       'test.flag.example': false,
     })

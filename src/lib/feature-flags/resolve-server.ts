@@ -17,7 +17,7 @@ import { cache } from 'react'
 import { cookies as nextCookies } from 'next/headers'
 import { parseOverrideCookie, isOverrideAllowed } from './cookie-override'
 import { resolveFlagInProvider } from './provider'
-import type { FeatureFlagName, FeatureFlagValue } from './types'
+import type { FeatureFlagName } from './types'
 
 const OVERRIDE_COOKIE = 'ff_override'
 

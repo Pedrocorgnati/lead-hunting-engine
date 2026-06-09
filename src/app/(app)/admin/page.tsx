@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Users, Settings, BarChart3, Shield } from 'lucide-react'
+import { Users, Settings, BarChart3, Wrench, UserRound, FlaskConical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { Routes } from '@/lib/constants/routes'
@@ -24,10 +24,28 @@ const ADMIN_SECTIONS = [
     icon: Settings,
   },
   {
-    href: Routes.ADMIN_SCORING,
+    href: Routes.ADMIN_CONFIG_SCORING,
     label: 'Scoring',
     description: 'Ajuste as regras e pesos do sistema de scoring de leads.',
     icon: BarChart3,
+  },
+  {
+    href: Routes.ADMIN_USERS,
+    label: 'Usuários',
+    description: 'Gerencie perfis, roles e acessos administrativos.',
+    icon: UserRound,
+  },
+  {
+    href: Routes.ADMIN_MANUTENCAO,
+    label: 'Manutenção',
+    description: 'Ative, agende e publique avisos de manutenção da plataforma.',
+    icon: Wrench,
+  },
+  {
+    href: Routes.ADMIN_PROGRAMA_PILOTO,
+    label: 'Programa piloto',
+    description: 'Cohort, KPIs, entrevistas e relatório exportável do programa piloto.',
+    icon: FlaskConical,
   },
 ]
 

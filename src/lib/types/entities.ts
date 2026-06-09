@@ -53,6 +53,7 @@ export interface CollectionJobSummary {
   resultCount: number
   maxResults: number
   createdAt: string
+  updatedAt?: string
   errorMessage?: string
 }
 
@@ -121,6 +122,9 @@ export interface ApiCredentialDto {
   isActive: boolean
   usageCount: number
   usageResetAt?: string
+  cost?: number | null
+  auditSummary?: string | null
+  lastValidatedAt?: string | null
   createdAt: string
 }
 

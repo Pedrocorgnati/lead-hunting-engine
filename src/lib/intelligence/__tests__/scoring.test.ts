@@ -13,7 +13,7 @@ import type { ScoreResult } from '../scoring/scoring-engine'
 import type { EnrichedLeadData } from '../enrichment/types'
 
 function getMockedPrisma() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   return jest.requireMock('@/lib/prisma').getPrisma() as {
     scoringRule: { findMany: jest.Mock }
   }

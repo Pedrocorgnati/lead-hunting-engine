@@ -27,6 +27,7 @@ enum CollectionJobStatus {
   RUNNING
   COMPLETED
   FAILED
+  FAILED_TERMINAL
   PAUSED
   PARTIAL
   CANCELLED
@@ -376,23 +377,41 @@ model PitchTemplate {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions PitchTemplateVersion[]
 
   @@index([userId])
   @@map("pitch_templates")
 }
 
+model PitchTemplateVersion {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pitchTemplateId String   @map("pitch_template_id") @db.Uuid
+  name            String   @db.VarChar(255)
+  content         String
+  tone            String   @default("formal") @db.VarChar(50)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  pitchTemplate PitchTemplate @relation(fields: [pitchTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([pitchTemplateId])
+  @@map("pitch_template_versions")
+}
+
 model ApiCredential {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider     String   @unique @db.VarChar(100)
-  encryptedKey String   @map("encrypted_key")
-  iv           String   @db.VarChar(32)
-  isActive     Boolean  @default(true) @map("is_active")
-  usageCount   Int      @default(0) @map("usage_count")
-  usageResetAt DateTime? @map("usage_reset_at")
-  expiresAt    DateTime? @map("expires_at")
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider           String    @unique @db.VarChar(100)
+  encryptedKey       String    @map("encrypted_key")
+  iv                 String    @db.VarChar(32)
+  isActive           Boolean   @default(true) @map("is_active")
+  usageCount         Int       @default(0) @map("usage_count")
+  usageResetAt       DateTime? @map("usage_reset_at")
+  expiresAt          DateTime? @map("expires_at")
   expiringNotifiedAt DateTime? @map("expiring_notified_at")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  cost               Float?    @map("cost")
+  auditSummary       String?   @map("audit_summary") @db.VarChar(500)
+  lastValidatedAt    DateTime? @map("last_validated_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   @@map("api_credentials")
 }
@@ -409,6 +428,8 @@ model ScoringRule {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  histories ScoringRuleHistory[]
+
   @@map("scoring_rules")
 }
 
@@ -420,8 +441,41 @@ model ScoringRuleHistory {
   changeReason String? @map("change_reason") @db.VarChar(500)
   createdAt   DateTime @default(now()) @map("created_at")
 
+  rule ScoringRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
   @@index([ruleId, createdAt])
   @@map("scoring_rule_history")
+}
+
+model ClassificationRule {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  opportunityType  OpportunityType @map("opportunity_type")
+  label            String          @db.VarChar(100)
+  minScore         Int             @map("min_score")
+  maxScore         Int             @map("max_score")
+  badgeColor       String          @default("blue") @map("badge_color") @db.VarChar(20)
+  requiredSignals  String[]        @default([]) @map("required_signals")
+  description      String?
+  isDefault        Boolean         @default(false) @map("is_default")
+  sortOrder        Int             @default(0) @map("sort_order")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@unique([opportunityType])
+  @@index([sortOrder])
+  @@map("classification_rules")
+}
+
+model ClassificationRuleHistory {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  opportunityType String @map("opportunity_type") @db.VarChar(50)
+  snapshot     Json
+  changedBy    String?  @map("changed_by") @db.Uuid
+  changeReason String?  @map("change_reason") @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([opportunityType, createdAt])
+  @@map("classification_rule_history")
 }
 
 enum DuplicateStatus {
@@ -492,12 +546,14 @@ model Notification {
 /// `channels` eh um subconjunto de ['push','email','in-app'].
 /// Origem: INTAKE-REVIEW TASK-9 / CL-133.
 model NotificationPreference {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  event     String   @db.VarChar(50)
-  channels  String[] @default([])
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  event             String   @db.VarChar(50)
+  channels          String[] @default([])
+  doNotDisturbStart String?  @map("do_not_disturb_start") @db.VarChar(5)
+  doNotDisturbEnd   String?  @map("do_not_disturb_end") @db.VarChar(5)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -901,6 +957,7 @@ model FeatureFlagChange {
   changedByEmail String      @map("changed_by_email") @db.VarChar(180)
   ipAddress      String      @map("ip_address") @db.VarChar(64)
   userAgent      String?     @map("user_agent") @db.VarChar(500)
+  correlationId  String?     @map("correlation_id") @db.VarChar(100)
   createdAt      DateTime    @default(now()) @map("created_at")
 
   @@index([flagId, createdAt])

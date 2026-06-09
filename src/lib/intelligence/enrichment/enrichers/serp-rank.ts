@@ -74,7 +74,7 @@ export async function fetchSerpRank(
 
     const apiKey = process.env.SERPAPI_KEY
     if (!apiKey) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[serp-rank] skipped: missing SERPAPI_KEY — configure in .env')
       return { ...base, skipped: true, error: 'missing-api-key' }
     }

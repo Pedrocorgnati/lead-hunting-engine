@@ -26,6 +26,7 @@ export interface AuditChangeInput {
   afterValue: JsonValue
   reason: string
   user: AuditableUser
+  correlationId?: string
 }
 
 /**
@@ -39,6 +40,8 @@ export async function auditChange(input: AuditChangeInput): Promise<{ id: string
     xff.split(',')[0]?.trim() || h.get('x-real-ip') || h.get('cf-connecting-ip') || 'unknown'
   const userAgent = h.get('user-agent') ?? undefined
 
+  const correlationId = input.correlationId ?? crypto.randomUUID()
+
   const row = await recordChange({
     flagId: input.flagId,
     env: input.env,
@@ -50,6 +53,7 @@ export async function auditChange(input: AuditChangeInput): Promise<{ id: string
     changedByEmail: input.user.email,
     ipAddress,
     userAgent,
+    correlationId,
   })
 
   // Sentry sinaliza mudanca em prod para correlacionar com possivel incidente.

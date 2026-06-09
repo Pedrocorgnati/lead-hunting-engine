@@ -53,7 +53,6 @@ export function LoginForm() {
   async function onSubmit(data: LoginFormData) {
     setServerError(null)
     try {
-      // TODO: Implementar backend — run /auto-flow execute
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -228,7 +227,7 @@ export function LoginForm() {
       {/* Forgot password link */}
       <div className="text-center mt-4">
         <a
-          href="/auth/reset-password"
+          href={Routes.RECUPERAR_SENHA}
           data-testid="form-login-forgot-link"
           tabIndex={isSubmitting ? -1 : 0}
           className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:rounded-sm"

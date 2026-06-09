@@ -1,12 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireSession } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
-  const session = await requireSession(req)
-  if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN' } }, { status: 403 })
-  }
+  await requireAdmin()
 
   const { searchParams } = req.nextUrl
   const page = Math.max(1, Number(searchParams.get('page') ?? 1))
@@ -15,7 +12,7 @@ export async function GET(req: NextRequest) {
   const since = searchParams.get('since') ?? undefined
   const until = searchParams.get('until') ?? undefined
 
-  const where: Record<string, unknown> = { status: 'failed_terminal' }
+  const where: Record<string, unknown> = { status: 'FAILED_TERMINAL' }
   if (provider) where.provider = provider
   if (since || until) {
     where.failedAt = {}
@@ -28,14 +25,15 @@ export async function GET(req: NextRequest) {
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { failedAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       select: {
         id: true,
-        provider: true,
-        lastError: true,
-        failedAt: true,
-        retryCount: true,
+        name: true,
         status: true,
+        errorMessage: true,
+        currentSource: true,
+        createdAt: true,
+        updatedAt: true,
       },
     }),
     prisma.collectionJob.count({ where }),

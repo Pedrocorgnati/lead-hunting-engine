@@ -59,7 +59,7 @@ export class TokenBucket {
   async take(): Promise<void> {
     // Loop e necessario porque, em ambientes com timers imprecisos, o sleep
     // pode acordar com o token ainda nao totalmente acumulado.
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
       this.refill(Date.now())
       if (this.tokens >= 1) {

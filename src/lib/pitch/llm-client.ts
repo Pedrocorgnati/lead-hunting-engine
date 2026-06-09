@@ -69,7 +69,7 @@ export async function generateWithLLM(
     try {
       return await instrumented(
         'anthropic',
-        'claude-haiku-4-5-20251001',
+        'claude-sonnet-4-5-20251001',
         costCtx,
         () => generateWithAnthropic(anthropicKey, systemPrompt, userPrompt)
       )
@@ -105,7 +105,7 @@ async function generateWithAnthropic(
   const client = new Anthropic({ apiKey })
 
   const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-sonnet-4-5-20251001',
     max_tokens: LLM_MAX_OUTPUT_TOKENS,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt.slice(0, LLM_MAX_INPUT_TOKENS * 4) }],
@@ -117,7 +117,7 @@ async function generateWithAnthropic(
   return {
     content,
     provider: 'anthropic',
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-sonnet-4-5-20251001',
     inputTokens: response.usage.input_tokens,
     outputTokens: response.usage.output_tokens,
   }

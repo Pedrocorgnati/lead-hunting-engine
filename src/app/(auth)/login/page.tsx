@@ -12,38 +12,19 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main data-testid="login-page" className="min-h-screen flex">
-      {/* Skip to content */}
-      <a
+    <main data-testid="login-page" className="min-h-screen flex">      <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded-md focus:shadow-md focus:ring-2 focus:ring-primary focus:outline-none text-sm"
       >
         Pular para o conteúdo principal
-      </a>
-
-      {/* Left panel — desktop decorative */}
-      <div
+      </a>      <div
         data-testid="login-decorative-panel"
         aria-hidden="true"
         className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12"
       >
         <div className="text-primary-foreground max-w-md text-center space-y-4">
           <div className="mb-8">
-            {/* @ASSET_PLACEHOLDER
-            name: logo-symbol
-            type: image
-            extension: svg
-            format: 1:1
-            dimensions: 120x120
-            description: Logo símbolo do Lead Hunting Engine em formato vetorial. Forma geométrica abstrata representando prospecção inteligente e conectividade de dados.
-            context: Painel esquerdo da página de login
-            style: Minimalista, linhas finas, monocromático branco
-            mood: Profissional, moderno, confiável
-            colors: white (#FFFFFF)
-            elements: Forma geométrica abstrata com símbolo de busca/alvo
-            avoid: Gradientes, sombras, texto, complexidade excessiva
-            */}
-            <Image
+                        <Image
               src="/images/logo-symbol.png"
               alt="Lead Hunting Engine"
               width={120}
@@ -80,11 +61,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — form */}
-      <div data-testid="login-form-panel" className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
+            <div data-testid="login-form-panel" className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
         <div id="main-content" data-testid="login-form-container" className="w-full max-w-md space-y-8">
-          {/* Mobile brand hint */}
-          <div className="lg:hidden mb-6">
+                    <div className="lg:hidden mb-6">
             <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
               Lead Hunting Engine
             </span>

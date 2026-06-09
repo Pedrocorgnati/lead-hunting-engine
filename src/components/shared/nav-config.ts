@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Zap, Download, Settings, Mail, SlidersHorizontal, BarChart3, Home, Activity, ScrollText } from 'lucide-react'
+import { LayoutDashboard, Users, Zap, Download, Settings, Mail, SlidersHorizontal, BarChart3, Home, Activity, ScrollText, Wrench, FlaskConical, FileText } from 'lucide-react'
 import { Routes, UserRole } from '@/lib/constants'
 
 export interface NavItem {
@@ -65,7 +65,14 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     roles: [UserRole.ADMIN],
   },
   {
-    href: Routes.ADMIN_SCORING,
+    href: Routes.ADMIN_CONTEUDO,
+    label: 'Conteudo',
+    icon: FileText,
+    tooltip: 'Conteudo editorial — onde editar landing, cases, termos e privacidade',
+    roles: [UserRole.ADMIN],
+  },
+  {
+    href: Routes.ADMIN_CONFIG_SCORING,
     label: 'Scoring',
     icon: SlidersHorizontal,
     tooltip: 'Scoring',
@@ -83,6 +90,27 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     label: 'Audit log',
     icon: ScrollText,
     tooltip: 'Audit log',
+    roles: [UserRole.ADMIN],
+  },
+  {
+    href: Routes.ADMIN_USERS,
+    label: 'Usuários',
+    icon: Users,
+    tooltip: 'Usuários',
+    roles: [UserRole.ADMIN],
+  },
+  {
+    href: Routes.ADMIN_MANUTENCAO,
+    label: 'Manutenção',
+    icon: Wrench,
+    tooltip: 'Manutenção',
+    roles: [UserRole.ADMIN],
+  },
+  {
+    href: Routes.ADMIN_PROGRAMA_PILOTO,
+    label: 'Programa piloto',
+    icon: FlaskConical,
+    tooltip: 'Programa piloto',
     roles: [UserRole.ADMIN],
   },
 ]

@@ -4,6 +4,7 @@ import { waitlistSchema } from '@/lib/schemas/landing'
 import { assertRateLimit, getClientIp, RateLimitError } from '@/lib/rate-limiter'
 import { handleApiError, successResponse } from '@/lib/api-utils'
 import { errorResponse, LGPD_CONSENT_REQUIRED } from '@/constants/errors'
+import { findRecentConsentIdByIp, hashIp } from '@/lib/consent-receipt'
 
 const MIN_FORM_FILL_MS = 2000
 
@@ -79,7 +80,11 @@ export async function POST(request: NextRequest) {
     // Persist (upsert — idempotente)
     const userAgent = request.headers.get('user-agent')?.slice(0, 500) ?? null
 
-    await prisma.waitlistEntry.upsert({
+    // A1/Opcao A: vincula o LandingConsent mais recente do mesmo ipHash (janela 30min)
+    // para que GET /api/v1/profile/consents/receipt resolva o recibo do titular.
+    const consentId = await findRecentConsentIdByIp(hashIp(ip))
+
+    const entry = await prisma.waitlistEntry.upsert({
       where: { email: data.email },
       create: {
         email: data.email,
@@ -88,6 +93,7 @@ export async function POST(request: NextRequest) {
         ip,
         userAgent,
         consentLgpd: true,
+        consentId,
       },
       update: {
         name: data.name ?? undefined,
@@ -95,8 +101,18 @@ export async function POST(request: NextRequest) {
         // atualiza ip/UA apenas para nao perder ultimo contato
         ip,
         userAgent,
+        // refresh do vinculo de consent apenas quando ha consent recente do mesmo ipHash
+        consentId: consentId ?? undefined,
       },
+      select: { id: true },
     })
+
+    if (consentId) {
+      await prisma.landingConsent.updateMany({
+        where: { id: consentId },
+        data: { waitlistEntryId: entry.id },
+      })
+    }
 
     return successResponse({ message: 'Inscricao recebida.' })
   } catch (err) {

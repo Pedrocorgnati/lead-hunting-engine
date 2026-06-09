@@ -5,6 +5,7 @@ import { assertRateLimit, getClientIp } from '@/lib/rate-limiter'
 import { handleApiError, successResponse } from '@/lib/api-utils'
 import { errorResponse, LGPD_CONSENT_REQUIRED } from '@/constants/errors'
 import { notifyAdmins } from '@/lib/notifications/admin-broadcast'
+import { findRecentConsentIdByIp, hashIp } from '@/lib/consent-receipt'
 
 const MIN_FORM_FILL_MS = 2000
 
@@ -70,6 +71,10 @@ export async function POST(request: NextRequest) {
 
     const userAgent = request.headers.get('user-agent')?.slice(0, 500) ?? null
 
+    // A1/Opcao A: vincula o LandingConsent mais recente do mesmo ipHash (janela 30min)
+    // para que GET /api/v1/profile/consents/receipt resolva o recibo do titular.
+    const consentId = await findRecentConsentIdByIp(hashIp(ip))
+
     const created = await prisma.contactMessage.create({
       data: {
         email: data.email,
@@ -79,9 +84,17 @@ export async function POST(request: NextRequest) {
         ip,
         userAgent,
         consentLgpd: true,
+        consentId,
       },
       select: { id: true },
     })
+
+    if (consentId) {
+      await prisma.landingConsent.updateMany({
+        where: { id: consentId },
+        data: { contactMessageId: created.id },
+      })
+    }
 
     // R-02 (CL-311): dispatch admin fire-and-forget — NUNCA bloqueia a resposta.
     void notifyAdmins({

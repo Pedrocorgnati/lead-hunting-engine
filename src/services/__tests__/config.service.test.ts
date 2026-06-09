@@ -7,6 +7,7 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
       findUnique: jest.fn(),
       upsert: jest.fn(),
+      update: jest.fn(),
       delete: jest.fn(),
     },
     scoringRule: {
@@ -43,12 +44,13 @@ import { ConfigService } from '../config.service'
 // ─── Helpers para acessar os mocks ────────────────────────────────────────────
 
 function getPrisma() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   return jest.requireMock('@/lib/prisma').prisma as {
     apiCredential: {
       findMany: jest.Mock
       findUnique: jest.Mock
       upsert: jest.Mock
+      update: jest.Mock
       delete: jest.Mock
     }
     scoringRule: {
@@ -63,7 +65,7 @@ function getPrisma() {
 }
 
 function getCrypto() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   return jest.requireMock('@/lib/services/crypto-util').CryptoUtil as {
     encrypt: jest.Mock
     decrypt: jest.Mock

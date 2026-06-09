@@ -96,7 +96,7 @@ export async function recordHistory(
     })
     return res.count
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.warn('[history-tracker] failed to persist:', err instanceof Error ? err.message : err)
     return 0
   }
@@ -145,7 +145,7 @@ export async function getHistory(
       changedAt: r.changedAt.toISOString(),
     }))
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.warn('[history-tracker] getHistory failed:', err instanceof Error ? err.message : err)
     return []
   }

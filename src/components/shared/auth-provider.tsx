@@ -16,8 +16,14 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   const [user, setUser] = useState<UserProfile | null>(initialUser)
   const [loading, setLoading] = useState(!initialUser)
   const router = useRouter()
-  const supabaseRef = useRef(createBrowserClient())
-  const supabase = supabaseRef.current
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
+
+  const getSupabase = useCallback((): ReturnType<typeof createBrowserClient> => {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createBrowserClient()
+    }
+    return supabaseRef.current
+  }, [])
 
   // Fetch full profile from API (includes name, avatarUrl, etc.)
   const fetchProfile = useCallback(async (): Promise<UserProfile | null> => {
@@ -30,17 +36,18 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   }, [])
 
   useEffect(() => {
-    // Hydrate full profile if we only have partial initial data
-    if (initialUser && !initialUser.name) {
-      fetchProfile().then((profile) => {
+    let mounted = true
+    void (async () => {
+      if (initialUser && !initialUser.name) {
+        const profile = await fetchProfile()
+        if (!mounted) return
         if (profile) setUser(profile)
-        setLoading(false)
-      })
-    } else {
-      setLoading(false)
-    }
+      }
+      if (mounted) setLoading(false)
+    })()
 
     // Subscribe to auth state changes
+    const supabase = getSupabase()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
         setUser(null)
@@ -54,15 +61,17 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, fetchProfile, initialUser, router])
+  }, [fetchProfile, getSupabase, initialUser, router])
 
   const signOut = useCallback(async () => {
     setUser(null)
+    const supabase = getSupabase()
     await supabase.auth.signOut()
     router.push(Routes.LOGIN)
-  }, [supabase, router])
+  }, [getSupabase, router])
 
   const isAdmin = user?.role === UserRole.ADMIN
 

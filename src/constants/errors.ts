@@ -69,12 +69,16 @@ export const EXPORT_050 = { code: 'EXPORT_050', httpStatus: 400, userMessage: 'A
 export const EXPORT_MAX_ROWS = 10_000
 export const EXPORT_MAX_ROWS_EXCEEDED = { code: 'EXPORT_MAX_ROWS_EXCEEDED', httpStatus: 413, userMessage: 'Exportação excede o limite síncrono. Use a exportação assíncrona para arquivos grandes.', technicalMessage: 'Sync export limit exceeded: {count} > {max}' }
 
+// ─── DSAR (DSAR) ─────────────────────────────────────
+export const DSAR_080 = { code: 'DSAR_080', httpStatus: 404, userMessage: 'Solicitação DSAR não encontrada.', technicalMessage: 'DSAR request not found: {requestId}' }
+
 // ─── Landing / Waitlist (LANDING) ────────────────────
 // TASK-2 intake-review (CL-317, CL-326, CL-403)
 export const LANDING_RATE_LIMITED = { code: 'LANDING_RATE_LIMITED', httpStatus: 429, userMessage: 'Muitas tentativas. Aguarde um minuto e tente novamente.', technicalMessage: 'Landing form rate-limited for IP {ip}' }
 export const WAITLIST_DUPLICATE = { code: 'WAITLIST_DUPLICATE', httpStatus: 409, userMessage: 'Este email ja esta na waitlist.', technicalMessage: 'Waitlist duplicate email: {email}' }
 export const CONTACT_SPAM = { code: 'CONTACT_SPAM', httpStatus: 400, userMessage: 'Nao foi possivel enviar sua mensagem. Tente novamente mais tarde.', technicalMessage: 'Contact form flagged as spam: {reason}' }
 export const LGPD_CONSENT_REQUIRED = { code: 'LGPD_CONSENT_REQUIRED', httpStatus: 422, userMessage: 'Aceite a politica de privacidade para continuar.', technicalMessage: 'LGPD consent missing for form submission' }
+export const CONSENT_080 = { code: 'CONSENT_080', httpStatus: 404, userMessage: 'Recibo de consentimento não encontrado.', technicalMessage: 'Consent receipt not found: {receiptRef}' }
 
 // ─── Config (CONFIG) ─────────────────────────────────
 export const CONFIG_050 = { code: 'CONFIG_050', httpStatus: 500, userMessage: 'Não foi possível processar a credencial.', technicalMessage: 'Credential encryption/decryption failed: {reason}' }

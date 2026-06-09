@@ -7,6 +7,12 @@ export const TONE_DESCRIPTIONS: Record<ToneOption, string> = {
   tecnico: 'Tom técnico com foco em soluções digitais específicas',
 }
 
+export const TONE_LABELS: Record<ToneOption, string> = {
+  formal: 'Formal',
+  informal: 'Informal',
+  tecnico: 'Técnico',
+}
+
 export const TONE_SYSTEM_PROMPTS: Record<ToneOption, string> = {
   formal: 'Você é um consultor de negócios sênior. Use linguagem formal e profissional.',
   informal: 'Você é um parceiro de negócios amigável. Use linguagem informal e direta.',

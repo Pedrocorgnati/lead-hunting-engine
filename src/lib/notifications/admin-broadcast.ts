@@ -36,7 +36,7 @@ export async function notifyAdmins(input: BroadcastInput): Promise<{ count: numb
     )
     return { count: admins.length }
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.warn('[notifyAdmins] broadcast failed:', err instanceof Error ? err.message : err)
     return { count: 0 }
   }

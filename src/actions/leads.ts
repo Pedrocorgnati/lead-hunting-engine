@@ -7,6 +7,7 @@ import { Routes } from '@/lib/constants'
 import { Limits } from '@/lib/constants/limits'
 import { LeadTemperature, CollectionJobStatus, LeadStatus } from '@/lib/constants/enums'
 import type { Lead } from '@prisma/client'
+import { getLeadTasksFromMetadata } from '@/lib/leads/lead-tasks'
 // ─── DTOs usados nas páginas (Server Components) ─────────────────────────────
 
 export interface LeadSummary {
@@ -28,6 +29,14 @@ export interface DashboardStats {
   coldLeads: string
   conversionRate: string
   activeJobs: string
+}
+
+export interface DashboardReminder {
+  taskId: string
+  leadId: string
+  leadName: string
+  title: string
+  dueAt: string
 }
 
 export interface LeadDetailView {
@@ -141,6 +150,37 @@ export async function getRecentLeads(): Promise<LeadSummary[]> {
     status: l.status,
     createdAt: l.createdAt.toISOString(),
   }))
+}
+
+export async function getUpcomingLeadReminders(limit = 5): Promise<DashboardReminder[]> {
+  const userId = await getAuthenticatedUserId()
+
+  const leads = await prisma.lead.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      businessName: true,
+      metadata: true,
+    },
+  })
+
+  const reminders = leads
+    .flatMap((lead) => {
+      return getLeadTasksFromMetadata(lead.metadata).flatMap((task) => {
+        if (task.completed || !task.dueAt) return []
+        return {
+          taskId: task.id,
+          leadId: lead.id,
+          leadName: lead.businessName,
+          title: task.title,
+          dueAt: task.dueAt,
+        }
+      })
+    })
+    .filter((reminder) => new Date(reminder.dueAt) >= new Date())
+    .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
+
+  return reminders.slice(0, limit)
 }
 
 // ─── Leads ────────────────────────────────────────────────────────────────────

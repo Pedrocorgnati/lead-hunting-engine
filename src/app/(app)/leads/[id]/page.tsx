@@ -31,6 +31,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   // Serializar datas para strings antes de passar ao Client Component
   const interactiveData = {
     id: lead.id,
+    name: lead.name,
     status: lead.status,
     notes: lead.notes ?? '',
     score: lead.score,

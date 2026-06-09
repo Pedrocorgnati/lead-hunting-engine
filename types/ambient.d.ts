@@ -8,7 +8,7 @@
  */
 
 declare module '@sentry/nextjs' {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   export const init: (options: Record<string, unknown>) => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export function withSentryConfig<T = any>(config: T, options?: unknown): T

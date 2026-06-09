@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,14 +9,11 @@ import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
 import { contactSchema, type ContactInput } from '@/lib/schemas/landing'
 
+const FORM_STARTED_AT = Date.now()
+
 export function ContactForm() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
-  const formStartedAt = useRef<number>(Date.now())
-
-  useEffect(() => {
-    formStartedAt.current = Date.now()
-  }, [])
 
   const {
     register,
@@ -41,7 +38,7 @@ export function ContactForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-form-started-at': String(formStartedAt.current),
+          'x-form-started-at': String(FORM_STARTED_AT),
         },
         body: JSON.stringify(data),
       })

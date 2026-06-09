@@ -32,6 +32,7 @@ export const PitchTemplateUpdateSchema = z
 export const PitchTemplateListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+  ownerScope: z.enum(['mine', 'all']).optional(),
   tone: z.enum(TONE_OPTIONS).optional(),
   search: z.string().optional(),
 })
@@ -39,3 +40,10 @@ export const PitchTemplateListQuerySchema = z.object({
 export type PitchTemplateCreateInput = z.infer<typeof PitchTemplateCreateSchema>
 export type PitchTemplateUpdateInput = z.infer<typeof PitchTemplateUpdateSchema>
 export type PitchTemplateListQuery = z.infer<typeof PitchTemplateListQuerySchema>
+
+export const PitchTemplateVersionListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+})
+
+export type PitchTemplateVersionListQuery = z.infer<typeof PitchTemplateVersionListQuerySchema>

@@ -12,7 +12,10 @@
  *  - ExportHistory (filters podem ter PII; signed URLs expiram) apos retention.export_history_days
  *  - LeadHistory.snapshot (extrai PII do JSON) apos retention.lead_history_snapshot_days
  */
+import 'server-only'
+
 import { createHash } from 'node:crypto'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getConfig } from '@/lib/services/system-config'
 
@@ -117,7 +120,10 @@ export async function sweepExportHistory(): Promise<SweepResult> {
       NOT: { status: 'EXPIRED' },
     },
     data: {
-      filters: { anonymized: true, anonymizedAt: new Date().toISOString() } as unknown as object,
+      filters: {
+        anonymized: true,
+        anonymizedAt: new Date().toISOString(),
+      } as Prisma.JsonObject,
       fileUrl: null,
       status: 'EXPIRED',
     },
@@ -134,8 +140,8 @@ export async function sweepLeadHistorySnapshots(): Promise<SweepResult> {
       changedAt: { lt: cutoff },
     },
     data: {
-      oldValue: { anonymized: true } as unknown as object,
-      newValue: { anonymized: true } as unknown as object,
+      oldValue: { anonymized: true } as Prisma.JsonObject,
+      newValue: { anonymized: true } as Prisma.JsonObject,
     },
   })
   return { entity: 'LeadHistory', count: res.count }
@@ -157,7 +163,7 @@ export async function runRetentionSweep(): Promise<SweepResult[]> {
         entity: fn.name,
         count: -1,
       })
-      // eslint-disable-next-line no-console
+       
       console.error(`[retention-sweep] ${fn.name} failed:`, err instanceof Error ? err.message : err)
     }
   }

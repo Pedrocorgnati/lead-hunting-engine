@@ -5,6 +5,7 @@ import { AppShell } from '@/components/shared/app-shell'
 import { AuthProvider } from '@/components/shared/auth-provider'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { NpsWidget } from '@/components/feedback/NpsWidget'
+import { ProviderHealthProvider } from '@/lib/contexts/provider-health-context'
 import type { UserProfile } from '@/lib/hooks/use-auth'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { Routes } from '@/lib/constants/routes'
@@ -30,11 +31,13 @@ export default async function AppLayout({
 
   return (
     <AuthProvider initialUser={initialUser}>
-      <AppShell>
-        {children}
-        <KeyboardShortcuts />
-        <NpsWidget />
-      </AppShell>
+      <ProviderHealthProvider>
+        <AppShell>
+          {children}
+          <KeyboardShortcuts />
+          <NpsWidget />
+        </AppShell>
+      </ProviderHealthProvider>
     </AuthProvider>
   )
 }

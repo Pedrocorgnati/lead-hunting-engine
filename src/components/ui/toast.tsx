@@ -1,20 +1,12 @@
 'use client'
-import { Toaster as SonnerToaster } from 'sonner'
+
+// Wrapper legado mantido por compatibilidade de import. NAO configura um Toaster
+// proprio: delega para o contrato unico em components/ToastCenter para evitar
+// configuracoes de toast divergentes (Zero Silencio, fonte unica de verdade).
+import { ToastCenter } from '@/components/ToastCenter'
 
 export function Toaster() {
-  return (
-    <SonnerToaster
-      position="top-right"
-      richColors
-      closeButton
-      duration={4000}
-      toastOptions={{
-        classNames: {
-          toast: 'font-sans',
-        },
-      }}
-    />
-  )
+  return <ToastCenter />
 }
 
-export { toast } from 'sonner'
+export { toast } from '@/components/ToastCenter'

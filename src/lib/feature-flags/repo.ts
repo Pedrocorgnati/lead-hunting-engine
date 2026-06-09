@@ -73,6 +73,7 @@ const ChangeInputSchema = z.object({
   changedByEmail: z.string().email(),
   ipAddress: z.string().min(1).max(64),
   userAgent: z.string().max(500).optional(),
+  correlationId: z.string().max(100).optional(),
 })
 
 const UsageItemSchema = z.object({
@@ -219,6 +220,7 @@ export async function recordChange(
       changedByEmail: parsed.changedByEmail,
       ipAddress: parsed.ipAddress,
       userAgent: parsed.userAgent,
+      correlationId: parsed.correlationId,
     },
     select: { id: true },
   })
@@ -227,7 +229,14 @@ export async function recordChange(
 
 export async function listChanges(
   flagId: string,
-  options?: { limit?: number; cursor?: string }
+  options?: {
+    limit?: number
+    cursor?: string
+    env?: string
+    kind?: string
+    from?: string
+    to?: string
+  }
 ): Promise<
   Array<{
     id: string
@@ -240,12 +249,21 @@ export async function listChanges(
     changedByEmail: string
     ipAddress: string
     userAgent: string | null
+    correlationId: string | null
     createdAt: Date
   }>
 > {
   const limit = Math.min(options?.limit ?? 50, 200)
   return prisma.featureFlagChange.findMany({
-    where: { flagId },
+    where: {
+      flagId,
+      env: options?.env,
+      kind: options?.kind,
+      createdAt: {
+        gte: options?.from ? new Date(options.from) : undefined,
+        lte: options?.to ? new Date(options.to + 'T23:59:59.999Z') : undefined,
+      },
+    },
     orderBy: { createdAt: 'desc' },
     take: limit,
     skip: options?.cursor ? 1 : 0,

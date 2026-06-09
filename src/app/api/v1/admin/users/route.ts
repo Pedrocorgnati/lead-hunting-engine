@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       ...(status === 'deactivated' ? { deactivatedAt: { not: null } } : {}),
     }
 
-    const [total, users] = await Promise.all([
+    const [total, rawUsers] = await Promise.all([
       prisma.userProfile.count({ where }),
       prisma.userProfile.findMany({
         where,
@@ -40,6 +40,19 @@ export async function GET(request: NextRequest) {
         },
       }),
     ])
+
+    const lastActivities = await prisma.auditLog.groupBy({
+      by: ['userId'],
+      where: { userId: { in: rawUsers.map((u) => u.id) } },
+      _max: { createdAt: true },
+    })
+
+    const lastActiveMap = new Map(lastActivities.map((la) => [la.userId, la._max.createdAt]))
+
+    const users = rawUsers.map((u) => ({
+      ...u,
+      lastActiveAt: lastActiveMap.get(u.id) ?? null,
+    }))
 
     return paginatedResponse(users, { page, limit, total })
   } catch (error) {

@@ -1,6 +1,7 @@
 import { MarketingHeader } from '@/components/landing/MarketingHeader'
 import { MarketingFooter } from '@/components/landing/Footer'
 import { CookieBanner } from '@/components/landing/CookieBanner'
+import { SkipLink } from '@/components/SkipLink'
 
 export default function MarketingLayout({
   children,
@@ -9,8 +10,13 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <SkipLink targetId="main-content" />
       <MarketingHeader />
-      <main id="main" className="flex-1">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 focus-visible:outline-none"
+      >
         {children}
       </main>
       <MarketingFooter />

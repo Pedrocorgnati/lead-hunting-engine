@@ -20,6 +20,7 @@ export const CollectionJobStatus = {
   RUNNING: 'RUNNING',
   COMPLETED: 'COMPLETED',
   FAILED: 'FAILED',
+  FAILED_TERMINAL: 'FAILED_TERMINAL',
   PAUSED: 'PAUSED',
   PARTIAL: 'PARTIAL',
   CANCELLED: 'CANCELLED',
@@ -94,6 +95,7 @@ export const COLLECTION_JOB_STATUS_MAP: Record<CollectionJobStatus, { label: str
   [CollectionJobStatus.RUNNING]: { label: 'Coletando', variant: 'default' },
   [CollectionJobStatus.COMPLETED]: { label: 'Concluída', variant: 'outline' },
   [CollectionJobStatus.FAILED]: { label: 'Falhou', variant: 'destructive' },
+  [CollectionJobStatus.FAILED_TERMINAL]: { label: 'Falha terminal', variant: 'destructive' },
   [CollectionJobStatus.PAUSED]: { label: 'Pausada', variant: 'secondary' },
   [CollectionJobStatus.PARTIAL]: { label: 'Parcial', variant: 'outline' },
   [CollectionJobStatus.CANCELLED]: { label: 'Cancelada', variant: 'secondary' },
@@ -158,4 +160,14 @@ export const CREDENTIAL_PROVIDER_MAP: Record<CredentialProvider, { label: string
   [CredentialProvider.HERE_MAPS]: { label: 'HERE Maps' },
   [CredentialProvider.TOMTOM]: { label: 'TomTom' },
   [CredentialProvider.CUSTOM]: { label: 'Personalizado' },
+}
+
+// ─── Classification Rules Display Maps ───
+
+export const OPPORTUNITY_TYPE_BADGE_MAP: Record<OpportunityType, { label: string; color: string; defaultMin: number; defaultMax: number }> = {
+  [OpportunityType.A_NEEDS_SITE]: { label: 'Precisa de site', color: 'red', defaultMin: 80, defaultMax: 100 },
+  [OpportunityType.B_NEEDS_SYSTEM]: { label: 'Precisa de sistema', color: 'orange', defaultMin: 65, defaultMax: 79 },
+  [OpportunityType.C_NEEDS_AUTOMATION]: { label: 'Precisa de automação', color: 'yellow', defaultMin: 50, defaultMax: 64 },
+  [OpportunityType.D_NEEDS_ECOMMERCE]: { label: 'Precisa de e-commerce', color: 'blue', defaultMin: 35, defaultMax: 49 },
+  [OpportunityType.E_SCALE]: { label: 'Precisa escalar', color: 'green', defaultMin: 0, defaultMax: 34 },
 }

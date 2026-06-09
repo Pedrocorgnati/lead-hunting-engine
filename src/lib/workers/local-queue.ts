@@ -1,3 +1,5 @@
+import 'server-only'
+
 /**
  * TASK-15 intake-review (CL-173): fila local como fallback quando
  * trigger.dev nao esta disponivel (sem token ou request falha).

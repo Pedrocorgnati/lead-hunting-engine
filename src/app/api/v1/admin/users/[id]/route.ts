@@ -9,6 +9,41 @@ const BodySchema = z.object({
   active: z.boolean(),
 })
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireAdmin()
+    const { id } = await params
+
+    const user = await prisma.userProfile.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        deactivatedAt: true,
+        tags: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    if (!user) {
+      return Response.json(
+        { error: { code: 'USER_001', message: 'Usuário não encontrado.' } },
+        { status: 404 },
+      )
+    }
+
+    return successResponse(user)
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

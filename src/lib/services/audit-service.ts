@@ -8,6 +8,10 @@ export type AuditAction =
   | 'credential.created'
   | 'credential.updated'
   | 'credential.deleted'
+  // A15: hardening operacional de credenciais (rotate, revoke, test-history)
+  | 'credential.rotated'
+  | 'credential.revoked'
+  | 'credential.tested'
   | 'scoring_rule.updated'
   | 'scoring_rule.reset'
   | 'user.deletion_requested'
@@ -36,6 +40,7 @@ export type AuditAction =
   // TASK-4 intake-review (CL-467, CL-474): sessao invalidada
   | 'session.invalidated_by_password_change'
   | 'session.invalidated_by_admin'
+  | 'session.revoke_all'
   // TASK-2/TASK-3 intake-review (landing admin)
   | 'waitlist.invited'
   | 'waitlist.rejected'
@@ -65,6 +70,17 @@ export type AuditAction =
   // intake-review TASK-4 (CL-038, CL-041): trilha completa de autenticacao
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
+  // Loop A9: janela de manutencao administravel e banner publico.
+  | 'maintenance.window_activated'
+  | 'maintenance.window_deactivated'
+  | 'maintenance.window_scheduled'
+  | 'maintenance.window_cancelled'
+  | 'maintenance.banner_published'
+  // Task 56 / C6: programa piloto admin (cohort por tags + entrevistas)
+  | 'pilot.cohort_added'
+  | 'pilot.cohort_removed'
+  | 'pilot.interview_scheduled'
+  | 'pilot.report_exported'
 
 interface AuditLogParams {
   userId?: string

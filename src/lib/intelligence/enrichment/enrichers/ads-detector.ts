@@ -93,11 +93,11 @@ export async function detectAds(input: {
   try {
     const metaToken = process.env.META_ADS_API_KEY
     if (!metaToken) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[ads-detector] Meta skipped: missing META_ADS_API_KEY — configure in .env')
     }
     if (!process.env.GOOGLE_ADS_API_KEY && process.env.GOOGLE_ADS_CHECK_ENABLED !== '1') {
-      // eslint-disable-next-line no-console
+       
       console.warn('[ads-detector] Google skipped: missing GOOGLE_ADS_API_KEY or GOOGLE_ADS_CHECK_ENABLED — configure in .env')
     }
 

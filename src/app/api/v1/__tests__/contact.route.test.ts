@@ -5,6 +5,7 @@
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     contactMessage: { create: jest.fn() },
+    landingConsent: { findFirst: jest.fn(), updateMany: jest.fn() },
   },
 }))
 
@@ -26,6 +27,12 @@ import { prisma } from '@/lib/prisma'
 
 const create = prisma.contactMessage.create as jest.MockedFunction<
   typeof prisma.contactMessage.create
+>
+const findRecentConsent = prisma.landingConsent.findFirst as jest.MockedFunction<
+  typeof prisma.landingConsent.findFirst
+>
+const consentUpdateMany = prisma.landingConsent.updateMany as jest.MockedFunction<
+  typeof prisma.landingConsent.updateMany
 >
 
 function mkReq(body: unknown, headers: Record<string, string> = {}): NextRequest {
@@ -55,6 +62,8 @@ beforeEach(() => {
   jest.clearAllMocks()
   assertRateLimitMock.mockImplementation(() => undefined)
   create.mockResolvedValue({ id: 'cm-1' } as never)
+  findRecentConsent.mockResolvedValue(null)
+  consentUpdateMany.mockResolvedValue({ count: 1 } as never)
 })
 
 describe('POST /api/v1/contact', () => {
@@ -68,6 +77,21 @@ describe('POST /api/v1/contact', () => {
     expect(notifyAdminsMock).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'CONTACT_MESSAGE_RECEIVED' }),
     )
+  })
+
+  it('links a recent LandingConsent to the ContactMessage receipt trail', async () => {
+    findRecentConsent.mockResolvedValue({ id: 'consent-1' } as never)
+    const res = await POST(mkReq(validPayload))
+    expect(res.status).toBe(200)
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ consentId: 'consent-1' }),
+      }),
+    )
+    expect(consentUpdateMany).toHaveBeenCalledWith({
+      where: { id: 'consent-1' },
+      data: { contactMessageId: 'cm-1' },
+    })
   })
 
   it('403 when origin != host (cross-origin attack)', async () => {

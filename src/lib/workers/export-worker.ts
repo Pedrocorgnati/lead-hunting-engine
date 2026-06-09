@@ -1,3 +1,5 @@
+import 'server-only'
+
 /**
  * Export worker — processa um ExportHistory.id em background.
  *

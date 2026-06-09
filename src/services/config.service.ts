@@ -30,6 +30,9 @@ export interface ApiCredentialSafe {
   isActive: boolean
   usageCount: number
   usageResetAt: Date | null
+  cost: number | null
+  auditSummary: string | null
+  lastValidatedAt: Date | null
   createdAt: Date
   updatedAt: Date
 }
@@ -96,6 +99,9 @@ export class ConfigService {
         isActive: c.isActive,
         usageCount: c.usageCount,
         usageResetAt: c.usageResetAt,
+        cost: c.cost,
+        auditSummary: c.auditSummary,
+        lastValidatedAt: c.lastValidatedAt,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
       }
@@ -143,6 +149,9 @@ export class ConfigService {
       isActive: credential.isActive,
       usageCount: credential.usageCount,
       usageResetAt: credential.usageResetAt,
+      cost: credential.cost,
+      auditSummary: credential.auditSummary,
+      lastValidatedAt: credential.lastValidatedAt,
       createdAt: credential.createdAt,
       updatedAt: credential.updatedAt,
     }
@@ -231,6 +240,7 @@ export class ConfigService {
       return { ok: false, message: 'CONFIG_050: Não foi possível descriptografar a credencial.' }
     }
 
+    let result: { ok: boolean; message: string }
     try {
       switch (provider) {
         case 'GOOGLE_PLACES': {
@@ -239,25 +249,29 @@ export class ConfigService {
           )
           const data = (await res.json()) as { status: string }
           const ok = data.status !== 'REQUEST_DENIED'
-          return { ok, message: ok ? 'Google Places: chave válida' : `Google Places: ${data.status}` }
+          result = { ok, message: ok ? 'Google Places: chave válida' : `Google Places: ${data.status}` }
+          break
         }
         case 'OUTSCRAPER': {
           const res = await fetch('https://api.outscraper.com/me', {
             headers: { 'X-API-KEY': apiKey },
           })
-          return { ok: res.ok, message: res.ok ? 'Outscraper: conta válida' : `Outscraper: ${res.status}` }
+          result = { ok: res.ok, message: res.ok ? 'Outscraper: conta válida' : `Outscraper: ${res.status}` }
+          break
         }
         case 'APIFY': {
           const res = await fetch('https://api.apify.com/v2/users/me', {
             headers: { Authorization: `Bearer ${apiKey}` },
           })
-          return { ok: res.ok, message: res.ok ? 'Apify: conta válida' : `Apify: ${res.status}` }
+          result = { ok: res.ok, message: res.ok ? 'Apify: conta válida' : `Apify: ${res.status}` }
+          break
         }
         case 'OPENAI': {
           const res = await fetch('https://api.openai.com/v1/models', {
             headers: { Authorization: `Bearer ${apiKey}` },
           })
-          return { ok: res.ok, message: res.ok ? 'OpenAI: chave válida' : `OpenAI: ${res.status}` }
+          result = { ok: res.ok, message: res.ok ? 'OpenAI: chave válida' : `OpenAI: ${res.status}` }
+          break
         }
         case 'ANTHROPIC': {
           // Live test: chamada minima ao endpoint /v1/models (GET).
@@ -268,30 +282,44 @@ export class ConfigService {
               'anthropic-version': '2023-06-01',
             },
           })
-          return {
+          result = {
             ok: res.ok,
             message: res.ok
               ? 'Anthropic: chave valida'
               : `Anthropic: ${res.status} ${res.statusText || 'invalida'}`,
           }
+          break
         }
         case 'HERE_MAPS': {
           const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=test&apiKey=${apiKey}`)
-          return { ok: res.ok, message: res.ok ? 'HERE Maps: chave válida' : `HERE Maps: ${res.status}` }
+          result = { ok: res.ok, message: res.ok ? 'HERE Maps: chave válida' : `HERE Maps: ${res.status}` }
+          break
         }
         case 'TOMTOM': {
           const res = await fetch(`https://api.tomtom.com/search/2/search/test.json?key=${apiKey}`)
-          return { ok: res.ok, message: res.ok ? 'TomTom: chave válida' : `TomTom: ${res.status}` }
+          result = { ok: res.ok, message: res.ok ? 'TomTom: chave válida' : `TomTom: ${res.status}` }
+          break
         }
         case 'CUSTOM':
         default: {
           const ok = apiKey.length > 10
-          return { ok, message: ok ? 'Credencial parece válida (teste básico)' : 'Credencial muito curta' }
+          result = { ok, message: ok ? 'Credencial parece válida (teste básico)' : 'Credencial muito curta' }
+          break
         }
       }
     } catch (e) {
-      return { ok: false, message: `Erro de conexão: ${(e as Error).message}` }
+      result = { ok: false, message: `Erro de conexão: ${(e as Error).message}` }
     }
+
+    await prisma.apiCredential.update({
+      where: { provider },
+      data: {
+        lastValidatedAt: new Date(),
+        auditSummary: result.message.slice(0, 500),
+      },
+    })
+
+    return result
   }
 
   // ── Scoring Rules ────────────────────────────────────────────────────────────

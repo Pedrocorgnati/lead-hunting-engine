@@ -27,13 +27,13 @@ export async function semanticHash(
   // Check cache
   const cached = await kvGet<string>(`semantic:${hexHash}`)
   if (cached) {
-    Sentry.metrics?.increment(METRIC_KEY, 1, { tags: { hit: 'true' } })
+    ;(Sentry as unknown as { metrics?: { increment: (k: string, n: number, opts: { tags: Record<string, string> }) => void } }).metrics?.increment(METRIC_KEY, 1, { tags: { hit: 'true' } })
     return hexHash
   }
 
   // Store for future lookups
   await kvSet(`semantic:${hexHash}`, hexHash, CACHE_TTL_MS)
-  Sentry.metrics?.increment(METRIC_KEY, 1, { tags: { hit: 'false' } })
+  ;(Sentry as unknown as { metrics?: { increment: (k: string, n: number, opts: { tags: Record<string, string> }) => void } }).metrics?.increment(METRIC_KEY, 1, { tags: { hit: 'false' } })
 
   void opts?.threshold // reserved for embedding-based similarity (pgvector phase 2)
 

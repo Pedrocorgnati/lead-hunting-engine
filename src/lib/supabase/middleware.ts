@@ -15,7 +15,7 @@ const MARKETING_PATHS = [
   '/termos',
 ]
 const MARKETING_PREFIXES = ['/blog']
-const AUTH_PAGE_PATHS = ['/login', '/invite']
+const AUTH_PAGE_PATHS = ['/login', '/invite', '/recuperar-senha']
 // Reset-password/update e especial: pode ser acessada por sessao ativa
 // (fluxo "trocar senha depois de receber link")
 const AUTH_RESET_PATH = '/auth/reset-password'

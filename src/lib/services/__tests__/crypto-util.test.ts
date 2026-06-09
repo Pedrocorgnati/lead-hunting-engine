@@ -1,4 +1,4 @@
-import { CryptoUtil, type EncryptResult } from '../crypto-util'
+import { CryptoUtil } from '../crypto-util'
 import { randomBytes } from 'crypto'
 
 // Valid 32-byte key (64 hex chars)

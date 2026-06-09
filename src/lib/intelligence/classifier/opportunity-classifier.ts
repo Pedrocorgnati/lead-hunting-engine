@@ -7,6 +7,21 @@ export interface SocialSignals {
   siteReachable?: boolean | null
 }
 
+export interface ClassificationRuleConfig {
+  opportunityType: OpportunityType
+  minScore: number
+  maxScore: number
+  requiredSignals?: string[]
+}
+
+const DEFAULT_RULES: ClassificationRuleConfig[] = [
+  { opportunityType: OpportunityType.A_NEEDS_SITE, minScore: 80, maxScore: 100 },
+  { opportunityType: OpportunityType.B_NEEDS_SYSTEM, minScore: 65, maxScore: 79 },
+  { opportunityType: OpportunityType.C_NEEDS_AUTOMATION, minScore: 50, maxScore: 64 },
+  { opportunityType: OpportunityType.D_NEEDS_ECOMMERCE, minScore: 35, maxScore: 49 },
+  { opportunityType: OpportunityType.E_SCALE, minScore: 0, maxScore: 34 },
+]
+
 /**
  * Classifica oportunidade comercial.
  *
@@ -25,6 +40,19 @@ export function classifyOpportunity(
   enriched: EnrichedLeadData,
   socialSignals?: SocialSignals,
 ): OpportunityType {
+  return classifyOpportunityWithConfig(scoreResult, enriched, socialSignals)
+}
+
+/**
+ * Classifica oportunidade com regras configuráveis.
+ * Se config não fornecido, usa defaults hardcoded.
+ */
+export function classifyOpportunityWithConfig(
+  scoreResult: ScoreResult,
+  enriched: EnrichedLeadData,
+  socialSignals?: SocialSignals,
+  config?: ClassificationRuleConfig[],
+): OpportunityType {
   // Override direto: FB abandonado com site ausente = oportunidade A_NEEDS_SITE
   if (socialSignals?.facebookAbandoned && socialSignals.siteReachable === false) {
     return OpportunityType.A_NEEDS_SITE
@@ -35,12 +63,15 @@ export function classifyOpportunity(
 
   const opportunityScore = businessMaturity * 0.5 + digitalGap * 0.5
 
-  let baseType: OpportunityType
-  if (opportunityScore >= 80) baseType = OpportunityType.A_NEEDS_SITE
-  else if (opportunityScore >= 65) baseType = OpportunityType.B_NEEDS_SYSTEM
-  else if (opportunityScore >= 50) baseType = OpportunityType.C_NEEDS_AUTOMATION
-  else if (opportunityScore >= 35) baseType = OpportunityType.D_NEEDS_ECOMMERCE
-  else baseType = OpportunityType.E_SCALE
+  const rules = config ?? DEFAULT_RULES
+
+  let baseType: OpportunityType = OpportunityType.E_SCALE
+  for (const rule of rules) {
+    if (opportunityScore >= rule.minScore && opportunityScore <= rule.maxScore) {
+      baseType = rule.opportunityType
+      break
+    }
+  }
 
   // Reforcador: FB abandonado com site presente promove um tier (E->D, D->C)
   if (socialSignals?.facebookAbandoned && socialSignals.siteReachable !== false) {

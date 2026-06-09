@@ -10,3 +10,8 @@ export const Timing = {
   RETRY_BACKOFF_BASE_MS: 1000,
   RETRY_BACKOFF_MAX_MS: 30000,
 } as const
+
+// Fallback (em segundos) usado pela pagina /erro/429 quando a resposta 429
+// nao traz header `Retry-After`. Mantido fora do objeto Timing por ser
+// consumido como escalar bruto (segundos), nao milissegundos.
+export const DEFAULT_RETRY_AFTER = 60

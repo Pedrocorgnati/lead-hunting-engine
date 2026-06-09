@@ -24,9 +24,8 @@ export const DEFAULT_LLM_PRICING: LlmPricingTable = {
   anthropic: {
     'claude-opus-4-7': { input: 15, output: 75 },
     'claude-sonnet-4-6': { input: 3, output: 15 },
-    'claude-haiku-4-5-20251001': { input: 1, output: 5 },
-    'claude-3-5-sonnet': { input: 3, output: 15 },
-    'claude-3-5-haiku': { input: 0.8, output: 4 },
+    'claude-sonnet-4-5-20251001': { input: 1, output: 5 },
+    'claude-3-5-sonnet': { input: 0.8, output: 4 },
   },
 }
 

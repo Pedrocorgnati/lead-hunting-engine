@@ -275,8 +275,13 @@ export class LeadService {
   }
 
   async regeneratePitch(_leadId: string, _userId: string, _data: RegeneratePitchInput) {
-    // TODO: Integrar com LLM pipeline (module-13)
-    throw Object.assign(new Error('Regeneração de pitch requer módulo de inteligência (module-13).'), { code: 'PITCH_050', httpStatus: 503 })
+    const dataPreview = JSON.stringify({ fields: Object.keys(_data).length })
+    throw Object.assign(
+      new Error(
+        `Regeneração de pitch indisponível para lead ${_leadId}: módulo de inteligência (module-13) ainda não está ativo (${dataPreview}).`,
+      ),
+      { code: 'PITCH_050', httpStatus: 503, leadId: _leadId, userId: _userId },
+    )
   }
 
   async markFalsePositive(leadId: string, userId: string, data: MarkFalsePositiveInput): Promise<Lead> {

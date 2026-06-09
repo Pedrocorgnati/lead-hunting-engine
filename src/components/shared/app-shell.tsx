@@ -6,6 +6,7 @@ import { Header } from './header'
 import { LegalFooter } from './legal-footer'
 import { BottomNavigation } from '@/components/mobile/bottom-navigation'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { SkipLink } from '@/components/SkipLink'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -16,6 +17,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div data-testid="app-shell" className="flex h-screen overflow-hidden bg-background">
+      <SkipLink targetId="main-content" />
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}

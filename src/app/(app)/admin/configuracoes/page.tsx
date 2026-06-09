@@ -2,21 +2,54 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useToast } from '@/lib/hooks/use-toast'
 import { Routes } from '@/lib/constants'
-import { Plus } from 'lucide-react'
+import { ArrowRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/modal'
 import { CredentialCard } from '@/components/admin/credential-card'
 import { CredentialForm } from '@/components/admin/credential-form'
-import { ScoringRulesForm } from '@/components/admin/scoring-rules-form'
 import {
   getCredentials, deleteCredential, testCredential, toggleCredentialActive,
 } from '@/actions/config'
 import type { CredentialDto } from '@/actions/config'
 import { trackEvent } from '@/lib/utils/analytics'
+
+const CONFIG_CARDS = [
+  {
+    href: Routes.ADMIN_CONFIG_LIMITS,
+    title: 'Limites',
+    description: 'Ajuste quotas de leads e concorrência de coletas.',
+  },
+  {
+    href: Routes.ADMIN_CONFIG_NICHES,
+    title: 'Nichos',
+    description: 'Gerencie segmentações e palavras-chave por segmento.',
+  },
+  {
+    href: Routes.ADMIN_CONFIG_REGIONS,
+    title: 'Regiões',
+    description: 'Defina UFs e cidades disponíveis para coleta.',
+  },
+  {
+    href: Routes.ADMIN_CONFIG_SCRAPERS,
+    title: 'Scrapers',
+    description: 'Monitore provedores e status de coleta.',
+  },
+  {
+    href: '/admin/configuracoes/privacidade',
+    title: 'Privacidade',
+    description: 'Política de retenção e limpeza de leads.',
+  },
+  {
+    href: Routes.ADMIN_CONFIG_SCORING,
+    title: 'Scoring',
+    description: 'Ajuste pesos e regras de composição do score.',
+  },
+] as const
 
 export default function AdminConfiguracoesPage() {
   const { isAdmin, loading: authLoading } = useAuth()
@@ -91,6 +124,26 @@ export default function AdminConfiguracoesPage() {
         <p className="text-sm text-muted-foreground mt-1">Credenciais de API e parâmetros do sistema</p>
       </div>
 
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" aria-label="Atalhos de configuração">
+        {CONFIG_CARDS.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="rounded-lg border bg-card p-4 hover:bg-accent transition-colors min-h-[122px] flex flex-col justify-between gap-4"
+            data-testid={`admin-config-shortcut-${card.title.toLowerCase()}`}
+          >
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">{card.title}</h2>
+              <p className="text-xs text-muted-foreground mt-1 leading-5">{card.description}</p>
+            </div>
+            <span className="text-xs text-primary inline-flex items-center gap-1">
+              Acessar
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+          </Link>
+        ))}
+      </section>
+
       {/* Credentials section */}
       <section data-testid="admin-config-credentials-section" aria-labelledby="credentials-heading" className="rounded-lg border bg-card p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -131,9 +184,6 @@ export default function AdminConfiguracoesPage() {
           </div>
         )}
       </section>
-
-      {/* Scoring rules */}
-      <ScoringRulesForm />
 
       {/* Create/Edit credential modal */}
       <Modal

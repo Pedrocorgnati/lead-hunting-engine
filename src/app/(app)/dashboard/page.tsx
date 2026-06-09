@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Users, Target, TrendingUp, Zap } from 'lucide-react'
+import { Calendar, Target, TrendingUp, Users, Zap } from 'lucide-react'
 import { Routes } from '@/lib/constants'
-import { getDashboardStats, getRecentLeads } from '@/actions/leads'
+import { getDashboardStats, getRecentLeads, getUpcomingLeadReminders } from '@/actions/leads'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { DashboardMetrics } from './_components/DashboardMetrics'
@@ -57,9 +57,10 @@ export default async function DashboardPage() {
   const showOnboardingBanner =
     !profile?.onboardingCompletedAt || onboardingStep < totalOnboardingSteps
 
-  const [stats, recentLeads] = await Promise.all([
+  const [stats, recentLeads, reminders] = await Promise.all([
     getDashboardStats(),
     getRecentLeads(),
+    getUpcomingLeadReminders(),
   ])
 
   return (
@@ -117,6 +118,40 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Dashboard reminders (TASK-54) */}
+      {reminders.length > 0 && (
+        <section data-testid="dashboard-upcoming-reminders" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">Lembretes próximos</h2>
+            <a
+              href={Routes.LEADS}
+              className="text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              Ver todos os leads →
+            </a>
+          </div>
+
+          <div className="rounded-lg border bg-card divide-y divide-border overflow-hidden">
+            {reminders.map((reminder) => (
+              <Link
+                key={`${reminder.leadId}:${reminder.taskId}`}
+                href={`${Routes.LEAD_DETAIL(reminder.leadId)}?tab=notas`}
+                className="flex items-center justify-between p-3 hover:bg-accent transition-colors min-h-[44px]"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-foreground truncate">{reminder.title}</p>
+                  <p className="text-xs text-muted-foreground">{reminder.leadName}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 text-xs text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                  {new Date(reminder.dueAt).toLocaleDateString('pt-BR')}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Dashboard metrics (TASK-10) */}
       <DashboardMetrics />

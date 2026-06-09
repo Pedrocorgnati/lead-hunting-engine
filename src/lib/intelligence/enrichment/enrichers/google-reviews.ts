@@ -30,7 +30,7 @@ export async function fetchReviews(placeId: string | null | undefined): Promise<
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
     if (!apiKey) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[google-reviews] skipped: missing GOOGLE_PLACES_API_KEY — configure in .env')
       return { ...base, skipped: true, error: 'missing-api-key' }
     }

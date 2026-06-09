@@ -20,7 +20,16 @@ export async function GET(request: NextRequest) {
       Object.fromEntries(url.searchParams.entries())
     )
 
-    const where: Record<string, unknown> = { userId: user.id }
+    const where: Record<string, unknown> = {}
+    if (query.ownerScope !== 'all') {
+      where.userId = user.id
+    }
+
+    if (query.ownerScope === 'all' && user.role === 'ADMIN') {
+      // Mantém compatibilidade com futuras extensões de permissão sem travar a query.
+      delete where.userId
+    }
+
     if (query.tone) where.tone = query.tone
     if (query.search) {
       where.OR = [

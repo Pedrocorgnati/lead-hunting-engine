@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "node -e \"const ua=process.env.npm_config_user_agent||''; if(!ua.startsWith('pnpm')){console.error('[lead-hunting-engine] Use pnpm install (NOT npm/yarn): mixed lockfiles corrupt node_modules. Canonical lockfile: pnpm-lock.yaml'); process.exit(1);}\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "dev": "next dev",
@@ -80,6 +81,7 @@
   "devDependencies": {
     "@axe-core/cli": "4.10.2",
     "@axe-core/playwright": "^4.11.2",
+    "@jest/globals": "^30.4.1",
     "@next/bundle-analyzer": "^16.2.4",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
@@ -92,6 +94,7 @@
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/string-similarity": "^4.0.2",
@@ -108,5 +111,19 @@
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@prisma/engines",
+      "@sentry/cli",
+      "@swc/core",
+      "esbuild",
+      "msw",
+      "prisma",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }

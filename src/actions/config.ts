@@ -120,7 +120,7 @@ export async function testCredential(id: string): Promise<{
  * Ativa ou desativa uma credencial. Registra AuditLog.
  */
 export async function toggleCredentialActive(id: string, isActive: boolean): Promise<{ success: boolean }> {
-  const user = await requireAdmin()
+  await requireAdmin()
   const cred = await prisma.apiCredential.findUnique({ where: { id } })
   if (!cred) throw new Error('Credencial não encontrada.')
   await prisma.apiCredential.update({ where: { id }, data: { isActive } })

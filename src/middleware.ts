@@ -8,6 +8,7 @@ import { DEPRECATED_ROUTES, buildDeprecationHeader } from '@/lib/api/deprecation
 const MAINTENANCE_EXEMPT = [
   '/manutencao',
   '/api/health',
+  '/api/v1/health/maintenance-window',
 ]
 
 function isMaintenanceExempt(pathname: string): boolean {

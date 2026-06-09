@@ -21,7 +21,6 @@ import { collectSocial, AllProvidersExhausted } from '../provider-manager'
 import { getApiKey } from '../../utils/get-credential'
 
 import successFixture from '../../../../__tests__/fixtures/instagram-apify-success.json'
-import errorFixture from '../../../../__tests__/fixtures/instagram-apify-error.json'
 import pbSuccessFixture from '../../../../__tests__/fixtures/instagram-phantombuster-success.json'
 
 const apiKeyMock = getApiKey as jest.Mock

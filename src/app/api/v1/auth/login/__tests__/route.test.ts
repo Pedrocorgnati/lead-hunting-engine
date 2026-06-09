@@ -27,6 +27,17 @@ jest.mock('@/lib/prisma', () => ({
   },
 }))
 
+// Isola o rate-limiter (alvo deste teste) do lockout exponencial por email
+// (CL-038, lockout-policy). Ambos sao gates module-level: o lockout dispara na
+// 4a falha do MESMO email (THRESHOLD=3 -> backoff), o que bloquearia a 5a
+// tentativa antes de chegar ao rate-limiter e mascararia o bucket fino/IP.
+// O lockout tem responsabilidade propria; aqui medimos so o rate-limit.
+jest.mock('@/lib/auth/lockout-policy', () => ({
+  getLockState: jest.fn(() => ({ lockedUntil: null, attemptCount: 0 })),
+  recordFailure: jest.fn(),
+  recordSuccess: jest.fn(),
+}))
+
 import { NextRequest } from 'next/server'
 import { POST } from '../route'
 

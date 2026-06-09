@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 const TTL_SECONDS = 30
 
@@ -9,10 +9,6 @@ export interface UndoSnapshot {
   snapshot: Record<string, unknown>
 }
 
-function key(leadId: string, token: string): string {
-  return `undo:${leadId}:${token}`
-}
-
 export async function saveUndoSnapshot(
   leadId: string,
   snapshot: UndoSnapshot,
@@ -20,7 +16,7 @@ export async function saveUndoSnapshot(
   const token = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000).toISOString()
 
-  const supabase = createClient()
+  const supabase = await createClient()
   await supabase.from('undo_tokens').insert({
     token,
     lead_id: leadId,
@@ -35,7 +31,7 @@ export async function consumeUndoSnapshot(
   leadId: string,
   token: string,
 ): Promise<UndoSnapshot | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('undo_tokens')

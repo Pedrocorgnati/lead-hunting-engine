@@ -1,10 +1,14 @@
 import { FacebookGraphProvider, analyzeEngagement } from '../facebook-graph'
+import { RateLimiter } from '../../utils/rate-limiter'
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
 beforeEach(() => {
   mockFetch.mockReset()
+  // Date.now() congelado abaixo: sem reset, o TokenBucket module-level drena ao
+  // longo da suite e o refill nunca avanca (elapsedSec=0), causando loop/timeout.
+  RateLimiter.__resetForTests()
   jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-04-18').getTime())
 })
 

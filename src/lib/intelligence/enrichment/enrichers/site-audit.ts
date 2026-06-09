@@ -148,7 +148,7 @@ export async function auditSite(url: string | null | undefined): Promise<SiteAud
 
     const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY
     if (!apiKey) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[site-audit] PageSpeed skipped: missing GOOGLE_PAGESPEED_API_KEY — configure in .env')
     }
 

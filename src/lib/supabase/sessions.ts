@@ -55,7 +55,7 @@ export async function listUserSessions(userId: string): Promise<UserSession[]> {
   } catch (err) {
     // RLS/permission falha deve ser observavel, nao silenciada.
     // Log estruturado permite distinguir "sem sessoes" de "feature quebrada".
-    // eslint-disable-next-line no-console
+     
     console.warn('[supabase/sessions] listUserSessions failed — returning empty list.', {
       userId,
       reason: err instanceof Error ? err.message : String(err),

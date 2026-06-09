@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
-import { Toaster } from 'sonner'
+import { ToastCenter } from '@/components/ToastCenter'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -11,6 +11,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { DevOverlayLoader } from '@/components/dev/DevOverlayLoader'
 import { Analytics } from '@/components/analytics/Analytics'
 import { WebVitals } from '@/components/analytics/WebVitals'
+import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 import { OfflineBanner } from '@/components/shared/OfflineBanner'
 import { AuthOfflineBanner } from '@/components/shared/AuthOfflineBanner'
 
@@ -87,15 +88,11 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
+            <MaintenanceBanner />
             <OfflineBanner />
             <AuthOfflineBanner />
             {children}
-            <Toaster
-              position="top-right"
-              richColors
-              closeButton
-              duration={5000}
-            />
+            <ToastCenter />
             <DevOverlayLoader />
             <VercelAnalytics />
             <SpeedInsights />

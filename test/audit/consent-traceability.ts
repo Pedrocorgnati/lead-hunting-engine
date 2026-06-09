@@ -32,7 +32,7 @@ export async function verifyConsentTraceability(userId: string): Promise<{
   }
 
   const ageMs = Date.now() - profile.termsAcceptedAt.getTime()
-  // eslint-disable-next-line no-console
+   
   console.log(
     `[COMP-003] termsAcceptedAt: ${profile.termsAcceptedAt.toISOString()} ` +
       `(${Math.floor(ageMs / 1000)}s ago) ✓`

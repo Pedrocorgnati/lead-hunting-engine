@@ -36,6 +36,7 @@ export type SystemConfigKey =
   | 'nps.min_leads_collected'
   | 'nps.response_cooldown_days'
   | 'nps.pilot_only'
+  | 'maintenance.window'
 
 export const DEFAULTS: Record<SystemConfigKey, Prisma.JsonValue> = {
   'alert.llm.monthly_usd': { threshold: 50 },
@@ -53,6 +54,7 @@ export const DEFAULTS: Record<SystemConfigKey, Prisma.JsonValue> = {
   'nps.min_leads_collected': { value: 3 },
   'nps.response_cooldown_days': { value: 90 },
   'nps.pilot_only': { value: false },
+  'maintenance.window': { enabled: false },
 }
 
 // Cache em-memoria com TTL curto para reduzir queries em cron/hot-paths.

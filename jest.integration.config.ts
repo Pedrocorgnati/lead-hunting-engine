@@ -23,6 +23,9 @@ const config: Config = {
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Mesmo stub do jest.config.ts: sem ele todo teste que toca src/lib/prisma
+    // (import 'server-only') falha com Cannot find module
+    '^server-only$': '<rootDir>/src/__tests__/__mocks__/server-only.ts',
   },
   transform: {
     '^.+\\.tsx?$': [

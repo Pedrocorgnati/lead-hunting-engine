@@ -61,7 +61,7 @@ test.describe('Shell E2E — desktop', () => {
 
   test('rota inexistente exibe not-found', async ({ page }) => {
     await page.goto('/__rota_que_nao_existe__')
-    await expect(page.getByText(/pagina nao encontrada|not[- ]found/i)).toBeVisible()
+    await expect(page.getByText(/p[aá]gina n[aã]o encontrada|not[- ]found/i).first()).toBeVisible()
   })
 })
 
@@ -83,9 +83,8 @@ test.describe('Shell E2E — mobile', () => {
     await page.getByTestId('header-mobile-menu-button').click()
     await expect(page.getByTestId('sidebar-mobile-drawer')).toBeVisible()
     await page.keyboard.press('Escape')
-    // espera transicao
-    await page.waitForTimeout(300)
-    await expect(page.getByTestId('sidebar-mobile-drawer')).not.toBeVisible()
+    // not.toBeVisible faz polling — cobre a duracao da transicao
+    await expect(page.getByTestId('sidebar-mobile-drawer')).not.toBeVisible({ timeout: 3_000 })
   })
 
   test('Tab cicla dentro do drawer (focus trap)', async ({ page }) => {
@@ -98,14 +97,20 @@ test.describe('Shell E2E — mobile', () => {
     const first = links.first()
     await first.focus()
     await expect(first).toBeFocused()
-    // Shift+Tab no primeiro deve voltar para o ultimo (focus trap)
+    // Shift+Tab no primeiro deve manter o foco DENTRO do drawer (focus trap).
+    // O alvo exato pode ser o ultimo focavel (botao fechar, link ou toggle) —
+    // o contrato e nao escapar do trap, nao um elemento especifico.
     await page.keyboard.press('Shift+Tab')
-    const last = links.last()
-    await expect(last).toBeFocused()
+    const focusInsideDrawer = await drawer.evaluate((el) => el.contains(document.activeElement))
+    expect(focusInsideDrawer).toBe(true)
   })
 })
 
 test.describe('Shell E2E — admin role', () => {
+  // Sidebar desktop e hidden em viewport mobile (drawer assume) — estes
+  // testes validam a sidebar fixa, entao fixamos viewport desktop.
+  test.use({ viewport: { width: 1280, height: 800 } })
+
   test('sidebar mostra secao admin para ADMIN', async ({ page }) => {
     await loginAsUser(page, { role: 'ADMIN' })
     await page.goto('/dashboard')

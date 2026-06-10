@@ -62,20 +62,28 @@ test.describe('Leads Dashboard (Milestone 12)', () => {
   })
 
   test('5. abrir detalhe do primeiro lead', async ({ page }) => {
-    const firstRow = page.locator('[data-testid="leads-page"] table tbody tr').first()
-    if ((await firstRow.count()) === 0) {
+    const firstRowLink = page
+      .locator('[data-testid^="leads-table-row-"] a, a[data-testid^="leads-table-mobile-row-"]')
+      .filter({ visible: true })
+      .first()
+    const hasLeads = await firstRowLink.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)
+    if (!hasLeads) {
       test.skip(true, 'sem leads no ambiente — preencha seed antes')
     }
-    await firstRow.locator('a').first().click()
+    await firstRowLink.click()
     await page.waitForURL(/\/leads\/[0-9a-f-]+/)
   })
 
   test('6. mudar status NEW -> CONTACTED via lifecycle', async ({ page }) => {
-    const firstRow = page.locator('[data-testid="leads-page"] table tbody tr').first()
-    if ((await firstRow.count()) === 0) {
+    const firstRowLink = page
+      .locator('[data-testid^="leads-table-row-"] a, a[data-testid^="leads-table-mobile-row-"]')
+      .filter({ visible: true })
+      .first()
+    const hasLeads = await firstRowLink.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)
+    if (!hasLeads) {
       test.skip(true, 'sem leads — preencha seed')
     }
-    await firstRow.locator('a').first().click()
+    await firstRowLink.click()
     const advanceBtn = page.getByRole('button', { name: /avancar|contatado/i }).first()
     if (await advanceBtn.isVisible().catch(() => false)) {
       await advanceBtn.click()

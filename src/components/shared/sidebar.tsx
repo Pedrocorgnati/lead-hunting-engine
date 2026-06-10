@@ -160,8 +160,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         onKeyDown={handleDrawerKeyDown}
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-64 bg-background border-r shadow-lg transition-transform duration-200 md:hidden',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          // Fechado: alem de off-screen, invisible+inert — senao o dialog
+          // aria-modal continua visivel/interativo para AT e focus (bug a11y
+          // pego pelo e2e: Escape "fechava" mas o drawer seguia visivel).
+          mobileOpen ? 'translate-x-0' : '-translate-x-full invisible'
         )}
+        inert={!mobileOpen}
       >
         <div className="flex h-full flex-col gap-1 p-2">
           <NavContent

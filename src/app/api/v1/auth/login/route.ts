@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { errorResponse, AUTH_002, AUTH_003, AUTH_LOCKED_OUT } from '@/constants/errors'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limiter'
-import { getLockState, recordFailure, recordSuccess } from '@/lib/auth/lockout-policy'
+import { getLockState, recordFailure, recordSuccess, computeBackoffMs, LOCKOUT_THRESHOLD } from '@/lib/auth/lockout-policy'
 import { AuditService } from '@/lib/services/audit-service'
 
 // G2-001 — defesa em profundidade contra brute force.
@@ -31,8 +31,28 @@ export async function POST(request: NextRequest) {
     const emailKey = validated.email.toLowerCase().trim()
     const lockoutKey = `lockout:email:${emailKey}`
 
-    // 1. Gate: lockout exponencial por usuario (CL-038)
+    // 1. Gate: lockout exponencial por usuario (CL-038).
+    // Apos THRESHOLD falhas, a tentativa seguinte ja e 429 (a versao anterior
+    // tinha off-by-one: a 4a respondia 401 e so ENTAO armava o lock).
     const lockState = getLockState(lockoutKey)
+    if (
+      (lockState.lockedUntil === null || lockState.lockedUntil <= Date.now()) &&
+      lockState.attemptCount >= LOCKOUT_THRESHOLD
+    ) {
+      recordFailure(lockoutKey) // tentativa bloqueada tambem escala o backoff
+      const retryAfterSeconds = Math.max(1, Math.ceil(computeBackoffMs(lockState.attemptCount + 1) / 1000))
+      AuditService.log({
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        metadata: { emailAttempted: emailKey, reason: 'LOCKED_OUT', ip: ipAddress },
+        ipAddress,
+        userAgent,
+      }).catch(() => {})
+      return NextResponse.json(
+        errorResponse(AUTH_LOCKED_OUT, `Tente novamente em ${retryAfterSeconds} segundos.`),
+        { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } },
+      )
+    }
     if (lockState.lockedUntil !== null && lockState.lockedUntil > Date.now()) {
       const retryAfterSeconds = Math.ceil((lockState.lockedUntil - Date.now()) / 1000)
       AuditService.log({

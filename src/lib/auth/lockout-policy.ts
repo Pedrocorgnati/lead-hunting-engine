@@ -17,7 +17,8 @@ interface LockoutEntry {
 
 const lockoutStore = new Map<string, LockoutEntry>()
 
-const THRESHOLD = parseInt(process.env.AUTH_LOCKOUT_THRESHOLD ?? '3', 10)
+export const LOCKOUT_THRESHOLD = parseInt(process.env.AUTH_LOCKOUT_THRESHOLD ?? '3', 10)
+const THRESHOLD = LOCKOUT_THRESHOLD
 const COOLDOWN_MS =
   parseInt(process.env.AUTH_LOCKOUT_COOLDOWN_MIN ?? '30', 10) * 60 * 1000
 const MAX_DELAY_MS = parseInt(process.env.AUTH_LOCKOUT_MAX_DELAY_MS ?? '300000', 10)

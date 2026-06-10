@@ -28,8 +28,12 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   // Fetch full profile from API (includes name, avatarUrl, etc.)
   const fetchProfile = useCallback(async (): Promise<UserProfile | null> => {
     try {
-      const { data } = await apiClient.get<UserProfile>('/api/v1/profile')
-      return data ?? null
+      // apiClient devolve o BODY bruto em `data` — o endpoint envelopa em
+      // {data: profile}, entao e preciso desembrulhar DUAS vezes. O unwrap
+      // simples setava user={data:{...}} (role/name/email undefined): admin
+      // nunca via a secao Admin da sidebar e o header quebrava.
+      const { data } = await apiClient.get<{ data: UserProfile }>('/api/v1/profile')
+      return data?.data ?? null
     } catch {
       return null
     }
@@ -68,10 +72,24 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
   const signOut = useCallback(async () => {
     setUser(null)
-    const supabase = getSupabase()
-    await supabase.auth.signOut()
-    router.push(Routes.LOGIN)
-  }, [getSupabase, router])
+    // Logout SERVER-SIDE primeiro: limpa os cookies httpOnly na resposta.
+    // So o signOut client deixava cookie residual e o middleware devolvia
+    // /login -> /dashboard (Sair nao deslogava; bug pego pelo e2e).
+    try {
+      await fetch('/api/v1/auth/logout', { method: 'POST' })
+    } catch {
+      // segue para o signOut local mesmo assim
+    }
+    try {
+      const supabase = getSupabase()
+      await supabase.auth.signOut()
+    } catch {
+      // cookies ja limpos pelo endpoint; redirect nao depende disso
+    } finally {
+      // Full reload: garante que nenhum cache RSC/router mantenha o shell logado
+      window.location.assign(Routes.LOGIN)
+    }
+  }, [getSupabase])
 
   const isAdmin = user?.role === UserRole.ADMIN
 

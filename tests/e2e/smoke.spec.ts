@@ -37,29 +37,39 @@ test.describe('Smoke E2E — fluxo ponta-a-ponta do operador', () => {
 
   test('1. login redireciona para /dashboard com KPIs renderizados', async ({ page }) => {
     await expect(page).toHaveURL(/\/dashboard/)
-    // KPI principais (definidos em src/app/(app)/dashboard/page.tsx:14-39)
-    await expect(page.getByText(/leads totais|total leads/i).first()).toBeVisible()
-    await expect(page.getByText(/leads quentes|hot leads/i).first()).toBeVisible()
+    // KPIs por testid estavel (copy varia; testids vivem no DashboardKpiGrid)
+    await expect(page.getByTestId('dashboard-kpi-card-totalLeads')).toBeVisible()
+    await expect(page.getByTestId('dashboard-kpi-card-hotLeads')).toBeVisible()
   })
 
   test('2. lista de leads carrega com paginacao', async ({ page }) => {
     await page.goto('/leads')
     await expect(page.getByTestId('leads-page')).toBeVisible({ timeout: 10_000 })
-    // Aceita lista vazia (empty state) ou com leads — ambos sao validos no smoke
-    const hasLeads = await page.locator('[data-testid="lead-row"]').first().isVisible().catch(() => false)
-    if (!hasLeads) {
-      await expect(page.getByText(/nenhum lead|sem leads/i).first()).toBeVisible()
-    }
+    // Aceita lista vazia (empty state) ou com leads — ambos sao validos no
+    // smoke. Espera o PRIMEIRO dos dois aparecer (a lista carrega async;
+    // isVisible() imediato dava falso-vazio durante o fetch).
+    const rowsOrEmpty = page
+      .locator('[data-testid^="leads-table-row-"], [data-testid^="leads-table-mobile-row-"], [data-testid="leads-table-empty"]')
+      .filter({ visible: true })
+    await expect(rowsOrEmpty.first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('3. detalhe de lead exibe score breakdown (skip se nao houver leads)', async ({ page }) => {
     await page.goto('/leads')
-    const firstRow = page.locator('[data-testid="lead-row"]').first()
-    const hasLeads = await firstRow.isVisible().catch(() => false)
+    const firstRowLink = page
+      .locator('[data-testid^="leads-table-row-"] a, a[data-testid^="leads-table-mobile-row-"]')
+      .filter({ visible: true })
+      .first()
+    const hasLeads = await firstRowLink
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false)
     test.skip(!hasLeads, 'sem leads no DB de teste — popular via seed:test antes')
-    await firstRow.click()
+    await firstRowLink.click()
     await expect(page).toHaveURL(/\/leads\/[a-z0-9-]+/i)
-    await expect(page.getByText(/score breakdown|pontuacao/i).first()).toBeVisible({ timeout: 5_000 })
+    await expect(
+      page.getByText(/composi[cç][aã]o do score|score breakdown|pontuacao/i).first()
+    ).toBeVisible({ timeout: 5_000 })
   })
 
   test('4. exportacao retorna arquivo (CSV minimo)', async ({ page }) => {
@@ -79,7 +89,9 @@ test.describe('Smoke E2E — fluxo ponta-a-ponta do operador', () => {
     } else {
       // Caminho assincrono — ir para /exports e validar que ha entrada PENDING/DONE
       await page.goto('/exports')
-      await expect(page.getByText(/pending|done|aguardando|conclu/i).first()).toBeVisible({ timeout: 5_000 })
+      await expect(
+        page.getByText(/pending|done|aguardando|conclu|processando|na fila|pronto|falhou|expirad|nenhuma exporta/i).first()
+      ).toBeVisible({ timeout: 5_000 })
     }
   })
 

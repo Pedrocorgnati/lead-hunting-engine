@@ -18,11 +18,9 @@ describe('Header', () => {
     } as ReturnType<typeof useAuth>)
   })
 
-  it('renderiza skip-to-content como primeiro elemento focusable', () => {
+  it('NAO renderiza skip-link proprio (canonico vive no AppShell, evita duplicata a11y)', () => {
     render(<Header onMobileMenuOpen={() => {}} />)
-    const skip = screen.getByText(/pular para o conte/i)
-    expect(skip).toBeInTheDocument()
-    expect(skip).toHaveAttribute('href', '#main-content')
+    expect(screen.queryByText(/pular para o conte/i)).not.toBeInTheDocument()
   })
 
   it('hamburguer mobile chama onMobileMenuOpen', () => {

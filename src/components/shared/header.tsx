@@ -14,7 +14,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -34,14 +33,8 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
 
   return (
     <header data-testid="header" className="flex h-14 items-center gap-4 px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Skip to content */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:ring-2 focus:ring-ring focus:outline-none text-sm"
-      >
-        Pular para o conteúdo principal
-      </a>
-
+      {/* Skip-link canonico vive no AppShell (<SkipLink/>); o anchor duplicado
+          aqui criava DOIS links identicos focaveis (bug a11y pego pelo e2e). */}
       {/* Hamburguer — mobile only */}
       <button
         data-testid="header-mobile-menu-button"
@@ -110,7 +103,10 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="px-3 py-2 border-b mb-1">
+              {/* Base UI: GroupLabel fora de Group LANCA em runtime e o error
+                  boundary derrubava o header inteiro ao abrir o menu — info do
+                  usuario vira div simples (nao e label de grupo mesmo). */}
+              <div className="px-3 py-2 border-b mb-1">
                 <p className="text-sm font-medium truncate">{user.name ?? 'Usuário'}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 <Badge
@@ -119,7 +115,7 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
                 >
                   {isAdmin ? 'Admin' : 'Operador'}
                 </Badge>
-              </DropdownMenuLabel>
+              </div>
               <DropdownMenuItem
                 data-testid="header-user-menu-profile-item"
                 onClick={() => router.push(Routes.PERFIL)}

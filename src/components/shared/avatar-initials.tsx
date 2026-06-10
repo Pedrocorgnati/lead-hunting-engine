@@ -34,14 +34,18 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
 }
 
 interface AvatarInitialsProps {
-  name: string
+  name?: string | null
   size?: AvatarSize
   className?: string
 }
 
 export function AvatarInitials({ name, size = 'md', className }: AvatarInitialsProps) {
-  const colorClass = AVATAR_COLORS[getColorIndex(name)]
-  const initials = getInitials(name || '?')
+  // name pode chegar null/undefined (perfil sem nome durante hydration):
+  // getColorIndex(undefined) crashava o shell inteiro do app com
+  // "Cannot read properties of undefined (reading 'length')".
+  const safeName = (name ?? '').trim() || '?'
+  const colorClass = AVATAR_COLORS[getColorIndex(safeName)]
+  const initials = getInitials(safeName)
 
   return (
     <span

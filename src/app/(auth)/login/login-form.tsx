@@ -61,7 +61,7 @@ export function LoginForm() {
 
       if (res.status === 401) {
         // AUTH_002: alinhado ao ERROR-CATALOG
-        setServerError('Email ou senha incorretos.')
+        setServerError('Credenciais incorretas.')
         return
       }
       if (res.status === 429) {

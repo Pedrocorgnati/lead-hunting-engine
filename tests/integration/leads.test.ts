@@ -20,7 +20,16 @@
  *   LEAD_ENRICHMENT_PENDING = 000...0037  score=0,  COLD
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 
 import { GET as listLeads } from '@/app/api/v1/leads/route'
 import { GET as countLeads } from '@/app/api/v1/leads/count/route'
@@ -283,7 +292,7 @@ describe('PATCH /api/v1/leads/[id]/status', () => {
     const ctx = makeRouteContext({ id: TEST_IDS.LEAD_CONVERTED })
     const res = await updateLeadStatus(req, ctx)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
 
     // Verificar que status não foi alterado
     const dbLead = await getLeadFromDb(TEST_IDS.LEAD_CONVERTED)

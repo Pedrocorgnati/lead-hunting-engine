@@ -36,7 +36,7 @@ export const TEST_USERS: Record<TestRole, TestAuthUser> = {
  * Deve ser chamado dentro de beforeEach ou no início de cada teste.
  *
  * Uso:
- *   jest.mock('@/lib/auth')
+ *   jest.mock('@/lib/auth')  // ver factory parcial nos specs
  *   const { requireAuth } = require('@/lib/auth')
  *   setupAuthMock(requireAuth, 'OPERATOR')
  */

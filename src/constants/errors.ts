@@ -22,7 +22,7 @@ export const SYS_004 = { code: 'SYS_004', httpStatus: 502, userMessage: 'Recebem
 
 // ─── Auth (AUTH) ─────────────────────────────────────
 export const AUTH_001 = { code: 'AUTH_001', httpStatus: 401, userMessage: 'Sessão expirada. Faça login novamente.', technicalMessage: 'JWT token invalid or expired: {reason}' }
-export const AUTH_002 = { code: 'AUTH_002', httpStatus: 401, userMessage: 'Email ou senha incorretos.', technicalMessage: 'Authentication failed: invalid credentials for email {emailHash}' }
+export const AUTH_002 = { code: 'AUTH_002', httpStatus: 401, userMessage: 'Credenciais incorretas.', technicalMessage: 'Authentication failed: invalid credentials for {emailHash}' }
 export const AUTH_003 = { code: 'AUTH_003', httpStatus: 429, userMessage: 'Muitas tentativas. Tente novamente em {seconds} segundos.', technicalMessage: 'Login rate limited by Supabase Auth' }
 // intake-review TASK-4 (CL-038): lockout progressivo por usuario
 export const AUTH_LOCKED_OUT = { code: 'AUTH_LOCKED_OUT', httpStatus: 429, userMessage: 'Conta temporariamente bloqueada por segurança. Tente novamente em {seconds} segundos.', technicalMessage: 'Exponential backoff lockout active for user key {key}' }

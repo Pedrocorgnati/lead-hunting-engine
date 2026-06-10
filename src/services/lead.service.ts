@@ -285,9 +285,13 @@ export class LeadService {
   }
 
   async markFalsePositive(leadId: string, userId: string, data: MarkFalsePositiveInput): Promise<Lead> {
-    const existing = await prisma.lead.findFirst({ where: { id: leadId, userId }, select: { id: true } })
+    const existing = await prisma.lead.findFirst({ where: { id: leadId, userId }, select: { id: true, status: true } })
     if (!existing) {
       const err = Object.assign(new Error('Lead não encontrado.'), { code: 'LEAD_080', httpStatus: 404 })
+      throw err
+    }
+    if (existing.status === 'FALSE_POSITIVE') {
+      const err = Object.assign(new Error('Lead já marcado como falso-positivo.'), { code: 'LEAD_051', httpStatus: 409 })
       throw err
     }
 

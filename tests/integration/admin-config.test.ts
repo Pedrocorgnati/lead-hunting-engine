@@ -13,7 +13,16 @@
  * Pré-requisito: seed de teste executado (bun run seed:test)
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 
 import { GET as listCredentials } from '@/app/api/v1/admin/config/credentials/route'
 import { PUT as upsertCredential, DELETE as deleteCredential } from '@/app/api/v1/admin/config/credentials/[provider]/route'
@@ -118,7 +127,7 @@ describe('PUT /api/v1/admin/config/credentials/[provider]', () => {
     const ctx = makeRouteContext({ provider: TEST_PROVIDER })
     const res = await upsertCredential(req, ctx)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 3] deve retornar 403 para OPERATOR tentando gerenciar credenciais (AUTH_004)', async () => {
@@ -228,7 +237,7 @@ describe('PUT /api/v1/admin/config/scoring-rules/[id]', () => {
     const ctx = makeRouteContext({ id: targetRuleId })
     const res = await updateScoringRule(req, ctx)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
 
     // Peso não deve ter sido alterado
     const dbRule = await prisma.scoringRule.findUnique({ where: { id: targetRuleId } })

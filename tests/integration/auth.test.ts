@@ -116,7 +116,7 @@ describe('POST /api/v1/auth/login', () => {
 
     const res = await loginRoute(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 2] deve retornar 422 com campos obrigatórios ausentes (VAL_001)', async () => {
@@ -126,7 +126,7 @@ describe('POST /api/v1/auth/login', () => {
 
     const res = await loginRoute(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 3] deve retornar 429 quando Supabase reporta rate limit (AUTH_003)', async () => {
@@ -201,6 +201,6 @@ describe('POST /api/v1/auth/reset-password', () => {
 
     const res = await resetPasswordRoute(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 })

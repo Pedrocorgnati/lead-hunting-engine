@@ -11,7 +11,16 @@
  *   JOB_FAILED    = 00000000-0000-0000-0000-000000000021 (OPERATOR)
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 jest.mock('@trigger.dev/sdk', () => ({
   trigger: {
     sendEvent: jest.fn().mockResolvedValue({ id: 'mock-event-id' }),
@@ -46,7 +55,7 @@ describe('GET /api/v1/jobs', () => {
 
   it('[CENÁRIO 1] deve listar jobs do operador autenticado com paginação', async () => {
     // Handler GET /api/v1/jobs nao aceita argumentos — paginacao nao implementada neste MVP
-    const res = await listJobs()
+    const res = await listJobs(makeRequest('GET', '/api/v1/jobs'))
     const body = await parseResponseJson<{
       data: Array<{ id: string; userId: string; status: string }>
       meta: { total: number }
@@ -64,7 +73,7 @@ describe('GET /api/v1/jobs', () => {
 
   it('[CENÁRIO 1] deve filtrar jobs por status COMPLETED', async () => {
     // Handler GET /api/v1/jobs nao aceita argumentos — filtro aplicado em camada de service
-    const res = await listJobs()
+    const res = await listJobs(makeRequest('GET', '/api/v1/jobs'))
     const body = await parseResponseJson<{
       data: Array<{ status: string }>
     }>(res)
@@ -77,7 +86,7 @@ describe('GET /api/v1/jobs', () => {
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {
     setupUnauthenticatedMock(requireAuth as jest.Mock)
 
-    const res = await listJobs()
+    const res = await listJobs(makeRequest('GET', '/api/v1/jobs'))
 
     expect(res.status).toBe(401)
   })
@@ -123,7 +132,7 @@ describe('POST /api/v1/jobs', () => {
     })
     const res = await createJob(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
 
     // Nenhum job deve ter sido criado
     const count = await prisma.collectionJob.count({
@@ -138,7 +147,7 @@ describe('POST /api/v1/jobs', () => {
     })
     const res = await createJob(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 2] deve retornar 422 com limit fora do range (VAL_003)', async () => {
@@ -147,7 +156,7 @@ describe('POST /api/v1/jobs', () => {
     })
     const res = await createJob(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {

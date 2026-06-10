@@ -17,7 +17,16 @@
  * Pré-requisito: seed de teste executado (bun run seed:test).
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 
 import { GET as getProgress, PATCH as patchProgress } from '@/app/api/v1/onboarding/progress/route'
 import { POST as completeOnboarding } from '@/app/api/v1/onboarding/complete/route'

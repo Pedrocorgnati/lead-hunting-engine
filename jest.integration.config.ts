@@ -40,7 +40,11 @@ const config: Config = {
   // Nota: runInBand e um flag CLI, nao opcao de config. O script `test:integration`
   // em package.json ja passa `--runInBand`.
   maxWorkers: 1,
+  // Rotas exercitadas de verdade tem IO fire-and-forget (audit/loginAttempt);
+  // promessas pendentes no teardown derrubavam o runner com pool pg orfao.
+  forceExit: true,
   // Setup de ambiente global
+  setupFilesAfterEnv: ['<rootDir>/tests/integration/setup-after-env.ts'],
   globalSetup: '<rootDir>/tests/integration/globalSetup.ts',
   globalTeardown: '<rootDir>/tests/integration/globalTeardown.ts',
   // Timeout maior para operações de banco

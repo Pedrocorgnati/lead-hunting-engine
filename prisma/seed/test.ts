@@ -61,6 +61,15 @@ const daysAgo     = (n: number) => new Date(now.getTime() - n * 86_400_000)
 const daysFromNow = (n: number) => new Date(now.getTime() + n * 86_400_000)
 
 async function main() {
+  // Estado DETERMINISTICO entre runs: os upserts usavam update:{} e nao
+  // restauravam status mutado por testes (false-positive, activate, cancel),
+  // contaminando a execucao seguinte. Limpa os registros de teste para os
+  // upserts recriarem do zero.
+  // uuid nao suporta startsWith no Prisma; raw SQL cobre o range de teste
+  await prisma.$executeRaw`DELETE FROM leads WHERE id::text LIKE '00000000-0000-0000-0000-0000000000%'`
+  await prisma.invite.deleteMany({ where: { token: { startsWith: 'test-token-' } } })
+  await prisma.$executeRaw`DELETE FROM collection_jobs WHERE id::text LIKE '00000000-0000-0000-0000-0000000000%'`
+
   // ── ScoringRules ────────────────────────────────────────────────────────────
   await seedScoringRules(prisma)
 
@@ -97,7 +106,7 @@ async function main() {
     update: {},
     create: {
       id: TEST_IDS.JOB_COMPLETED,
-      userId: TEST_IDS.ADMIN,
+      userId: TEST_IDS.OPERATOR,
       name: 'Test Job — Completed',
       status: CollectionJobStatus.COMPLETED,
       city: 'São Paulo',
@@ -119,7 +128,7 @@ async function main() {
     update: {},
     create: {
       id: TEST_IDS.JOB_FAILED,
-      userId: TEST_IDS.ADMIN,
+      userId: TEST_IDS.OPERATOR,
       name: 'Test Job — Failed',
       status: CollectionJobStatus.FAILED,
       city: 'São Paulo',
@@ -254,7 +263,7 @@ async function main() {
       update: {},
       create: {
         ...lead,
-        userId: TEST_IDS.ADMIN,
+        userId: TEST_IDS.OPERATOR,
         jobId: completedJob.id,
         city: 'São Paulo',
         state: 'SP',
@@ -270,9 +279,15 @@ async function main() {
   })
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Erro no test seed:', e)
-    process.exit(1)
-  })
-  .finally(() => prisma.$disconnect())
+// Executa APENAS quando rodado diretamente (tsx prisma/seed/test.ts).
+// Os testes de integracao importam TEST_IDS deste modulo; sem o guard, o
+// import re-executava o seed inteiro EM CORRIDA com os proprios testes
+// (o reset deleteMany apagava leads no meio da suite -> 404 intermitente).
+if (require.main === module) {
+  main()
+    .catch((e) => {
+      console.error('❌ Erro no test seed:', e)
+      process.exit(1)
+    })
+    .finally(() => prisma.$disconnect())
+}

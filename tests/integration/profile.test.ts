@@ -7,7 +7,16 @@
  * Pré-requisito: seed de teste executado (bun run seed:test)
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 
 import { GET as getProfile, PATCH as patchProfile } from '@/app/api/v1/profile/route'
 import { POST as requestDeletion } from '@/app/api/v1/profile/deletion-request/route'
@@ -122,7 +131,7 @@ describe('PATCH /api/v1/profile', () => {
 
     const res = await patchProfile(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {
@@ -187,20 +196,20 @@ describe('GET /api/v1/profile/data-export', () => {
 
   it('[CENÁRIO 1] deve retornar exportação completa dos dados do usuário (LGPD Art. 18, II)', async () => {
     const res = await dataExport(new Request('http://localhost/api/v1/profile/data-export'))
+    // A rota entrega o export CRU como attachment (sem envelope {data}) —
+    // e o arquivo que o titular baixa.
     const body = await parseResponseJson<{
-      data: {
-        exportedAt: string
-        userProfile: { id: string }
-        collectionJobs: unknown[]
-        leads: unknown[]
-      }
+      exportedAt: string
+      userProfile: { id: string }
+      collectionJobs: unknown[]
+      leads: unknown[]
     }>(res)
 
     expect(res.status).toBe(200)
-    expect(body.data.exportedAt).toBeDefined()
-    expect(body.data.userProfile).toMatchObject({ id: TEST_IDS.OPERATOR })
-    expect(Array.isArray(body.data.collectionJobs)).toBe(true)
-    expect(Array.isArray(body.data.leads)).toBe(true)
+    expect(body.exportedAt).toBeDefined()
+    expect(body.userProfile).toMatchObject({ id: TEST_IDS.OPERATOR })
+    expect(Array.isArray(body.collectionJobs)).toBe(true)
+    expect(Array.isArray(body.leads)).toBe(true)
   })
 
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {

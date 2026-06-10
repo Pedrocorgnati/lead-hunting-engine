@@ -7,7 +7,16 @@
  * Pre-requisito: seed de teste executado (bun run seed:test)
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 jest.mock('@trigger.dev/sdk/v3', () => ({
   tasks: {
     trigger: jest.fn().mockResolvedValue({ id: 'mock-run-id' }),

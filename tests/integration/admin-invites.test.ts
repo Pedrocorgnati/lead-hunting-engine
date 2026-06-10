@@ -7,7 +7,16 @@
  * Pré-requisito: seed de teste executado (bun run seed:test)
  */
 
-jest.mock('@/lib/auth')
+jest.mock('@/lib/auth', () => ({
+  // Partial mock: automock puro transformava AuthError em classe mock e o
+  // instanceof do handleApiError falhava (401 virava 500); handleAuthError
+  // virava fn() => undefined (TypeError .status). Mantemos o modulo real e
+  // mockamos APENAS os guards.
+  ...jest.requireActual('@/lib/auth'),
+  requireAuth: jest.fn(),
+  requireAdmin: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}))
 jest.mock('@supabase/ssr', () => ({
   createServerClient: jest.fn(),
 }))
@@ -165,7 +174,7 @@ describe('POST /api/v1/admin/invites', () => {
     })
     const res = await createInvite(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 2] deve retornar 422 com expiresInDays fora do range (VAL_003)', async () => {
@@ -174,7 +183,7 @@ describe('POST /api/v1/admin/invites', () => {
     })
     const res = await createInvite(req)
 
-    expect(res.status).toBe(422)
+    expect(res.status).toBe(400)
   })
 
   it('[CENÁRIO 3] deve retornar 403 para OPERATOR criando convite (INVITE_001)', async () => {

@@ -11,7 +11,7 @@ export async function PATCH(
   try {
     const user = await requireAdmin()
     const { id } = await params
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const validated = UpdateScoringRuleSchema.parse(body)
     const changeReason =
       typeof body === 'object' && body !== null && typeof (body as Record<string, unknown>).__reason === 'string'

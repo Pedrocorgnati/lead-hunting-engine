@@ -10,7 +10,10 @@ import { randomBytes } from 'crypto'
 export class InviteError extends Error {
   constructor(
     public readonly code: string,
-    message: string
+    message: string,
+    // handleApiError so converte erros com code+httpStatus; sem isso todo
+    // InviteError virava 500 generico (ex.: email duplicado).
+    public readonly httpStatus: number = 400
   ) {
     super(message)
     this.name = 'InviteError'
@@ -23,14 +26,16 @@ export class InviteService {
   async findAll(filters?: {
     page?: number
     limit?: number
+    status?: InviteStatus
   }): Promise<{ data: Invite[]; total: number }> {
     const page = filters?.page ?? 1
     const limit = filters?.limit ?? 20
     const skip = (page - 1) * limit
+    const where = filters?.status ? { status: filters.status } : undefined
 
     const [data, total] = await Promise.all([
-      prisma.invite.findMany({ skip, take: limit, orderBy: { createdAt: 'desc' } }),
-      prisma.invite.count(),
+      prisma.invite.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      prisma.invite.count({ where }),
     ])
     return { data, total }
   }

@@ -13,7 +13,8 @@ jest.mock('@/lib/notifications/channels/web-push-channel', () => ({
 
 const { webPushChannel } = jest.requireMock('@/lib/notifications/channels/web-push-channel')
 
-const TEST_USER_ID = 'test-user-fallback'
+// UUID real do seed de teste: a coluna user_id e uuid e FK p/ user_profiles
+const TEST_USER_ID = '00000000-0000-0000-0000-000000000011'
 
 beforeEach(() => {
   jest.clearAllMocks()

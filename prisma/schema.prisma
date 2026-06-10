@@ -533,6 +533,9 @@ model Notification {
   data      Json?
   read      Boolean   @default(false)
   readAt    DateTime? @map("read_at")
+  // Item 072 / C15: recibo de entrega reportado pelo client (push/in-app)
+  deliveredAt     DateTime? @map("delivered_at")
+  deliveryChannel String?   @map("delivery_channel") @db.VarChar(20)
   createdAt DateTime  @default(now()) @map("created_at")
 
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -577,6 +580,22 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// Item 072 / C15: tokens de push por dispositivo (FCM-style; distinto de
+// PushSubscription/web-push). Persistencia real do POST /notifications/
+// push-token, que antes descartava o token (registro de fachada).
+model DevicePushToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique @db.VarChar(512)
+  platform  String    @default("web") @db.VarChar(10)
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("device_push_tokens")
 }
 
 model LoginAttempt {

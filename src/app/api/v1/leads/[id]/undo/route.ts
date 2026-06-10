@@ -27,7 +27,7 @@ export async function POST(
       data: {
         leadId: id,
         ...(snapshot.snapshot as Record<string, unknown>),
-      } as any,
+      } as Parameters<typeof prisma.leadTag.create>[0]['data'],
     })
   } else {
     return NextResponse.json({ error: { code: 'UNKNOWN_ACTION' } }, { status: 400 })

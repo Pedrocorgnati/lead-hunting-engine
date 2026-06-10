@@ -5,6 +5,7 @@ import { FileText, Loader2, Plus, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { apiClient } from '@/lib/utils/api-client'
 import { API_ROUTES } from '@/lib/constants/routes'
+import Link from 'next/link'
 
 interface PitchTemplate {
   id: string
@@ -108,14 +109,14 @@ export function PitchTemplateFallback({ variant, onApply }: Props) {
           <p className="text-xs text-muted-foreground">
             Você ainda não tem templates manuais salvos.
           </p>
-          <a
+          <Link
             href="/templates/pitch/novo"
             className="inline-flex items-center justify-center gap-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
             data-testid="pitch-template-create-cta"
           >
             <Plus className="h-3 w-3" aria-hidden="true" />
             Criar template
-          </a>
+          </Link>
         </div>
       )}
 

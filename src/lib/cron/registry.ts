@@ -108,6 +108,16 @@ export async function recordCronRun(id: string, outcome: 'ok' | 'error' = 'ok'):
       create: { key: LAST_RUN_KEY(id), value: { at: new Date().toISOString(), outcome } },
       update: { value: { at: new Date().toISOString(), outcome } },
     })
+    // C14.3: telemetria de cron executado (sem usuario; ator = sistema)
+    const { track, makeCorrelationId } = await import('@/lib/telemetry')
+    void track({
+      kind: 'cron.executed',
+      correlationId: makeCorrelationId('cron'),
+      userId: null,
+      resourceId: id,
+      resourceType: 'cron_job',
+      metadata: { outcome },
+    })
   } catch {
     // Tracking nunca quebra o cron em si.
   }

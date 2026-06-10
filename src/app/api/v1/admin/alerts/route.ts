@@ -13,7 +13,8 @@ export async function GET() {
   try {
     await requireAdmin()
     const alerts = await listAlerts()
-    return successResponse({ alerts })
+    // Item 066: correlationId de requisicao para rastreio das acoes da tela
+    return successResponse({ alerts, correlationId: crypto.randomUUID() })
   } catch (error) {
     return handleApiError(error)
   }

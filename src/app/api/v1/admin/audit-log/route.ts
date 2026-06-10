@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { handleApiError, paginatedResponse } from '@/lib/api-utils'
 import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@prisma/client'
+import { buildAuditLogQuery } from './_query'
 
 /**
  * GET /api/v1/admin/audit-log
@@ -48,46 +48,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export function buildAuditLogQuery(requestUrl: string): {
-  where: Prisma.AuditLogWhereInput
-  page: number
-  limit: number
-} {
-  const { searchParams } = new URL(requestUrl)
-  const resource = searchParams.get('resource') ?? undefined
-  const action = searchParams.get('action') ?? undefined
-  const userId = searchParams.get('userId') ?? undefined
-  const correlationId = searchParams.get('correlationId')?.trim() || undefined
-  const fromStr = searchParams.get('from') ?? undefined
-  const toStr = searchParams.get('to') ?? undefined
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
-  const limit = Math.min(
-    100,
-    Math.max(1, parseInt(searchParams.get('limit') ?? '50', 10))
-  )
-
-  const where: Prisma.AuditLogWhereInput = {}
-  if (resource) where.resource = resource
-  if (action) where.action = { contains: action, mode: 'insensitive' }
-  if (userId) where.userId = userId
-
-  const createdAt: Prisma.DateTimeFilter = {}
-  if (fromStr) {
-    const from = new Date(fromStr)
-    if (!Number.isNaN(from.getTime())) createdAt.gte = from
-  }
-  if (toStr) {
-    const to = new Date(toStr)
-    if (!Number.isNaN(to.getTime())) createdAt.lte = to
-  }
-  if (createdAt.gte || createdAt.lte) where.createdAt = createdAt
-
-  if (correlationId) {
-    where.metadata = {
-      path: ['correlationId'],
-      equals: correlationId,
-    }
-  }
-
-  return { where, page, limit }
-}

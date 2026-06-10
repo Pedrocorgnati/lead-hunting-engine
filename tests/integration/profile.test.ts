@@ -186,7 +186,7 @@ describe('GET /api/v1/profile/data-export', () => {
   })
 
   it('[CENÁRIO 1] deve retornar exportação completa dos dados do usuário (LGPD Art. 18, II)', async () => {
-    const res = await dataExport()
+    const res = await dataExport(new Request('http://localhost/api/v1/profile/data-export'))
     const body = await parseResponseJson<{
       data: {
         exportedAt: string
@@ -206,7 +206,7 @@ describe('GET /api/v1/profile/data-export', () => {
   it('[CENÁRIO 3] deve retornar 401 sem autenticação', async () => {
     setupUnauthenticatedMock(requireAuth as jest.Mock)
 
-    const res = await dataExport()
+    const res = await dataExport(new Request('http://localhost/api/v1/profile/data-export'))
 
     expect(res.status).toBe(401)
   })

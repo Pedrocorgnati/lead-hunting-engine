@@ -10,14 +10,14 @@ import { profileService } from '@/services/profile.service'
  *
  * Rate limit: 1 request por hora por usuario (operacao cara).
  */
-export async function GET(request?: Request) {
+export async function GET(request: Request) {
   try {
     const user = await requireAuth()
 
     // 1 export/hora/user — janela em segundos
     assertRateLimit(`profile:data-export:${user.id}`, 1, 60 * 60)
 
-    const ipAddress = request ? getClientIp(request) : undefined
+    const ipAddress = getClientIp(request)
     const exportData = await profileService.exportData(user.id, ipAddress)
 
     const date = new Date().toISOString().slice(0, 10)

@@ -56,11 +56,14 @@ export function useLivePoll<T>(url: string, options: UseLivePollOptions<T> = {})
   const [polling, setPolling] = useState(enabled)
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tickRef = useRef<(() => Promise<void>) | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const failuresRef = useRef(0)
   const mountedRef = useRef(true)
   const optionsRef = useRef(options)
-  optionsRef.current = options
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
 
   const clearTimer = () => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
@@ -111,13 +114,18 @@ export function useLivePoll<T>(url: string, options: UseLivePollOptions<T> = {})
     }
 
     if (mountedRef.current && enabled && nextDelay !== null) {
-      timerRef.current = setTimeout(() => void tick(), nextDelay)
+      // auto-referencia via ref (lint: tick nao pode ser citado antes de declarado)
+      timerRef.current = setTimeout(() => void tickRef.current?.(), nextDelay)
       setPolling(true)
     } else if (mountedRef.current) {
       setPolling(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, intervalMs, timeoutMs, enabled])
+
+  useEffect(() => {
+    tickRef.current = tick
+  }, [tick])
 
   useEffect(() => {
     mountedRef.current = true

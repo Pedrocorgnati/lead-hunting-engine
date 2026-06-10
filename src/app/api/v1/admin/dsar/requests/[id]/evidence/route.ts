@@ -5,7 +5,7 @@ import { handleApiError, successResponse } from '@/lib/api-utils'
 import { prisma } from '@/lib/prisma'
 import { getClientIp } from '@/lib/rate-limiter'
 import { AUTH_001, AUTH_004, SYS_001, USER_080 } from '@/constants/errors'
-import { findDsarDetail } from '../../route'
+import { findDsarDetail } from '../../_core'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

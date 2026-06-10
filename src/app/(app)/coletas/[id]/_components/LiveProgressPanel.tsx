@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { collectionLiveStatus, formatLastUpdated, type CollectionStatus } from '@/lib/live-status'
 import { useLivePoll } from '@/lib/live/use-live-poll'
+import { reportEcuEvent } from '@/lib/telemetry-client'
 import type { CollectionJobStatus } from '@/lib/constants/enums'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -53,6 +55,17 @@ export function LiveProgressPanel({
     `/api/v1/collections/${jobId}/progress`,
     { intervalMs: 5_000, enabled: !initialTerminal },
   )
+
+  // C14.2: operador acompanhando o job (1 evento por mount; dedup por
+  // correlationId no servidor cobre re-mounts rapidos)
+  useEffect(() => {
+    reportEcuEvent({
+      kind: 'job.followed',
+      correlationId: `job-followed:${jobId}`,
+      resourceId: jobId,
+      resourceType: 'collection_job',
+    })
+  }, [jobId])
 
   const status = (data?.status ?? initialStatus) as CollectionStatus
   const progress = data?.progress ?? initialProgress

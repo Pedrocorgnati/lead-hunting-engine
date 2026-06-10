@@ -20,11 +20,6 @@ export function DevDataTestOverlay() {
   const [elements, setElements] = useState<Array<{ id: string; rect: DOMRect }>>([])
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  // Camada 1: verificacao de ambiente (APOS hooks — Rules of Hooks exige chamada incondicional)
-  if (process.env.NODE_ENV !== 'development') {
-    return null
-  }
-
   const scanDataTestIds = useCallback(() => {
     const allElements = document.querySelectorAll('[data-testid]')
     const mapped = Array.from(allElements).map((el) => ({
@@ -40,6 +35,7 @@ export function DevDataTestOverlay() {
     }
     setIsActive((prev) => !prev)
   }, [isActive, scanDataTestIds])
+
 
   const handleCopy = useCallback(async (testId: string) => {
     const copyText = `data-testid="${testId}"`
@@ -76,6 +72,13 @@ export function DevDataTestOverlay() {
       window.removeEventListener('resize', handleUpdate)
     }
   }, [isActive, scanDataTestIds])
+
+  // Gate de ambiente DEPOIS de todos os hooks (Rules of Hooks): NODE_ENV e
+  // constante em runtime, mas o early-return antes dos useCallback violava a
+  // ordem de hooks (lint rules-of-hooks; item 077).
+  if (process.env.NODE_ENV !== 'development') {
+    return null
+  }
 
   return (
     <>

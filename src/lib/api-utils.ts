@@ -23,8 +23,19 @@ export function paginatedResponse<T>(data: T[], meta: { page: number; limit: num
 
 export function handleApiError(error: unknown): NextResponse {
   if (error instanceof RateLimitError) {
+    // C13.3 (itens 065/066): alem dos headers, o corpo carrega o envelope
+    // rateLimit canonico (retryAfterMs/retryAt) para os clients exibirem
+    // contagem regressiva sem parsear header.
+    const retryAfterMs = error.retryAfter * 1000
     return NextResponse.json(
-      { error: { code: 'RATE_001', message: error.message } },
+      {
+        error: { code: 'RATE_001', message: error.message },
+        rateLimit: {
+          retryAfterMs,
+          retryAt: new Date(Date.now() + retryAfterMs).toISOString(),
+          resetAt: new Date(error.reset).toISOString(),
+        },
+      },
       {
         status: 429,
         headers: {

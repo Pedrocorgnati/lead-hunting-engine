@@ -23,6 +23,8 @@ export default async function RadarPage() {
   const user = await getAuthenticatedUser()
   if (!user) redirect(Routes.LOGIN)
 
+  // Server component: janela calculada por request e intencional
+  // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000)
 
   const [leads, presets] = await Promise.all([

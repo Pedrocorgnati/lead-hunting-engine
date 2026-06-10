@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-utils'
 import { prisma } from '@/lib/prisma'
 import { AuditService } from '@/lib/services/audit-service'
-import { buildAuditLogQuery } from '@/app/api/v1/admin/audit-log/route'
+import { buildAuditLogQuery } from '@/app/api/v1/admin/audit-log/_query'
 
 const CSV_HEADERS = [
   'id',

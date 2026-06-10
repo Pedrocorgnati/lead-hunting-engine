@@ -19,6 +19,7 @@ import { CollectionsTimelineChart } from '@/components/admin/CollectionsTimeline
 import { AlertsSettings } from '@/components/admin/AlertsSettings'
 import { FalsePositiveGlobalCard } from '@/components/admin/FalsePositiveGlobalCard'
 import { trackEvent } from '@/lib/utils/analytics'
+import { EcuReportCard } from '@/components/admin/EcuReportCard'
 
 interface MetricCardProps {
   icon: React.ReactNode
@@ -78,8 +79,6 @@ export default function MetricasPage() {
     if (!authLoading && !isAdmin) router.replace(Routes.DASHBOARD)
   }, [isAdmin, authLoading, router])
 
-  if (authLoading || !isAdmin) return null
-
   async function fetchMetrics() {
     setIsLoading(true)
     setError(null)
@@ -95,11 +94,18 @@ export default function MetricasPage() {
     }
   }
 
+  // TODOS os hooks vivem ANTES do early-return: a versao anterior retornava
+  // null entre os dois useEffect e o flip de authLoading mudava a contagem de
+  // hooks entre renders ("Rendered more hooks than during the previous
+  // render") — crash em runtime para todo admin (item 078 P0).
   useEffect(() => {
+    if (authLoading || !isAdmin) return
     fetchMetrics()
     trackEvent('admin_metrics_viewed')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [authLoading, isAdmin])
+
+  if (authLoading || !isAdmin) return null
 
   return (
     <div data-testid="admin-metrics-page" className="space-y-6">
@@ -123,6 +129,9 @@ export default function MetricasPage() {
       </div>
 
       <ProductMetricsCards />
+
+      {/* C14.4: relatorio ECU agregado (eventos Zero Silencio) */}
+      <EcuReportCard />
 
       {/* TASK-25/ST004 (CL-109): falso-positivo global */}
       <FalsePositiveGlobalCard />

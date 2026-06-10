@@ -125,7 +125,8 @@ export function InlineRecoveryPanel({ health, onRecovered, className }: InlineRe
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null)
 
-  const now = Date.now()
+  // Estavel por mount (lint: funcao impura em render); staleness de ms e irrelevante aqui
+  const [now] = useState(() => Date.now())
 
   const conditions = useMemo(() => {
     const rateLimitResetMs = health.rateLimitResetAt ? new Date(health.rateLimitResetAt).getTime() : null

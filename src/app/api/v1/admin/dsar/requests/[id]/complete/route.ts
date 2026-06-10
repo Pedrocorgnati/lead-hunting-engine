@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { executeDsarMutation } from '../route'
+import { executeDsarMutation } from '../_mutation'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

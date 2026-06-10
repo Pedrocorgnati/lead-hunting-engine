@@ -12,6 +12,7 @@ import { PITCH_ERROR_CODES } from '@/lib/pitch/errors'
 import { PITCH_CACHE_TTL_MS } from '@/lib/pitch/constants'
 import { snapshotPitchVersion } from '@/lib/services/pitch-version-service'
 import { limits } from '@/lib/rate-limiter'
+import { track, makeCorrelationId } from '@/lib/telemetry'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -170,10 +171,28 @@ export async function POST(req: NextRequest, { params }: Params) {
       },
     })
 
+    // C14.2: telemetria do fluxo gerar pitch (nao bloqueante; track engole erro)
+    void track({
+      kind: 'pitch.generated',
+      correlationId: correlationId ?? makeCorrelationId('pitch'),
+      userId: user.id,
+      resourceId: id,
+      resourceType: 'lead',
+      route: `/leads/${id}?tab=pitch`,
+      metadata: { tone, provider: result.provider, cached: false },
+    })
+
     return successResponse({ content: result.pitch, tone, cached: false, provider: result.provider })
   } catch (error) {
     if (error instanceof LLMUnavailableError) {
       console.error('[PITCH_050] LLM indisponível:', (error as Error).message)
+      void track({
+        kind: 'pitch.failed',
+        correlationId: makeCorrelationId('pitch'),
+        userId: null,
+        resourceType: 'lead',
+        metadata: { code: 'PITCH_050' },
+      })
       return NextResponse.json(
         {
           error: {
@@ -190,6 +209,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (error instanceof HallucinatedPitchError) {
       console.warn('[PITCH_051] Pitch rejeitado por anti-alucinação:', (error as HallucinatedPitchError).issues)
+      void track({
+        kind: 'pitch.failed',
+        correlationId: makeCorrelationId('pitch'),
+        userId: null,
+        resourceType: 'lead',
+        metadata: { code: 'PITCH_051' },
+      })
       return NextResponse.json(
         {
           error: {

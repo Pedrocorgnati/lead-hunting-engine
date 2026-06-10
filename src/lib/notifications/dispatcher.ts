@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { copyFor, type NotificationEventKey, type CopyParams } from './copy'
 import { emailChannel } from './channels/email-channel'
 import { webPushChannel } from './channels/web-push-channel'
+import { track, makeCorrelationId } from '@/lib/telemetry'
 
 /**
  * Notifications Dispatcher
@@ -223,6 +224,15 @@ export async function dispatch(payload: DispatchPayload): Promise<void> {
     console.info(
       `[notifications] ${payload.event} -> user=${payload.userId} delivered=[${delivered}]`
     )
+
+    // C14.3: telemetria de notificacao despachada (nao bloqueante)
+    void track({
+      kind: 'notification.dispatched',
+      correlationId: makeCorrelationId('notif'),
+      userId: payload.userId,
+      resourceType: 'notification',
+      metadata: { event: payload.event, delivered, dndSuppressed: dndActive },
+    })
   } catch (e) {
     console.warn('[notifications] falha ao despachar:', (e as Error).message)
   }

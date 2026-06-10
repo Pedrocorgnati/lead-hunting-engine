@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { reportEcuEventOnUnload } from '@/lib/telemetry-client'
 
 const BudgetFlowSchema = z.object({
   campaignId: z.string().trim().min(1, 'ID da campanha obrigatorio'),
@@ -41,10 +42,34 @@ export default function BudgetFlowPage() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [job, setJob] = useState<StatusView | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<FormData>({
     resolver: zodResolver(BudgetFlowSchema),
     defaultValues: { currency: 'BRL' },
   })
+
+  // C14.2: abandono de fluxo — usuario mexeu no form e saiu sem concluir
+  const abandonRef = useRef({ dirty: false, completed: false })
+  useEffect(() => {
+    abandonRef.current.dirty = isDirty
+    abandonRef.current.completed = success
+  }, [isDirty, success])
+  useEffect(() => {
+    const onLeave = () => {
+      if (abandonRef.current.dirty && !abandonRef.current.completed) {
+        reportEcuEventOnUnload({
+          kind: 'flow.abandoned',
+          correlationId: `budgetflow-abandon:${Date.now()}`,
+          resourceType: 'budgetflow_push',
+          metadata: { flow: 'budgetflow' },
+        })
+      }
+    }
+    window.addEventListener('pagehide', onLeave)
+    return () => {
+      window.removeEventListener('pagehide', onLeave)
+      onLeave()
+    }
+  }, [])
 
   function stopPolling() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }

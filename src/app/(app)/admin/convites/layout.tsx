@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 export default async function ConvitesLayout({ children }: { children: React.ReactNode }) {
   const user = await getAuthenticatedUser()
   if (!user || user.role !== 'ADMIN') {
-    redirect(Routes.DASHBOARD)
+    redirect('/erro/403')
   }
   return children
 }

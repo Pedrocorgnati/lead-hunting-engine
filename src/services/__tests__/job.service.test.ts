@@ -1,3 +1,6 @@
+// dispatchCollectLeads usa trigger.dev quando TRIGGER_SECRET_KEY esta setado;
+// sem ele os testes cairiam no fallback local-queue (fora do escopo destas suites).
+process.env.TRIGGER_SECRET_KEY = 'test-secret'
 import { JobService } from '../job.service'
 import { CollectionJobStatus } from '@/lib/constants/enums'
 

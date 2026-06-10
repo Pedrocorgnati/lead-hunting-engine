@@ -11,6 +11,7 @@
  */
 
 import 'dotenv/config'
+import { createSeedClient } from './client'
 import {
   PrismaClient,
   UserRole,
@@ -30,7 +31,7 @@ const STATUS_DISQUALIFIED = 'DISQUALIFIED' as unknown as LeadStatus
 import { seedScoringRules } from './scoring-rules'
 import { seedRegionsAndNiches } from './regions-niches'
 
-const prisma = new PrismaClient()
+const prisma = createSeedClient()
 
 // ─── UUIDs fixos (anchor records) ─────────────────────────────────────────────
 // Alterar esses valores QUEBRA testes e docs que referenciam esses IDs.

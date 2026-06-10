@@ -8,8 +8,8 @@
 #
 # Pre-requisitos:
 #   1. Supabase com migrations aplicadas (`npx prisma migrate deploy`)
-#   2. Seed de teste rodado (`npm run seed:test`) ou um convite real criado via SQL
-#   3. App subindo em http://localhost:3000 (`npm run dev`)
+#   2. Seed de teste rodado (`pnpm run seed:test`) ou um convite real criado via SQL
+#   3. App subindo em http://localhost:3000 (`pnpm dev`)
 #   4. .env preenchido com credenciais reais
 #
 # Uso:

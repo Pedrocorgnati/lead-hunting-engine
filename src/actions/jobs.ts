@@ -3,9 +3,9 @@
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { CollectionJobStatus } from '@/lib/constants/enums'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { quotaEnforcer } from '@/lib/services/quota-enforcer'
 import type { CollectionJobSummary } from '@/lib/types/entities'
+import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
 
 // Helper: mapeia CollectionJob do DB para CollectionJobSummary da UI
 function toSummary(job: {
@@ -95,7 +95,7 @@ export async function createJob(data: {
   })
 
   // Disparar trigger.dev assincronamente
-  await tasks.trigger('collect-leads', {
+  await dispatchCollectLeads( {
     jobId: job.id,
     query: data.query,
     location: data.location,

@@ -173,7 +173,7 @@ const builders: Record<NotificationEventKey, CopyBuilder> = {
         : `Sua exportacao ${format} esta disponivel para download.`,
       cta: exportId
         ? { label: 'Baixar', href: `/exports#${exportId}` }
-        : { label: 'Ver exportacoes', href: '/exports' },
+        : { label: 'Ver exportacoes', href: '/exportar/historico' },
     }
   },
 

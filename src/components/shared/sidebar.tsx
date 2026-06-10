@@ -31,31 +31,15 @@ function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavC
         {!collapsed && <span className="text-lg font-bold text-primary">Lead Hunting</span>}
       </div>
 
-      <nav
-        data-testid="sidebar-nav-main"
-        aria-label="Navegação principal"
-        className="flex flex-col gap-1"
-      >
-        {APP_NAV_ITEMS.map((item) => (
-          <NavItemComponent
-            key={item.href}
-            item={item}
-            collapsed={collapsed}
-            onClick={onItemClick}
-          />
-        ))}
-      </nav>
-
-      {isAdmin && (
+      {/* min-h-0 + overflow-y-auto: a lista admin cresceu e precisa rolar sem
+          empurrar o botao de recolher para fora da viewport */}
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         <nav
-          data-testid="sidebar-nav-admin"
-          aria-label="Administração"
+          data-testid="sidebar-nav-main"
+          aria-label="Navegação principal"
           className="flex flex-col gap-1"
         >
-          <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {!collapsed && 'Admin'}
-          </div>
-          {ADMIN_NAV_ITEMS.map((item) => (
+          {APP_NAV_ITEMS.map((item) => (
             <NavItemComponent
               key={item.href}
               item={item}
@@ -64,7 +48,27 @@ function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavC
             />
           ))}
         </nav>
-      )}
+
+        {isAdmin && (
+          <nav
+            data-testid="sidebar-nav-admin"
+            aria-label="Administração"
+            className="flex flex-col gap-1"
+          >
+            <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {!collapsed && 'Admin'}
+            </div>
+            {ADMIN_NAV_ITEMS.map((item) => (
+              <NavItemComponent
+                key={item.href}
+                item={item}
+                collapsed={collapsed}
+                onClick={onItemClick}
+              />
+            ))}
+          </nav>
+        )}
+      </div>
 
       <button
         data-testid="sidebar-toggle-button"

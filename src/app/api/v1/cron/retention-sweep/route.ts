@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runRetentionSweep } from '@/lib/workers/retention-sweeper'
 import { AuditService } from '@/lib/services/audit-service'
 import { captureException } from '@/lib/observability/sentry'
+import { isCronPaused, recordCronRun } from '@/lib/cron/registry'
 
 function authorize(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET ?? process.env.CRON_SECRET_KEY
@@ -19,6 +20,9 @@ function authorize(request: NextRequest): boolean {
 }
 
 async function runAndAudit() {
+  if (await isCronPaused('retention-sweep')) {
+    return NextResponse.json({ skipped: true, reason: 'paused' })
+  }
   try {
     const results = await runRetentionSweep()
     const total = results.reduce((s, r) => s + Math.max(0, r.count), 0)
@@ -31,8 +35,10 @@ async function runAndAudit() {
         ...Object.fromEntries(results.map((r) => [r.entity, r.count])),
       },
     })
+    void recordCronRun('retention-sweep', 'ok')
     return NextResponse.json({ ok: true, total, results })
   } catch (error) {
+    void recordCronRun('retention-sweep', 'error')
     captureException(error, { job: 'retention-sweep' })
     return NextResponse.json({ error: 'Sweep failed' }, { status: 500 })
   }

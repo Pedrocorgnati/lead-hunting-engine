@@ -11,6 +11,7 @@ import { RadarActions } from './_components/RadarActions'
 import { RadarPresetList } from '@/components/radar/RadarPresetList'
 import { radarService } from '@/lib/services/radar-service'
 import { DedupEngine } from '@/lib/intelligence/dedup-engine'
+import { RadarLiveRefresher } from './_components/RadarLiveRefresher'
 
 export const metadata: Metadata = { title: 'Radar de leads' }
 export const dynamic = 'force-dynamic'
@@ -58,6 +59,7 @@ export default async function RadarPage() {
             Leads descobertos nas últimas {WINDOW_HOURS} horas, ordenados por score.
           </p>
         </div>
+        <RadarLiveRefresher initialNewestId={leads[0]?.id ?? null} initialTotal={leads.length} />
         <Link
           href={`${Routes.LEADS}?recency=24h`}
           className="text-sm text-primary hover:underline flex items-center gap-1"

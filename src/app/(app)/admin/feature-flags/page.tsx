@@ -30,11 +30,22 @@ interface FeatureFlag {
   id: string
   name: string
   description: string | null
-  enabled: boolean
   ownerModule: string | null
   tags: string[]
   defaultValue: unknown
+  envValues: Partial<Record<'development' | 'preview' | 'production', unknown>> | null
   createdAt: string
+}
+
+/**
+ * Estado efetivo da flag em producao: override de env (envValues.production)
+ * prevalece sobre defaultValue. O modelo nao tem campo `enabled` — o toggle
+ * grava envValues.production via PUT {env, value, reason}.
+ */
+function isFlagEnabled(flag: FeatureFlag): boolean {
+  const envValue = flag.envValues?.production
+  const effective = envValue === null || envValue === undefined ? flag.defaultValue : envValue
+  return effective === true
 }
 
 interface FlagsResponse {
@@ -148,10 +159,12 @@ export default function FeatureFlagsPage() {
     setToggling(pending.flagId)
     setReasonError(null)
     try {
+      // PUT {env, value, reason} = semantica real de toggle do backend
+      // (setEnvValue + audit env_value_set). PATCH so cobre metadata.
       const res = await fetch(`/api/v1/admin/feature-flags/${encodeURIComponent(pending.name)}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ enabled: pending.newEnabled, reason: trimmed }),
+        body: JSON.stringify({ env: 'production', value: pending.newEnabled, reason: trimmed }),
       })
       if (!res.ok) {
         toast.error('Erro ao alterar flag.')
@@ -159,7 +172,11 @@ export default function FeatureFlagsPage() {
       }
       toast.success(`Flag ${pending.name} ${pending.newEnabled ? 'ativada' : 'desativada'}.`)
       setFlags((prev) =>
-        prev.map((f) => (f.id === pending.flagId ? { ...f, enabled: pending.newEnabled } : f))
+        prev.map((f) =>
+          f.id === pending.flagId
+            ? { ...f, envValues: { ...(f.envValues ?? {}), production: pending.newEnabled } }
+            : f
+        )
       )
     } catch {
       toast.error('Erro de rede.')
@@ -290,8 +307,8 @@ export default function FeatureFlagsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={flag.enabled ? 'secondary' : 'outline'}>
-                          {flag.enabled ? 'Ativado' : 'Desativado'}
+                        <Badge variant={isFlagEnabled(flag) ? 'secondary' : 'outline'}>
+                          {isFlagEnabled(flag) ? 'Ativado' : 'Desativado'}
                         </Badge>
                         <button
                           type="button"
@@ -299,12 +316,12 @@ export default function FeatureFlagsPage() {
                             setPending({
                               flagId: flag.id,
                               name: flag.name,
-                              newEnabled: !flag.enabled,
+                              newEnabled: !isFlagEnabled(flag),
                             })
                           }
                           disabled={toggling === flag.id}
                           aria-label={
-                            flag.enabled
+                            isFlagEnabled(flag)
                               ? `Desativar ${flag.name}`
                               : `Ativar ${flag.name}`
                           }
@@ -313,7 +330,7 @@ export default function FeatureFlagsPage() {
                         >
                           {toggling === flag.id ? (
                             <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
-                          ) : flag.enabled ? (
+                          ) : isFlagEnabled(flag) ? (
                             <ToggleRight
                               className="h-6 w-6 text-emerald-600"
                               aria-hidden

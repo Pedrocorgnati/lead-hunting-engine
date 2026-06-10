@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle, CheckCircle2, Loader2, Send } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Download, Loader2, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,29 +21,68 @@ type FormData = z.infer<typeof BudgetFlowSchema>
 
 type JobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
+interface StatusView {
+  status: JobStatus
+  delivered: boolean
+  deliveryMode: string | null
+  error: string | null
+}
+
+const STATUS_LABEL: Record<JobStatus, string> = {
+  PENDING: 'Na fila',
+  PROCESSING: 'Processando',
+  COMPLETED: 'Concluido',
+  FAILED: 'Falhou',
+}
+
 export default function BudgetFlowPage() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
-  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
+  const [job, setJob] = useState<StatusView | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(BudgetFlowSchema),
     defaultValues: { currency: 'BRL' },
   })
 
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }
+
+  useEffect(() => stopPolling, [])
+
   async function checkStatus(id: string) {
     try {
       const res = await fetch(`/api/v1/integrations/budgetflow/status?id=${encodeURIComponent(id)}`)
-      if (!res.ok) return
-      const body = await res.json() as {data?:{status:JobStatus}}
-      setJobStatus(body.data?.status ?? null)
-    } catch { /* silencioso */ }
+      if (!res.ok) {
+        // Erro de status NAO e silencioso: para o polling e sinaliza.
+        stopPolling()
+        setJob((prev) => prev ?? null)
+        toast.error('Nao foi possivel consultar o status do push.')
+        return
+      }
+      const body = (await res.json()) as { data?: StatusView }
+      if (body.data) {
+        setJob(body.data)
+        if (body.data.status === 'COMPLETED' || body.data.status === 'FAILED') {
+          stopPolling()
+          if (body.data.status === 'FAILED') {
+            toast.error(body.data.error ?? 'Push BudgetFlow falhou.')
+          }
+        }
+      }
+    } catch {
+      stopPolling()
+      toast.error('Erro de rede ao consultar status.')
+    }
   }
 
   async function onSubmit(data: FormData) {
     setError(null)
     setJobId(null)
-    setJobStatus(null)
+    setJob(null)
+    stopPolling()
     try {
       // Pre-validacao
       const valRes = await fetch('/api/v1/integrations/budgetflow/validate', {
@@ -70,29 +109,49 @@ export default function BudgetFlowPage() {
       const pushBody = await res.json() as {data?:{jobId?:string;status?:JobStatus}}
       const newJobId = pushBody.data?.jobId ?? null
       setJobId(newJobId)
-      setJobStatus(pushBody.data?.status ?? 'PENDING')
       setSuccess(true)
-      toast.success('BudgetFlow enviado com sucesso.')
+      toast.success('BudgetFlow enviado para processamento.')
       if (newJobId) {
-        const interval = setInterval(() => checkStatus(newJobId), 2000)
-        setTimeout(() => clearInterval(interval), 15000)
+        void checkStatus(newJobId)
+        // Polla ate estado terminal (COMPLETED/FAILED) ou 60s de timeout.
+        pollRef.current = setInterval(() => void checkStatus(newJobId), 2000)
+        setTimeout(stopPolling, 60_000)
       }
     } catch { setError('Erro de rede.'); toast.error('Erro de rede.') }
   }
 
-  if (success) return (
-    <div className="p-6 flex flex-col items-center gap-4 max-w-2xl mx-auto">
-      <CheckCircle2 className="h-10 w-10 text-emerald-600" aria-hidden="true" />
-      <p className="text-sm font-medium">BudgetFlow enviado com sucesso!</p>
-      {jobId && (
-        <div className="text-xs text-muted-foreground space-y-1 text-center">
-          <p>Job: <code className="bg-muted px-1 rounded">{jobId}</code></p>
-          <p>Status: <span className="font-medium">{jobStatus ?? '—'}</span></p>
+  if (success) {
+    const failed = job?.status === 'FAILED'
+    const completed = job?.status === 'COMPLETED'
+    return (
+      <div className="p-6 flex flex-col items-center gap-4 max-w-2xl mx-auto">
+        {failed
+          ? <AlertCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
+          : <CheckCircle2 className="h-10 w-10 text-emerald-600" aria-hidden="true" />}
+        <p className="text-sm font-medium">
+          {failed ? 'O push BudgetFlow falhou.' : completed ? 'BudgetFlow processado com sucesso!' : 'BudgetFlow enviado para processamento.'}
+        </p>
+        {jobId && (
+          <div className="text-xs text-muted-foreground space-y-1 text-center">
+            <p>Job: <code className="bg-muted px-1 rounded">{jobId}</code></p>
+            <p>Status: <span className="font-medium">{job ? STATUS_LABEL[job.status] : '—'}</span></p>
+            {completed && !job?.delivered && job?.deliveryMode === 'manual-download' && (
+              <p>Integracao externa nao configurada — o payload foi gerado para download manual.</p>
+            )}
+            {failed && job?.error && <p role="alert" className="text-destructive">{job.error}</p>}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          {completed && jobId && (
+            <a href={`/api/v1/integrations/budgetflow/status?id=${encodeURIComponent(jobId)}&download=1`} download>
+              <Button variant="outline"><Download className="h-4 w-4 mr-2" aria-hidden="true" />Baixar payload</Button>
+            </a>
+          )}
+          <Button variant="outline" onClick={() => { stopPolling(); setSuccess(false); setJobId(null); setJob(null); }}>Novo envio</Button>
         </div>
-      )}
-      <Button variant="outline" onClick={() => { setSuccess(false); setJobId(null); setJobStatus(null); }}>Novo envio</Button>
-    </div>
-  )
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 p-6 max-w-2xl">

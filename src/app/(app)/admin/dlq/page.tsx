@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react'
+import { notify } from '@/components/ToastCenter'
 
 interface DlqJob {
   id: string
@@ -59,7 +60,7 @@ export default function DlqPage() {
       if (!res.ok) throw new Error('Falha')
       await load()
     } catch {
-      alert('Erro ao reenfileirar job.')
+      notify.error('Erro ao reenfileirar job.')
     } finally {
       setRequeuing(null)
     }

@@ -3,6 +3,7 @@ import { captureException } from '@/lib/observability/sentry'
 import { checkLlmMonthlyThreshold } from '@/lib/alerts/llm-threshold'
 import { checkStuckJobs } from '@/lib/alerts/stuck-jobs'
 import { checkApiDailyThreshold } from '@/lib/alerts/api-daily'
+import { isCronPaused, recordCronRun } from '@/lib/cron/registry'
 
 /**
  * GET /api/v1/cron/check-alerts
@@ -31,6 +32,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (await isCronPaused('check-alerts')) {
+    return NextResponse.json({ skipped: true, reason: 'paused' })
+  }
+
   const results: Record<string, unknown> = {}
   const runners: Array<{ name: string; fn: () => Promise<unknown> }> = [
     { name: 'llmMonthly', fn: checkLlmMonthlyThreshold },
@@ -38,14 +43,17 @@ export async function GET(request: NextRequest) {
     { name: 'stuckJobs', fn: checkStuckJobs },
   ]
 
+  let hadError = false
   for (const { name, fn } of runners) {
     try {
       results[name] = await fn()
     } catch (err) {
+      hadError = true
       captureException(err, { job: 'check-alerts', check: name })
       results[name] = { error: (err as Error).message }
     }
   }
 
+  void recordCronRun('check-alerts', hadError ? 'error' : 'ok')
   return NextResponse.json({ ok: true, results })
 }

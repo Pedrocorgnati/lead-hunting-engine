@@ -15,6 +15,9 @@ export const UpdatePasswordSchema = z.object({
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[a-zA-Z]/, 'Deve conter pelo menos uma letra')
     .regex(/[0-9]/, 'Deve conter pelo menos um número'),
+  // Reauth (item 038): obrigatoria na troca voluntaria; o servidor dispensa
+  // apenas no fluxo de reset forcado (must_reset_password).
+  currentPassword: z.string().min(1).max(200).optional(),
 })
 
 export type SignInInput = z.infer<typeof SignInSchema>

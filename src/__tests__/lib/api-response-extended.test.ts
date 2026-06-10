@@ -1,3 +1,5 @@
+// Realocado de src/lib/api-response.test.ts (item 065/067): o jest so coleta
+// **/__tests__/**/*.test.ts, entao o arquivo colocated era teste morto.
 /**
  * api-response.test.ts — testes de contrato para os envelopes C13.1–C13.3.
  * Falham se o envelope perder campos obrigatórios ou quebrar semântica de erro acessível.
@@ -16,7 +18,7 @@ import {
   type QuotaEnvelope,
   type RateLimitEnvelope,
   type LiveStatusEnvelope,
-} from './api-response'
+} from '@/lib/api-response'
 
 // ---------------------------------------------------------------------------
 // C13.1 — Sucesso / Erro
@@ -221,5 +223,71 @@ describe('contrato de regressão — campos obrigatórios', () => {
     const env = paginatedEnvelope([], meta)
     expect(Number.isInteger(env.meta.total)).toBe(true)
     expect(env.meta.total).toBeGreaterThanOrEqual(0)
+  })
+})
+
+// Itens 064/067: regressao de successEnvelopeFull / apiSuccessFull / uiMetaEnvelope
+// (request_id, serverTime e metadados de UI nao podem sumir do contrato C13).
+import { successEnvelopeFull, uiMetaEnvelope } from '@/lib/api-response'
+
+describe('successEnvelopeFull (C13.3)', () => {
+  it('preenche serverTime automaticamente e o espelha em meta', () => {
+    const env = successEnvelopeFull({ ok: true })
+    expect(typeof env.serverTime).toBe('string')
+    expect(env.meta.serverTime).toBe(env.serverTime)
+  })
+
+  it('propaga correlationId e requestId no topo e em meta', () => {
+    const env = successEnvelopeFull({ ok: true }, { correlationId: 'corr-1', requestId: 'req-1' })
+    expect(env.correlationId).toBe('corr-1')
+    expect(env.requestId).toBe('req-1')
+    expect(env.meta.correlationId).toBe('corr-1')
+    expect(env.meta.requestId).toBe('req-1')
+  })
+
+  it('links e warnings aparecem apenas quando fornecidos', () => {
+    const bare = successEnvelopeFull({ ok: true })
+    expect('links' in bare).toBe(false)
+    expect('warnings' in bare).toBe(false)
+
+    const full = successEnvelopeFull({ ok: true }, { links: { self: '/x' }, warnings: ['atencao'] })
+    expect(full.links).toEqual({ self: '/x' })
+    expect(full.warnings).toEqual(['atencao'])
+  })
+
+  it('warnings vazio e omitido (sem array vazio no payload)', () => {
+    const env = successEnvelopeFull({ ok: true }, { warnings: [] })
+    expect('warnings' in env).toBe(false)
+  })
+})
+
+describe('uiMetaEnvelope (C13.4)', () => {
+  it('garante os tres campos obrigatorios de acessibilidade', () => {
+    const ui = uiMetaEnvelope({
+      displayStatus: 'success',
+      statusLabel: 'Concluido',
+      ariaLiveMessage: 'Coleta concluida',
+    })
+    expect(ui.displayStatus).toBe('success')
+    expect(ui.statusLabel).toBe('Concluido')
+    expect(ui.ariaLiveMessage).toBe('Coleta concluida')
+  })
+
+  it('campos opcionais aparecem apenas quando fornecidos', () => {
+    const bare = uiMetaEnvelope({ displayStatus: 'empty', statusLabel: 'Vazio', ariaLiveMessage: 'Sem dados' })
+    expect('emptyStateReason' in bare).toBe(false)
+    expect('nextActionLabel' in bare).toBe(false)
+
+    const full = uiMetaEnvelope({
+      displayStatus: 'error',
+      statusLabel: 'Erro',
+      ariaLiveMessage: 'Falhou',
+      emptyStateReason: 'sem resultados',
+      nextActionLabel: 'Tentar novamente',
+      retryAt: '2026-06-09T12:00:00Z',
+    })
+    expect(full.emptyStateReason).toBe('sem resultados')
+    expect(full.nextActionLabel).toBe('Tentar novamente')
+    expect(full.retryAt).toBe('2026-06-09T12:00:00Z')
   })
 })

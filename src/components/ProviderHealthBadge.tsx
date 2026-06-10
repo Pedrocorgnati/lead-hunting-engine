@@ -6,14 +6,10 @@
  * Origem: Task 62 / C11 (loop 05-27-lead-hunting-engine-explained).
  *
  * Fonte de dados: ProviderHealthContext (polling compartilhado de 30s para
- * GET /api/v1/admin/providers/status). O endpoint retorna health derivado por
- * provider do PROVIDER_CATALOG (status, latencia, quota, rate-limit, ultimo
- * erro, fallback). Nunca expoe a chave de API (Zero Assumido, zero segredo
- * vazado para operador).
- *
- * O endpoint GET /api/v1/health/providers citado na task nao existe nesta fase
- * (apenas health/maintenance-window e health/feature-flags); admin/providers/status
- * e a unica fonte real e seu doc-comment declara "Consumido por G16 ProviderHealthBadge".
+ * GET /api/v1/health/providers — endpoint operator-safe com lastError
+ * mascarado; calculo compartilhado com o admin em
+ * src/lib/providers/health-status.ts). Nunca expoe a chave de API
+ * (Zero Assumido, zero segredo vazado para operador).
  *
  * - Tooltip expandivel: latencia, quota, rate-limit, erro recente, fallback.
  * - Custo: indisponivel nesta fase (ApiCredential nao possui campo de custo

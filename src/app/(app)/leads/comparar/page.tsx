@@ -7,6 +7,7 @@ import { AlertCircle, Download, Loader2, MapPin, TrendingUp } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Routes } from '@/lib/constants'
+import { notify } from '@/components/ToastCenter'
 
 interface Lead {
   id: string
@@ -95,6 +96,21 @@ function LeadCompareInner() {
         <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-center gap-2">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           {error}
+        </div>
+      )}
+
+      {/* Item 051: vazio e parcial deixam de ser silenciosos */}
+      {!loading && !error && leads.length === 0 && (
+        <div role="status" data-testid="compare-empty" className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground space-y-2">
+          <p>Nenhum dos leads selecionados foi encontrado — podem ter sido removidos ou pertencer a outro usuario.</p>
+          <Link href={Routes.LEADS} className="underline">Voltar para Leads</Link>
+        </div>
+      )}
+
+      {!loading && !error && leads.length > 0 && leads.length < rawIds.length && (
+        <div role="alert" data-testid="compare-partial" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {leads.length} de {rawIds.length} leads encontrados. Os demais podem ter sido removidos da sua carteira.
         </div>
       )}
 
@@ -208,7 +224,7 @@ function ExportCompareButton({ ids }: { ids: string[] }) {
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
-        alert(json.error?.message || 'Erro ao exportar comparacao.')
+        notify.error(json.error?.message || 'Erro ao exportar comparacao.')
         return
       }
       const blob = await res.blob()
@@ -222,7 +238,7 @@ function ExportCompareButton({ ids }: { ids: string[] }) {
       a.remove()
       window.URL.revokeObjectURL(url)
     } catch {
-      alert('Erro ao exportar comparacao.')
+      notify.error('Erro ao exportar comparacao.')
     } finally {
       setExporting(false)
     }

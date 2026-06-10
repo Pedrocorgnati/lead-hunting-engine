@@ -1,19 +1,27 @@
-FROM mcr.microsoft.com/playwright:v1.52.0-noble
+# Worker de drenagem da local-queue (coleta, process-leads, exports,
+# budgetflow). Nao roda codigo do app: chama POST /api/cron/drain-local-queue
+# do servico `app` autenticado por CRON_SECRET (mesma semantica do cron
+# Vercel), entao a imagem e minima — sem npm install, sem Playwright.
+#
+# docker-compose: adicionar servico
+#   workers:
+#     build: { context: ., dockerfile: Dockerfile.workers }
+#     environment:
+#       APP_URL: http://app:3000
+#       CRON_SECRET: ${CRON_SECRET}
+#     depends_on: [app]
+FROM alpine:3.20
+
+RUN apk add --no-cache curl
 
 WORKDIR /app
+COPY scripts/worker-loop.sh /app/worker-loop.sh
+RUN chmod +x /app/worker-loop.sh
 
-COPY package*.json ./
-RUN npm ci --omit=optional
-
-COPY . .
-
-RUN npx playwright install chromium --with-deps
-
-# TASK-20/ST001 (CL-509): HEALTHCHECK baseado em heartbeat file.
-# Workers escrevem /tmp/worker-heartbeat a cada 30s via cron/scheduler;
-# healthcheck falha se o arquivo nao foi atualizado nos ultimos 90s.
+# TASK-20/ST001 (CL-509): HEALTHCHECK baseado em heartbeat file, escrito
+# pelo worker-loop a cada drain bem-sucedido; falha se parado ha 90s+.
 HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=2 \
   CMD test -f /tmp/worker-heartbeat && \
       test $(( $(date +%s) - $(stat -c %Y /tmp/worker-heartbeat) )) -lt 90 || exit 1
 
-CMD ["node", "-e", "console.log('Workers container ready')"]
+CMD ["/app/worker-loop.sh"]

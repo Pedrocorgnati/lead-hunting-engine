@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import {
   Table,
   TableHeader,
@@ -13,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 /**
  * ExportHistoryTable — lista paginada dos exports do usuario com re-download
@@ -74,6 +76,46 @@ export function ExportHistoryTable() {
   const [rows, setRows] = useState<ExportRow[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ExportRow | null>(null)
+  const [actingId, setActingId] = useState<string | null>(null)
+
+  async function handleRegenerate(row: ExportRow) {
+    setActingId(row.id)
+    try {
+      const res = await fetch(`/api/v1/export/history/${row.id}/regenerate`, { method: 'POST' })
+      const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } }
+      if (!res.ok) {
+        toast.error(json.error?.message ?? 'Erro ao regenerar exportacao.')
+        return
+      }
+      toast.success('Exportacao re-enfileirada. Acompanhe o status na lista.')
+      await load()
+    } catch {
+      toast.error('Erro de rede ao regenerar exportacao.')
+    } finally {
+      setActingId(null)
+    }
+  }
+
+  async function handleDelete() {
+    if (!pendingDelete) return
+    setActingId(pendingDelete.id)
+    try {
+      const res = await fetch(`/api/v1/export/history/${pendingDelete.id}`, { method: 'DELETE' })
+      const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } }
+      if (!res.ok) {
+        toast.error(json.error?.message ?? 'Erro ao remover exportacao.')
+        return
+      }
+      toast.success('Exportacao removida do historico.')
+      setRows((prev) => (prev ?? []).filter((r) => r.id !== pendingDelete.id))
+    } catch {
+      toast.error('Erro de rede ao remover exportacao.')
+    } finally {
+      setActingId(null)
+      setPendingDelete(null)
+    }
+  }
 
   async function load() {
     try {
@@ -134,6 +176,7 @@ export function ExportHistoryTable() {
   }
 
   return (
+    <>
     <Table>
       <TableHeader>
         <TableRow>
@@ -161,23 +204,55 @@ export function ExportHistoryTable() {
             </TableCell>
             <TableCell className="whitespace-nowrap">{timeRemaining(row.expiresAt)}</TableCell>
             <TableCell className="text-right">
-              {row.status === 'COMPLETED' && row.expiresAt && new Date(row.expiresAt) > new Date() ? (
-                <a
-                  href={`/api/v1/export/${row.id}/download`}
-                  className="inline-block"
-                  download
-                >
-                  <Button variant="outline" size="sm">
-                    Baixar
+              <div className="flex items-center justify-end gap-2">
+                {row.status === 'COMPLETED' && row.expiresAt && new Date(row.expiresAt) > new Date() && (
+                  <a
+                    href={`/api/v1/export/${row.id}/download`}
+                    className="inline-block"
+                    download
+                  >
+                    <Button variant="outline" size="sm">
+                      Baixar
+                    </Button>
+                  </a>
+                )}
+                {(row.status === 'COMPLETED' || row.status === 'FAILED' || row.status === 'EXPIRED') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleRegenerate(row)}
+                    disabled={actingId === row.id}
+                    data-testid={`export-regenerate-${row.id}`}
+                  >
+                    Regenerar
                   </Button>
-                </a>
-              ) : (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setPendingDelete(row)}
+                  disabled={actingId === row.id}
+                  data-testid={`export-delete-${row.id}`}
+                >
+                  Remover
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
+    <ConfirmDialog
+      open={pendingDelete !== null}
+      onOpenChange={(open) => { if (!open) setPendingDelete(null) }}
+      title="Remover exportacao do historico?"
+      description="O arquivo gerado e o registro serao removidos permanentemente. Esta acao nao pode ser desfeita."
+      confirmLabel="Remover"
+      danger
+      loading={actingId === pendingDelete?.id}
+      onConfirm={handleDelete}
+    />
+    </>
   )
 }

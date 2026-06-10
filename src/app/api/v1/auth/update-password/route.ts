@@ -33,6 +33,33 @@ export async function POST(request: NextRequest) {
     const validated = UpdatePasswordSchema.parse(body)
 
     const supabase = await createClient()
+
+    // Reauth (item 038): a troca voluntaria exige verificar a senha atual no
+    // servidor. Excecao unica: fluxo de reset forcado pelo admin
+    // (must_reset_password), em que a UI nao coleta a senha atual.
+    const preProfile = await prisma.userProfile.findUnique({
+      where: { id: user.id },
+      select: { mustResetPassword: true },
+    })
+    if (!preProfile?.mustResetPassword) {
+      if (!validated.currentPassword) {
+        return NextResponse.json(
+          { error: { code: 'REAUTH_REQUIRED', message: 'Informe a senha atual para confirmar a troca.' } },
+          { status: 401 }
+        )
+      }
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: validated.currentPassword,
+      })
+      if (reauthError) {
+        return NextResponse.json(
+          { error: { code: 'AUTH_002', message: 'Senha atual inválida.' } },
+          { status: 401 }
+        )
+      }
+    }
+
     const { error } = await supabase.auth.updateUser({
       password: validated.password,
     })

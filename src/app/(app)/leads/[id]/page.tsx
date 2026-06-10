@@ -5,14 +5,10 @@ import { notFound } from 'next/navigation'
 import { getLead } from '@/actions/leads'
 import { Routes } from '@/lib/constants'
 import { LeadDetailInteractive } from '@/components/leads/lead-detail-interactive'
-import { BudgetFlow } from '@/components/leads/budget-flow'
-import { CompetitorsPanel } from '@/components/leads/competitors-panel'
 import { LeadSignals } from '@/components/leads/lead-signals'
 import { SignalsList } from '@/components/leads/signals-list'
-import { LeadHistoryTimeline } from '@/components/leads/LeadHistoryTimeline'
 import { PipelineTimeline } from '@/components/leads/PipelineTimeline'
 import { LeadScoreBreakdown } from '@/components/leads/LeadScoreBreakdown'
-import { LeadTagsEditor } from '@/components/leads/LeadTagsEditor'
 import { ContactEventForm } from '@/components/leads/ContactEventForm'
 import { BudgetFlowExport } from './_components/BudgetFlowExport'
 
@@ -129,24 +125,15 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
         <LeadScoreBreakdown leadId={lead.id} />
       </section>
 
-      {/* BudgetFlow: integração com ferramenta externa de orçamento (P003/P041) */}
-      {/* RESOLVED: BudgetFlow não renderizado */}
-      <BudgetFlow leadId={lead.id} leadName={lead.name} />
+      {/* Item 034: BudgetFlow, CompetitorsPanel, LeadHistoryTimeline e
+          LeadTagsEditor vivem APENAS dentro das abas (LeadDetailInteractive)
+          — render duplicado fora delas foi removido. */}
 
       {/* TASK-11 intake-review: exportacao canonica para BudgetFlow (CL-123/124/214) */}
       <BudgetFlowExport leadId={lead.id} leadName={lead.name} />
 
-      {/* TASK-5 intake-review: comparativo com concorrentes (CL-080) */}
-      <CompetitorsPanel leadId={lead.id} />
-
-      {/* TASK-25/ST001 intake-review (CL-489): timeline de alteracoes do lead */}
-      <LeadHistoryTimeline leadId={lead.id} />
-
       {/* TASK-16/ST002 intake-review (CL-488): timeline do pipeline com custos */}
       <PipelineTimeline leadId={lead.id} />
-
-      {/* TASK-16/ST003 intake-review (CL-490): tags customizadas do operador */}
-      <LeadTagsEditor leadId={lead.id} />
 
       {/* R-03 intake-review (CL-283 + TASK-18/ST005): contato estruturado canal+resultado */}
       <ContactEventForm leadId={lead.id} />

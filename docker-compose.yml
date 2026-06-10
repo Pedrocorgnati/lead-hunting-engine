@@ -13,14 +13,17 @@
 
 services:
   app:
-    image: node:20-alpine
+    # Next 16 / React 19 exigem Node moderno; node:24-alpine acompanha o dev local.
+    image: node:24-alpine
     working_dir: /app
     volumes:
       - .:/app
       - app_node_modules:/app/node_modules
     ports:
       - "3000:3000"
-    command: sh -c "npm install && npm run dev"
+    # Workspace e pnpm-canonico: npm install recria package-lock.json e corrompe
+    # node_modules (preinstall guard bloqueia). corepack ativa o pnpm embarcado.
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev"
     env_file:
       - .env.docker
     depends_on:
@@ -33,7 +36,9 @@ services:
     env_file:
       - .env.docker
     ports:
-      - "5432:5432"
+      # Porta host 5434: 5432 (postgres local) e 5433 ja sao ocupadas em dev tipico.
+      # Dentro da rede do compose o app continua falando com db:5432.
+      - "5434:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:

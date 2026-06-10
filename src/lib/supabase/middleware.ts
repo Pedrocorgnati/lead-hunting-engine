@@ -34,13 +34,21 @@ function isAuthResetPath(pathname: string): boolean {
 }
 
 function isPublicApi(pathname: string): boolean {
-  // Endpoints publicos: auth, convites e formularios de landing.
+  // Endpoints publicos: auth, convites, formularios de landing e health checks
+  // (docker healthcheck, post-deploy verify e monitoring nao tem sessao).
   return (
     pathname.startsWith('/api/v1/auth') ||
     pathname.startsWith('/api/v1/invites') ||
     pathname === '/api/v1/waitlist' ||
     pathname === '/api/v1/contact' ||
-    pathname === '/api/v1/consent'
+    pathname === '/api/v1/consent' ||
+    pathname === '/api/health' ||
+    pathname.startsWith('/api/v1/health') ||
+    // Cron endpoints: autenticacao propria via Bearer CRON_SECRET (fail-closed
+    // dentro de cada route); sem isso o middleware redirecionava o agendador
+    // para /login e nenhum cron rodava.
+    pathname.startsWith('/api/cron') ||
+    pathname.startsWith('/api/v1/cron')
   )
 }
 
@@ -114,20 +122,23 @@ export async function updateSession(request: NextRequest) {
 
     if (!isOnboardingPath && !isApiPath) {
       try {
+        // PostgREST expoe o nome fisico da tabela/colunas (snake_case),
+        // nao o nome do model Prisma — 'UserProfile' retornava erro e caia
+        // no catch silencioso, deixando os gates inertes.
         const { data: profile } = await supabase
-          .from('UserProfile')
-          .select('onboardingCompletedAt, mustResetPassword')
+          .from('user_profiles')
+          .select('onboarding_completed_at, must_reset_password')
           .eq('id', user.id)
           .single()
 
-        if (profile?.mustResetPassword) {
+        if (profile?.must_reset_password) {
           const url = request.nextUrl.clone()
           url.pathname = '/auth/reset-password/update'
           url.searchParams.set('reason', 'admin_forced')
           return NextResponse.redirect(url)
         }
 
-        if (profile && profile.onboardingCompletedAt === null) {
+        if (profile && profile.onboarding_completed_at === null) {
           const url = request.nextUrl.clone()
           url.pathname = '/onboarding'
           return NextResponse.redirect(url)
@@ -139,12 +150,12 @@ export async function updateSession(request: NextRequest) {
       // APIs privadas com flag ativa devolvem 409 — cliente deve redirecionar.
       try {
         const { data: profile } = await supabase
-          .from('UserProfile')
-          .select('mustResetPassword')
+          .from('user_profiles')
+          .select('must_reset_password')
           .eq('id', user.id)
           .single()
 
-        if (profile?.mustResetPassword) {
+        if (profile?.must_reset_password) {
           return NextResponse.json(
             {
               error: {

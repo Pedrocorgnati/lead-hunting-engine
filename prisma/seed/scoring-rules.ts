@@ -10,13 +10,14 @@
  */
 
 import 'dotenv/config'
+import { createSeedClient } from './client'
 import { PrismaClient } from '@prisma/client'
 import {
   DEFAULT_SCORING_RULES,
   DEPRECATED_SCORING_SLUGS,
 } from '../../src/lib/scoring/default-rules'
 
-const prisma = new PrismaClient()
+const prisma = createSeedClient()
 
 const TOTAL_WEIGHT = DEFAULT_SCORING_RULES.reduce((sum, r) => sum + r.weight, 0)
 

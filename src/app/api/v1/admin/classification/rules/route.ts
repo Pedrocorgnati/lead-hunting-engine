@@ -5,6 +5,7 @@ import { handleApiError, successResponse } from '@/lib/api-utils'
 import { getPrisma } from '@/lib/prisma'
 import { OpportunityType } from '@/lib/constants/enums'
 import { AuditService } from '@/lib/services/audit-service'
+import { invalidateClassificationRulesCache } from '@/lib/intelligence/classifier/rules-loader'
 
 const RuleSchema = z.object({
   opportunityType: z.nativeEnum(OpportunityType),
@@ -144,6 +145,8 @@ export async function POST(request: NextRequest) {
     const rules = await prisma.classificationRule.findMany({
       orderBy: { sortOrder: 'asc' },
     })
+    invalidateClassificationRulesCache()
+
     return successResponse({ rules, message: 'Regras salvas com sucesso.' })
   } catch (error) {
     return handleApiError(error)

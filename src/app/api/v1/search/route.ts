@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         id: t.id,
         title: t.name,
         subtitle: t.tone,
-        href: `/settings/pitch-templates`,
+        href: `/templates/pitch/${t.id}`,
         kind: 'template' as const,
       })),
     ]

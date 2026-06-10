@@ -9,11 +9,12 @@
  */
 
 import 'dotenv/config'
+import { createSeedClient } from './client'
 import { PrismaClient } from '@prisma/client'
 import { seedScoringRules } from './scoring-rules'
 import { seedRegionsAndNiches } from './regions-niches'
 
-const prisma = new PrismaClient()
+const prisma = createSeedClient()
 
 async function main() {
   console.log('🚀 Prod seed iniciando...')

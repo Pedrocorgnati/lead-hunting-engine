@@ -38,6 +38,27 @@ export function NotesEditor({ leadId, initialNotes }: NotesEditorProps) {
   const [saving, setSaving] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Item 034: a aba consome GET /notes no mount para garantir dado fresco
+  // (props do server component podem estar stale apos edicao em outra aba).
+  // So sobrescreve se o usuario ainda nao digitou nada novo.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch(`/api/v1/leads/${leadId}/notes`)
+        if (!res.ok) return
+        const json = (await res.json()) as { data?: { notes?: string } }
+        const fresh = json.data?.notes ?? ''
+        if (!cancelled) {
+          setValue((current) => (current === (initialNotes ?? '') ? fresh : current))
+          setSaved((current) => (current === (initialNotes ?? '') ? fresh : current))
+        }
+      } catch { /* mantem props */ }
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadId])
+
   useEffect(() => {
     if (value === saved) return
     if (timer.current) clearTimeout(timer.current)

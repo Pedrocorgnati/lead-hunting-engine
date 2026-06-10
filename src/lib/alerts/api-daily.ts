@@ -31,7 +31,10 @@ export async function checkApiDailyThreshold(): Promise<CheckResult> {
     return { triggered: false, currentCalls: count, threshold }
   }
 
-  const ok = await claimAlertSlot('API_DAILY', { count, threshold })
+  const ok = await claimAlertSlot('API_DAILY', { count, threshold }, new Date(), {
+    severity: 'high',
+    message: `Chamadas de API atingiram ${count} / ${threshold} hoje.`,
+  })
   if (!ok) return { triggered: false, currentCalls: count, threshold }
 
   const admins = await prisma.userProfile.findMany({

@@ -4,8 +4,6 @@
   "private": true,
   "scripts": {
     "preinstall": "node -e \"const ua=process.env.npm_config_user_agent||''; if(!ua.startsWith('pnpm')){console.error('[lead-hunting-engine] Use pnpm install (NOT npm/yarn): mixed lockfiles corrupt node_modules. Canonical lockfile: pnpm-lock.yaml'); process.exit(1);}\"",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -125,5 +123,6 @@
       "sharp",
       "unrs-resolver"
     ]
-  }
+  },
+  "packageManager": "pnpm@11.1.0"
 }

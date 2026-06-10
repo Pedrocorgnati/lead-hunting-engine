@@ -365,6 +365,7 @@ describe('runCollection — dispatch de notificacoes JOB_COMPLETED / JOB_FAILED'
     await expect(runCollection(basePayload, deps)).resolves.toEqual({
       success: true,
       processed: 1,
+      leadsProcessed: 0,
     })
   })
 
@@ -395,6 +396,7 @@ describe('runCollection — dispatch de notificacoes JOB_COMPLETED / JOB_FAILED'
     await expect(runCollection(basePayload, deps)).resolves.toEqual({
       success: true,
       processed: 1,
+      leadsProcessed: 0,
     })
   })
 })
@@ -496,7 +498,7 @@ describe('runCollection — C2: retomada via retriedFromId (checkpointing real)'
     expect(initialInheritUpdate?.data.resultCount).toBe(5)
 
     // Total final = inheritedCount + processed (5 + 1 do business novo) = 6
-    expect(result).toEqual({ success: true, processed: 6 })
+    expect(result).toEqual({ success: true, processed: 6, leadsProcessed: 0 })
 
     // totalEstimated reflete soma (businesses.length=1 + inherited=5 = 6)
     const totalEstimatedUpdate = prismaSpy.collectionJob.updateCalls.find(
@@ -531,7 +533,7 @@ describe('runCollection — C2: retomada via retriedFromId (checkpointing real)'
       deps,
     )
 
-    expect(result).toEqual({ success: true, processed: 5 })
+    expect(result).toEqual({ success: true, processed: 5, leadsProcessed: 0 })
   })
 })
 
@@ -557,5 +559,41 @@ describe('runCollection — sanitizeRawJson aplicado antes de persistir', () => 
       sanitized: true,
       email: 'leak@x.com',
     })
+  })
+})
+
+describe('runCollection — encadeia process-leads apos a coleta (fix money-path)', () => {
+  it('chama processLeads com jobId/userId e retorna leadsProcessed', async () => {
+    const prismaSpy = makePrismaSpy()
+    const processLeads = jest.fn().mockResolvedValue({ processed: 3, duplicates: 1, errors: 0, total: 4 })
+    const deps = makeDeps(prismaSpy, {
+      searchBusinesses: jest.fn().mockResolvedValue([makeBusiness()]),
+      processLeads: processLeads as unknown as CollectLeadsDeps['processLeads'],
+    })
+
+    const result = await runCollection(basePayload, deps)
+
+    expect(processLeads).toHaveBeenCalledWith(
+      { jobId: 'job-1', userId: expect.any(String) },
+      expect.objectContaining({ info: expect.any(Function) }),
+    )
+    expect(result).toEqual({ success: true, processed: 1, leadsProcessed: 3 })
+  })
+
+  it('falha do processamento NAO derruba a coleta concluida (raws ficam para retry)', async () => {
+    const prismaSpy = makePrismaSpy()
+    const processLeads = jest.fn().mockRejectedValue(new Error('enrichment caiu'))
+    const deps = makeDeps(prismaSpy, {
+      searchBusinesses: jest.fn().mockResolvedValue([makeBusiness()]),
+      processLeads: processLeads as unknown as CollectLeadsDeps['processLeads'],
+    })
+
+    const result = await runCollection(basePayload, deps)
+
+    expect(result).toEqual({ success: true, processed: 1, leadsProcessed: 0 })
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('processamento pos-coleta falhou'),
+      expect.objectContaining({ jobId: 'job-1' }),
+    )
   })
 })

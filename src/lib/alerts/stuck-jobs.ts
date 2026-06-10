@@ -38,6 +38,9 @@ export async function checkStuckJobs(): Promise<CheckResult> {
   const ok = await claimAlertSlot('JOB_STUCK', {
     count: stuck.length,
     threshold,
+  }, new Date(), {
+    severity: 'critical',
+    message: `${stuck.length} coleta(s) em PENDING ha mais de ${threshold} minutos.`,
   })
   if (!ok) return { triggered: false, stuckCount: stuck.length, threshold }
 

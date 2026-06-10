@@ -20,14 +20,11 @@ export async function GET(request: NextRequest) {
       Object.fromEntries(url.searchParams.entries())
     )
 
+    // Fail-closed: ownerScope=all so amplia o escopo para ADMIN; qualquer
+    // outro caso (incluindo nao-admin pedindo 'all') fica restrito ao dono.
     const where: Record<string, unknown> = {}
-    if (query.ownerScope !== 'all') {
+    if (!(query.ownerScope === 'all' && user.role === 'ADMIN')) {
       where.userId = user.id
-    }
-
-    if (query.ownerScope === 'all' && user.role === 'ADMIN') {
-      // Mantém compatibilidade com futuras extensões de permissão sem travar a query.
-      delete where.userId
     }
 
     if (query.tone) where.tone = query.tone

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { quotaEnforcer, QuotaExceededError } from './quota-enforcer'
+import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
 
 export { QuotaExceededError }
 
@@ -88,7 +88,7 @@ export class RadarService {
       select: { id: true },
     })
 
-    await tasks.trigger('collect-leads', {
+    await dispatchCollectLeads( {
       jobId: job.id,
       query: input.niche,
       location: input.state ? `${input.city}, ${input.state}` : input.city,

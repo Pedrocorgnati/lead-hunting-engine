@@ -28,7 +28,7 @@ AS $$
     SELECT 1
     FROM public."user_profiles"
     WHERE id = auth.uid()
-      AND role = 'ADMIN'::"UserRole"
+      AND role = 'ADMIN'::public."UserRole"
   );
 $$;
 

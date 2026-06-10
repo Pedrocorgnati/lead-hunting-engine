@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { queueJobLiveStatus, type QueueJobStatus } from '@/lib/live-status'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -331,6 +332,19 @@ export default function AdminJobDetailPage() {
     void loadAttempts()
     void loadLogs()
   }, [loadDetail, loadAttempts, loadLogs])
+
+  // Item 049: polling live no contrato canonico (queueJobLiveStatus) — job
+  // nao-terminal re-poll a cada live.pollAfter; erro de fetch honra
+  // live.retryAfterMs. Terminal (DONE/FAILED) para de pollar.
+  useEffect(() => {
+    const status = detail.data?.status as QueueJobStatus | undefined
+    if (!status && !detail.error) return
+    const live = queueJobLiveStatus(status ?? 'PENDING', detail.data?.lastUpdatedAt ?? null)
+    if (!detail.error && live.pollAfter <= 0) return
+    const delay = detail.error ? live.retryAfterMs : live.pollAfter
+    const timer = setTimeout(() => reloadAll(), delay)
+    return () => clearTimeout(timer)
+  }, [detail, reloadAll])
 
   const filteredLogs = useMemo(() => {
     const rows = logs.data?.logs ?? []

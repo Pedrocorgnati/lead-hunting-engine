@@ -81,6 +81,22 @@ export type AuditAction =
   | 'pilot.cohort_removed'
   | 'pilot.interview_scheduled'
   | 'pilot.report_exported'
+  // Task 32 / B7: recuperacao de erros de coleta (retry/ignore/export reais)
+  | 'collection_error.retried'
+  | 'collection_error.retried_all'
+  | 'collection_error.ignored'
+  | 'collection_error.exported'
+  // Task 36 / B11: gestao do historico de exportacoes (A17)
+  | 'export.deleted'
+  | 'export.regenerated'
+  // Tasks 46/49 / AD29: administracao de cron jobs
+  | 'cron.triggered_manually'
+  | 'cron.paused'
+  | 'cron.resumed'
+  // Task 45 / AD30: lifecycle de alertas operacionais
+  | 'alert.silenced'
+  | 'alert.resolved'
+  | 'alert.reopened'
 
 interface AuditLogParams {
   userId?: string

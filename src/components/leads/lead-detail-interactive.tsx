@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, Component, type ReactNode } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, Loader2 } from 'lucide-react'
@@ -73,6 +73,34 @@ function TabError({ message, onRetry }: { message: string; onRetry: () => void }
       </button>
     </div>
   )
+}
+
+/**
+ * Item 034: cabea o TabError — erro de render em qualquer aba cai aqui e o
+ * "Tentar novamente" remonta o conteudo (resetKey). Trocar de aba tambem
+ * reseta (key=activeTab no uso).
+ */
+class TabErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; resetKey: number }
+> {
+  state = { hasError: false, resetKey: 0 }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <TabError
+          message="Esta aba encontrou um erro ao carregar."
+          onRetry={() => this.setState((s) => ({ hasError: false, resetKey: s.resetKey + 1 }))}
+        />
+      )
+    }
+    return <div key={this.state.resetKey}>{this.props.children}</div>
+  }
 }
 
 function LeadNotFoundState() {
@@ -200,6 +228,7 @@ function LeadDetailInteractiveInner({ lead }: Props) {
           aria-labelledby={`tab-${activeTab}`}
           data-testid={`tabpanel-${activeTab}`}
         >
+          <TabErrorBoundary key={activeTab}>
           {/* ── OVERVIEW ──────────────────────────────────────────────── */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -283,6 +312,7 @@ function LeadDetailInteractiveInner({ lead }: Props) {
           {activeTab === 'radar' && (
             <LeadRadarTab leadId={lead.id} />
           )}
+          </TabErrorBoundary>
         </div>
       </div>
     </div>

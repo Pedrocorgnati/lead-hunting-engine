@@ -87,7 +87,9 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
             )}
           </Link>
         )}
-        {isAdmin && <ProviderHealthIndicator />}
+        {/* Item 062: indicador visivel para TODOS os papeis — a fonte agora e o
+            endpoint operator-safe /api/v1/health/providers (lastError mascarado). */}
+        <ProviderHealthIndicator />
         <ThemeToggle />
         {/* User menu */}
         {loading ? (

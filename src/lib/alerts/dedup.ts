@@ -14,15 +14,25 @@ export function dayKey(d: Date = new Date()): string {
 /**
  * Tenta registrar o alerta. Retorna `true` se inserido (pode disparar),
  * `false` se duplicado (ja existe para o dia).
+ *
+ * `meta.severity`/`meta.message` alimentam o lifecycle exibido em
+ * AD30 /admin/alertas (Task 45).
  */
 export async function claimAlertSlot(
   rule: string,
   payload?: Record<string, unknown>,
-  when: Date = new Date()
+  when: Date = new Date(),
+  meta?: { severity?: 'critical' | 'high' | 'medium' | 'low'; message?: string }
 ): Promise<boolean> {
   try {
     await prisma.sentAlert.create({
-      data: { rule, dayKey: dayKey(when), payload: (payload ?? {}) as Prisma.InputJsonValue },
+      data: {
+        rule,
+        dayKey: dayKey(when),
+        payload: (payload ?? {}) as Prisma.InputJsonValue,
+        severity: meta?.severity ?? 'medium',
+        message: meta?.message ?? null,
+      },
     })
     return true
   } catch (err) {

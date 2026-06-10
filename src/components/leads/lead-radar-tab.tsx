@@ -73,12 +73,15 @@ export function LeadRadarTab({ leadId }: LeadRadarTabProps) {
 
   async function handleRestore(snapshotId: string) {
     try {
-        const res = await fetch(`/api/v1/leads/${leadId}/snapshots/${snapshotId}/restore`, { method: 'POST' })
-      if (!res.ok) { toast.error('Erro ao reverter snapshot.'); return }
-      toast.success('Snapshot revertido com sucesso.')
+      const res = await fetch(`/api/v1/leads/${leadId}/snapshots/${snapshotId}/restore`, { method: 'POST' })
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } }
+        toast.error(json.error?.message ?? 'Erro ao reverter snapshot.')
+        return
+      }
+      toast.success('Snapshot revertido: os campos rastreados do lead foram restaurados.')
       await refreshSnapshots()
-    } catch { toast.error('Erro de rede.') }
-    setRestoreTarget(null)
+    } catch { toast.error('Erro de rede.') } finally { setRestoreTarget(null) }
   }
 
   const latest = snapshots[0]

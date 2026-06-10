@@ -42,6 +42,10 @@ export async function GET(request: Request, ctx: RouteCtx) {
     const q = QuerySchema.parse({
       limit: url.searchParams.get('limit') ?? undefined,
       cursor: url.searchParams.get('cursor') ?? undefined,
+      env: url.searchParams.get('env') ?? undefined,
+      kind: url.searchParams.get('kind') ?? undefined,
+      from: url.searchParams.get('from') ?? undefined,
+      to: url.searchParams.get('to') ?? undefined,
     })
     const changes = await listChanges(flag.id, { limit: q.limit, cursor: q.cursor, env: q.env, kind: q.kind, from: q.from, to: q.to })
     return NextResponse.json({ data: { changes } }, { status: 200 })

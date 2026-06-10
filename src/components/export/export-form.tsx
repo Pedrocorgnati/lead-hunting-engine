@@ -77,7 +77,7 @@ export function ExportForm({ activeFilters = {}, onClose }: Props) {
         )
         onClose()
         // Direciona o usuario para a pagina de historico de exports
-        router.push('/exports')
+        router.push('/exportar/historico')
         return
       }
 

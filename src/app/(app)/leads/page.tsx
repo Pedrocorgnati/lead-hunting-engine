@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Download } from 'lucide-react'
+import { Download, CopyCheck, GitCompareArrows } from 'lucide-react'
 import { getLeads } from '@/actions/leads'
 import { Routes } from '@/lib/constants'
 import { LeadsTable } from '@/components/leads/leads-table'
@@ -87,18 +87,36 @@ export default async function LeadsPage({ searchParams }: PageProps) {
             Gerencie e analise seus leads coletados
           </p>
         </div>
-        <Link
-          href={(() => {
-            // M12-B1: preserva filtros ativos ao navegar para /exportar
-            const qs = buildSearchParams({ page: undefined })
-            return qs ? `${Routes.EXPORTAR}?${qs}` : Routes.EXPORTAR
-          })()}
-          data-testid="leads-export-button"
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px]"
-        >
-          <Download className="h-4 w-4" aria-hidden={true} />
-          Exportar
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={Routes.LEADS_DUPLICATAS}
+            data-testid="leads-duplicatas-button"
+            className="flex items-center gap-2 px-4 py-2 border text-sm font-medium rounded-lg hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[44px]"
+          >
+            <CopyCheck className="h-4 w-4" aria-hidden={true} />
+            <span className="hidden sm:inline">Duplicatas</span>
+          </Link>
+          <Link
+            href={Routes.LEADS_COMPARAR}
+            data-testid="leads-comparar-button"
+            className="flex items-center gap-2 px-4 py-2 border text-sm font-medium rounded-lg hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[44px]"
+          >
+            <GitCompareArrows className="h-4 w-4" aria-hidden={true} />
+            <span className="hidden sm:inline">Comparar</span>
+          </Link>
+          <Link
+            href={(() => {
+              // M12-B1: preserva filtros ativos ao navegar para /exportar
+              const qs = buildSearchParams({ page: undefined })
+              return qs ? `${Routes.EXPORTAR}?${qs}` : Routes.EXPORTAR
+            })()}
+            data-testid="leads-export-button"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px]"
+          >
+            <Download className="h-4 w-4" aria-hidden={true} />
+            Exportar
+          </Link>
+        </div>
       </div>
 
       {/* Quick filter pills */}

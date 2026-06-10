@@ -90,11 +90,20 @@ export default async function DashboardPage() {
       )}
 
       {/* Page header */}
-      <div data-testid="dashboard-page-header">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Visão geral dos seus leads e coletas
-        </p>
+      <div data-testid="dashboard-page-header" className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Visão geral dos seus leads e coletas
+          </p>
+        </div>
+        <Link
+          href="/primeiros-passos"
+          data-testid="dashboard-primeiros-passos-link"
+          className="text-sm text-muted-foreground hover:text-foreground underline-offset-2 hover:underline min-h-[44px] inline-flex items-center"
+        >
+          Guia de primeiros passos
+        </Link>
       </div>
 
       {/* KPI Cards */}

@@ -526,7 +526,7 @@ model PitchVersion {
 
 model Notification {
   id        String    @id @default(uuid())
-  userId    String    @map("user_id")
+  userId    String    @map("user_id") @db.Uuid
   type      String    @db.VarChar(50)
   title     String    @db.VarChar(255)
   message   String
@@ -813,12 +813,21 @@ model NpsResponse {
   @@map("nps_responses")
 }
 
+// Task 45 / AD30: alem do dedup diario, cada linha carrega o lifecycle do
+// alerta operacional: ACTIVE -> SILENCED (snooze com silencedUntil) |
+// RESOLVED (resolvedAt). Snooze expirado volta a ACTIVE no read-path.
 model SentAlert {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  rule      String   @db.VarChar(80)
-  dayKey    String   @map("day_key") @db.VarChar(20)
-  payload   Json?
-  createdAt DateTime @default(now()) @map("created_at")
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule          String    @db.VarChar(80)
+  dayKey        String    @map("day_key") @db.VarChar(20)
+  payload       Json?
+  status        String    @default("ACTIVE") @db.VarChar(20)
+  severity      String    @default("medium") @db.VarChar(20)
+  message       String?
+  silencedUntil DateTime? @map("silenced_until")
+  resolvedAt    DateTime? @map("resolved_at")
+  updatedBy     String?   @map("updated_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   @@unique([rule, dayKey])
   @@index([createdAt])
@@ -907,6 +916,33 @@ model LocalQueueJob {
   @@unique([kind, payloadHash])
   @@index([status, runAt])
   @@map("local_queue_jobs")
+}
+
+// Task 52 / A18: pushes do fluxo dedicado BudgetFlow (/exportar/budgetflow).
+// Persistido em DB (multi-instancia safe; substitui o Map em memoria).
+// `status`: PENDING -> PROCESSING -> COMPLETED | FAILED (string, padrao
+// LocalQueueJob). Processamento via local-queue kind 'budgetflow-push' com
+// execucao inline best-effort no POST (worker idempotente por status guard).
+model BudgetFlowPush {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  campaignId   String   @map("campaign_id") @db.VarChar(120)
+  budget       Decimal  @db.Decimal(14, 2)
+  currency     String   @db.VarChar(3)
+  note         String?
+  leadIds      String[] @default([]) @map("lead_ids") @db.Uuid
+  payload      Json?
+  status       String   @default("PENDING") @db.VarChar(20)
+  attempts     Int      @default(0)
+  delivered    Boolean  @default(false)
+  deliveryMode String?  @map("delivery_mode") @db.VarChar(30)
+  result       Json?
+  error        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@map("budget_flow_pushes")
 }
 
 // ─────────────────────────────────────────

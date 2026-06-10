@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { collectionLiveStatus, formatLastUpdated } from '@/lib/live-status'
+import { collectionLiveStatus, formatLastUpdated, type CollectionStatus } from '@/lib/live-status'
+import { useLivePoll } from '@/lib/live/use-live-poll'
 import type { CollectionJobStatus } from '@/lib/constants/enums'
-import { getJobStatus } from '@/actions/jobs'
 import { Progress } from '@/components/ui/progress'
-import { AlertCircle, CheckCircle2, Circle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { AlertCircle, CheckCircle2, Circle, RotateCw } from 'lucide-react'
 
+/**
+ * LiveProgressPanel (A5) — agora no contrato live canonico (item 048):
+ * consome GET /api/v1/collections/:id/progress via useLivePoll (B22.1),
+ * que honra live.pollAfter/retryAfterMs do servidor, para em estado
+ * terminal e expoe erro de poll com retry manual (sem silencio).
+ */
 interface LiveProgressPanelProps {
   jobId: string
   initialStatus: CollectionJobStatus
@@ -17,6 +23,17 @@ interface LiveProgressPanelProps {
   initialErrorMessage?: string
   initialStartedAt?: string | null
   initialCompletedAt?: string | null
+}
+
+interface ProgressPayload {
+  id: string
+  status: CollectionStatus
+  progress: number
+  resultCount: number
+  errorMessage: string | null
+  startedAt: string | null
+  completedAt: string | null
+  live: { pollAfter: number; retryAfterMs: number; lastUpdatedAt: string | null }
 }
 
 export function LiveProgressPanel({
@@ -30,63 +47,33 @@ export function LiveProgressPanel({
   initialStartedAt,
   initialCompletedAt,
 }: LiveProgressPanelProps) {
-  const [status, setStatus] = useState<CollectionJobStatus>(initialStatus)
-  const [progress, setProgress] = useState(initialProgress)
-  const [resultCount, setResultCount] = useState(initialResultCount)
-  const [updatedAt, setUpdatedAt] = useState<string | null>(initialUpdatedAt ?? null)
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(initialErrorMessage)
-  const [isPolling, setIsPolling] = useState(false)
+  const initialTerminal = ['COMPLETED', 'FAILED', 'FAILED_TERMINAL', 'CANCELLED', 'PARTIAL'].includes(initialStatus)
+
+  const { data, error, refresh } = useLivePoll<ProgressPayload>(
+    `/api/v1/collections/${jobId}/progress`,
+    { intervalMs: 5_000, enabled: !initialTerminal },
+  )
+
+  const status = (data?.status ?? initialStatus) as CollectionStatus
+  const progress = data?.progress ?? initialProgress
+  const resultCount = data?.resultCount ?? initialResultCount
+  const updatedAt = data?.live.lastUpdatedAt ?? initialUpdatedAt ?? null
+  const errorMessage = data?.errorMessage ?? initialErrorMessage
+  const startedAt = data?.startedAt ?? initialStartedAt ?? null
+  const completedAt = data?.completedAt ?? initialCompletedAt ?? null
 
   const live = collectionLiveStatus(status, updatedAt)
 
-  const poll = useCallback(async () => {
-    if (isPolling) return
-    setIsPolling(true)
-    try {
-      const data = await getJobStatus(jobId)
-      if (data) {
-        setStatus(data.status)
-        setProgress(data.progress)
-        setResultCount(data.resultCount)
-        setUpdatedAt(data.updatedAt ?? null)
-        setErrorMessage(data.errorMessage)
-      }
-    } catch {
-      // Silencioso: retry sera feito pelo interval
-    } finally {
-      setIsPolling(false)
-    }
-  }, [jobId, isPolling])
-
-  useEffect(() => {
-    // Nao poll se ja esta em estado terminal
-    const terminalStatuses: CollectionJobStatus[] = ['COMPLETED', 'FAILED', 'FAILED_TERMINAL', 'CANCELLED', 'PARTIAL']
-    if (terminalStatuses.includes(status)) return
-
-    const intervalMs = live.pollAfter > 0 ? live.pollAfter : 5000
-    const timer = setInterval(poll, intervalMs)
-    return () => clearInterval(timer)
-  }, [status, live.pollAfter, poll])
-
-  // Retry manual em caso de erro
-  const handleRetry = useCallback(() => {
-    setTimeout(poll, live.retryAfterMs)
-  }, [poll, live.retryAfterMs])
-
   const timelineSteps = [
     { label: 'Criado', date: null, done: true },
-    { label: 'Iniciado', date: initialStartedAt ?? null, done: !!initialStartedAt },
-    { label: 'Finalizado', date: initialCompletedAt ?? null, done: !!initialCompletedAt },
+    { label: 'Iniciado', date: startedAt, done: !!startedAt },
+    { label: 'Finalizado', date: completedAt, done: !!completedAt },
   ]
 
   return (
     <div className="space-y-4">
       {/* aria-live region para leitores de tela */}
-      <div
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
         {live.ariaLiveMessage}
       </div>
 
@@ -134,6 +121,21 @@ export function LiveProgressPanel({
         <span>{formatLastUpdated(updatedAt)}</span>
       </div>
 
+      {/* Erro de POLL (rede/HTTP) — visivel, com retry manual imediato */}
+      {error && (
+        <div role="alert" className="flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Falha ao atualizar o progresso: {error}
+          </span>
+          <Button size="sm" variant="outline" onClick={() => void refresh()} data-testid="progress-retry-btn">
+            <RotateCw className="h-3 w-3 mr-1" aria-hidden="true" />
+            Tentar agora
+          </Button>
+        </div>
+      )}
+
+      {/* Erro da COLETA em si */}
       {errorMessage && (
         <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />

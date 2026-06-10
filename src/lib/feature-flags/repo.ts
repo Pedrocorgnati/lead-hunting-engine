@@ -227,6 +227,63 @@ export async function recordChange(
   return row
 }
 
+/**
+ * Timeline GLOBAL de mudancas (item 044): todas as flags, com nome da flag
+ * para exibicao. Mesmos filtros do per-flag.
+ */
+export async function listChangesGlobal(options?: {
+  limit?: number
+  cursor?: string
+  env?: string
+  kind?: string
+  from?: string
+  to?: string
+}): Promise<
+  Array<{
+    id: string
+    flagId: string
+    flagName: string
+    env: string
+    kind: string
+    beforeValue: unknown
+    afterValue: unknown
+    reason: string
+    changedBy: string
+    changedByEmail: string
+    createdAt: Date
+  }>
+> {
+  const limit = Math.min(options?.limit ?? 50, 200)
+  const rows = await prisma.featureFlagChange.findMany({
+    where: {
+      env: options?.env,
+      kind: options?.kind,
+      createdAt: {
+        gte: options?.from ? new Date(options.from) : undefined,
+        lte: options?.to ? new Date(options.to + 'T23:59:59.999Z') : undefined,
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    skip: options?.cursor ? 1 : 0,
+    cursor: options?.cursor ? { id: options.cursor } : undefined,
+    include: { flag: { select: { name: true } } },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    flagId: r.flagId,
+    flagName: r.flag.name,
+    env: r.env,
+    kind: r.kind,
+    beforeValue: r.beforeValue,
+    afterValue: r.afterValue,
+    reason: r.reason,
+    changedBy: r.changedBy,
+    changedByEmail: r.changedByEmail,
+    createdAt: r.createdAt,
+  }))
+}
+
 export async function listChanges(
   flagId: string,
   options?: {

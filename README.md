@@ -11,27 +11,27 @@ Stack: Next.js 14 (App Router) · TypeScript · Tailwind · Prisma · Supabase (
 ### Pré-requisitos
 
 - Node.js ≥ 20
-- npm ≥ 10
+- pnpm ≥ 9 (`corepack enable`)
 - Acesso a um projeto Supabase (Postgres + Auth)
 - Variáveis de ambiente preenchidas em `.env.local` (consultar `.env.example`)
 
 ### Instalação local
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env.local           # preencher os valores antes de rodar
 npx prisma migrate deploy             # aplica migrations no Postgres configurado
-npm run dev                           # http://localhost:3000
+pnpm dev                          # http://localhost:3000
 ```
 
 ### Build e validação
 
 ```bash
-npm run build         # build de produção
+pnpm build        # build de produção
 npx tsc --noEmit      # type-check estrito
-npm run lint          # ESLint
-npm test              # suite Jest (unit + integração)
-npm run smoke         # smoke test E2E ponta-a-ponta (Playwright)
+pnpm lint         # ESLint
+pnpm test             # suite Jest (unit + integração)
+pnpm smoke        # smoke test E2E ponta-a-ponta (Playwright)
 ```
 
 ---

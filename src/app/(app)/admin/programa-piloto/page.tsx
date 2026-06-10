@@ -29,7 +29,7 @@ export default async function ProgramaPilotoPage() {
     where: { id: user.id },
     select: { role: true },
   })
-  if (profile?.role !== 'ADMIN') redirect('/dashboard')
+  if (profile?.role !== 'ADMIN') redirect('/erro/403')
 
   return (
     <div className="space-y-6 p-6">

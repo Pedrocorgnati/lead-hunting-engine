@@ -20,7 +20,7 @@ err()  { echo -e "${RED}[erro]${NC} $*" >&2; }
 check_prereqs() {
   local missing=()
 
-  for cmd in git node npm docker; do
+  for cmd in git node pnpm docker; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
       missing+=("$cmd")
     fi
@@ -37,7 +37,7 @@ check_prereqs() {
     err "Instale os seguintes e tente novamente:"
     err "  - git"
     err "  - node (v20+)"
-    err "  - npm"
+    err "  - pnpm (corepack enable)"
     err "  - docker"
     err "  - docker compose (v2+)"
     exit 1
@@ -68,11 +68,11 @@ install_deps() {
   log "Instalando dependencias..."
 
   if [ ! -d node_modules ]; then
-    npm install
+    pnpm install
     ok "Dependencias instaladas"
   else
     ok "node_modules ja existe"
-    npm ci
+    pnpm install --frozen-lockfile
   fi
 }
 
@@ -123,7 +123,7 @@ run_migrations() {
 run_seeds() {
   log "Executando seeds de desenvolvimento..."
 
-  npm run seed:dev
+  pnpm run seed:dev
   ok "Seeds carregados"
 }
 
@@ -189,13 +189,13 @@ show_summary() {
   echo "  📦 Ambiente pronto para desenvolvimento"
   echo ""
   echo "  Para iniciar o dev server:"
-  echo "    ${BLUE}npm run dev${NC}           ou   ${BLUE}make dev${NC}"
+  echo "    ${BLUE}pnpm dev${NC}           ou   ${BLUE}make dev${NC}"
   echo ""
   echo "  Para parar servicos Docker:"
   echo "    ${BLUE}docker compose down${NC}"
   echo ""
   echo "  Para rodar testes:"
-  echo "    ${BLUE}npm test${NC}              ou   ${BLUE}make test${NC}"
+  echo "    ${BLUE}pnpm test${NC}              ou   ${BLUE}make test${NC}"
   echo ""
   echo "  Para resetar tudo (development fresh):"
   echo "    ${BLUE}./scripts/bootstrap.sh --reset${NC}   ou   ${BLUE}make reset${NC}"

@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   AlertCircle,
   Ban,
@@ -25,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import Link from 'next/link'
 
 type QueueStatus = 'PENDING' | 'LEASED' | 'DONE' | 'FAILED'
 type QueueAction = 'bulk-retry' | 'bulk-cancel' | 'pause' | 'resume'
@@ -222,11 +224,30 @@ function buildAction(kind: QueueAction, selectedCount: number): PendingAction {
 }
 
 export default function AdminJobsQueuePage() {
+  return (
+    <Suspense fallback={<div className="p-6"><Skeleton className="h-32 w-full" /></div>}>
+      <AdminJobsQueueInner />
+    </Suspense>
+  )
+}
+
+function AdminJobsQueueInner() {
+  // Item 063: deep-links como /admin/jobs/fila?status=FAILED (vindos do
+  // InlineRecoveryPanel e de mensagens de erro) pre-aplicam os filtros.
+  const searchParams = useSearchParams()
+  const initialFilters: Filters = {
+    ...EMPTY_FILTERS,
+    status: STATUS_OPTIONS.includes((searchParams.get('status') ?? '') as QueueStatus)
+      ? ((searchParams.get('status') as QueueStatus) ?? '')
+      : '',
+    kind: searchParams.get('kind') ?? '',
+  }
+
   const [jobs, setJobs] = useState<QueueJob[]>([])
   const [stats, setStats] = useState<QueueStats | null>(null)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [filters, setFilters] = useState<Filters>(initialFilters)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -616,7 +637,13 @@ export default function AdminJobsQueuePage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="font-mono text-xs">{shortId(job.id)}</div>
+                      <Link
+                        href={`/admin/jobs/${job.id}`}
+                        className="font-mono text-xs underline-offset-2 hover:underline text-foreground"
+                        data-testid={`job-detail-link-${job.id}`}
+                      >
+                        {shortId(job.id)}
+                      </Link>
                       <div className="text-xs text-muted-foreground">Criado {formatDate(job.createdAt)}</div>
                     </TableCell>
                     <TableCell>

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { errorResponse, JOB_080 } from '@/constants/errors'
 import { requireAdmin } from '@/lib/auth'
 import { handleApiError, successResponse } from '@/lib/api-utils'
 import { CollectionJobStatus } from '@/lib/constants/enums'
 import { prisma } from '@/lib/prisma'
 import { JobIdSchema, getRequestCorrelationId } from '../admin-job-detail'
+import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
 
 const JobActionBodySchema = z.object({
   reason: z.string().trim().min(5).max(500),
@@ -215,7 +215,7 @@ async function executeRetry(
   })
 
   try {
-    await tasks.trigger('collect-leads', {
+    await dispatchCollectLeads( {
       jobId: retry.id,
       query: parent.niche,
       location: parent.state ? `${parent.city}, ${parent.state}` : parent.city,

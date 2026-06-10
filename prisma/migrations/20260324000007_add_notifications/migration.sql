@@ -1,7 +1,7 @@
 -- CreateTable: notifications (ST002 — TASK-AUDIT-2 in-app notification persistence)
 CREATE TABLE "notifications" (
   "id" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" UUID NOT NULL,
   "type" VARCHAR(50) NOT NULL,
   "title" VARCHAR(255) NOT NULL,
   "message" TEXT NOT NULL,

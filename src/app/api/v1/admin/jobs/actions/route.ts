@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { requireAdmin } from '@/lib/auth'
 import { handleApiError, successResponse } from '@/lib/api-utils'
 import { prisma } from '@/lib/prisma'
 import { CollectionJobStatus } from '@/lib/constants/enums'
+import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
 
 const BulkActionSchema = z.object({
   jobIds: z.array(z.string().uuid()).min(1).max(100),
@@ -185,7 +185,7 @@ async function executeBulkRetry(request: NextRequest) {
     })
 
     try {
-      await tasks.trigger('collect-leads', {
+      await dispatchCollectLeads( {
         jobId: retry.id,
         query: parent.niche,
         location: parent.state ? `${parent.city}, ${parent.state}` : parent.city,

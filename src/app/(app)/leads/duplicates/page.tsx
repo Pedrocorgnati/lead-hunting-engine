@@ -1,18 +1,10 @@
-import { DuplicateResolver } from '@/components/leads/DuplicateResolver'
+import { redirect } from 'next/navigation'
 
-export const metadata = { title: 'Duplicatas' }
-
-export default function DuplicatesPage() {
-  return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Resolver duplicatas</h1>
-        <p className="text-sm text-muted-foreground">
-          Leads com alta similaridade que precisam de revisao humana. Escolha
-          qual registro manter ou marque os pares como distintos.
-        </p>
-      </div>
-      <DuplicateResolver />
-    </div>
-  )
+/**
+ * Alias EN orfao consolidado na rota canonica PT (ECU sweep 2026-06-09):
+ * nenhuma superficie de navegacao apontava para ca; manter duas
+ * implementacoes divergentes da mesma tela e risco de drift.
+ */
+export default function Page() {
+  redirect('/leads/duplicatas')
 }

@@ -34,7 +34,10 @@ export async function checkLlmMonthlyThreshold(): Promise<CheckResult> {
     return { triggered: false, currentUsd, threshold, recipients: 0 }
   }
 
-  const ok = await claimAlertSlot('LLM_MONTHLY', { currentUsd, threshold })
+  const ok = await claimAlertSlot('LLM_MONTHLY', { currentUsd, threshold }, new Date(), {
+    severity: 'high',
+    message: `Custo LLM atingiu USD ${currentUsd.toFixed(2)} / ${threshold.toFixed(2)} este mes.`,
+  })
   if (!ok) return { triggered: false, currentUsd, threshold, recipients: 0 }
 
   const admins = await prisma.userProfile.findMany({

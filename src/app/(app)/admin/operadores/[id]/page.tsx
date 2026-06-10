@@ -10,8 +10,10 @@ import {
   Calendar,
   Clock,
   Loader2,
+  MonitorSmartphone,
   Package,
   Save,
+  ShieldOff,
   Tag,
   Users,
   X,
@@ -59,6 +61,14 @@ interface AuditLog {
   createdAt: string
 }
 
+interface SessionInfo {
+  id: string
+  createdAt: string
+  lastSeenAt: string
+  userAgent: string | null
+  ip: string | null
+}
+
 type LoadState = 'idle' | 'loading' | 'error' | 'ready'
 
 export default function OperadorDetailPage() {
@@ -73,6 +83,8 @@ export default function OperadorDetailPage() {
   const [logsTotal, setLogsTotal] = useState(0)
   const [logsPage, setLogsPage] = useState(1)
   const [logsLimit] = useState(10)
+  const [sessions, setSessions] = useState<SessionInfo[] | null>(null)
+  const [revoking, setRevoking] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [tagsDraft, setTagsDraft] = useState<string[]>([])
   const [savingTags, setSavingTags] = useState(false)
@@ -80,10 +92,11 @@ export default function OperadorDetailPage() {
   const loadAll = useCallback(async () => {
     setState('loading')
     try {
-      const [userRes, metricsRes, logsRes] = await Promise.all([
+      const [userRes, metricsRes, logsRes, sessionsRes] = await Promise.all([
         fetch(`/api/v1/admin/users/${id}`),
         fetch(`/api/v1/admin/users/${id}/metrics`),
         fetch(`/api/v1/admin/users/${id}/audit-log?page=${logsPage}&limit=${logsLimit}`),
+        fetch(`/api/v1/admin/users/${id}/sessions`),
       ])
 
       if (!userRes.ok) {
@@ -100,6 +113,12 @@ export default function OperadorDetailPage() {
       setMetrics(metricsJson.data)
       setLogs(logsJson.data ?? [])
       setLogsTotal(logsJson.meta?.total ?? 0)
+      if (sessionsRes.ok) {
+        const sessionsJson = (await sessionsRes.json()) as { data?: { sessions?: SessionInfo[] } }
+        setSessions(sessionsJson.data?.sessions ?? [])
+      } else {
+        setSessions(null)
+      }
       setState('ready')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro inesperado')
@@ -183,6 +202,28 @@ export default function OperadorDetailPage() {
 
   function removeTag(tag: string) {
     setTagsDraft((prev) => prev.filter((t) => t !== tag))
+  }
+
+  async function revokeAllSessions() {
+    setRevoking(true)
+    try {
+      const res = await fetch(`/api/v1/admin/users/${id}/invalidate-sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Revogacao via detalhe do operador (AD3)' }),
+      })
+      const json = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
+      if (!res.ok) {
+        toast.error(json?.error?.message ?? 'Erro ao revogar sessoes.')
+        return
+      }
+      toast.success('Todas as sessoes do operador foram revogadas.')
+      void loadAll()
+    } catch {
+      toast.error('Erro de rede ao revogar sessoes.')
+    } finally {
+      setRevoking(false)
+    }
   }
 
   function formatDate(iso: string | null | undefined) {
@@ -334,6 +375,66 @@ export default function OperadorDetailPage() {
                   Salvar tags
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="sessions-card">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MonitorSmartphone className="h-4 w-4" aria-hidden="true" />
+                  Sessões ativas
+                </CardTitle>
+                {sessions !== null && sessions.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void revokeAllSessions()}
+                    disabled={revoking}
+                    data-testid="revoke-sessions-btn"
+                  >
+                    {revoking ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ShieldOff className="mr-2 h-4 w-4" aria-hidden="true" />
+                    )}
+                    Revogar todas
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sessions === null ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  Nao foi possivel carregar as sessoes deste operador.
+                </p>
+              ) : sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma sessao ativa.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Inicio</TableHead>
+                      <TableHead>Ultima atividade</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>IP</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessions.map((sess) => (
+                      <TableRow key={sess.id} data-testid={`session-${sess.id}`}>
+                        <TableCell className="text-xs whitespace-nowrap">{formatDate(sess.createdAt)}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{formatDate(sess.lastSeenAt)}</TableCell>
+                        <TableCell className="text-xs max-w-xs truncate" title={sess.userAgent ?? undefined}>
+                          {sess.userAgent ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{sess.ip ?? '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
 

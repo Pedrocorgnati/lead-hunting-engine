@@ -136,9 +136,15 @@ export function InlineRecoveryPanel({ health, onRecovered, className }: InlineRe
     const credentialInvalid =
       isPaused ||
       (!!health.lastError && /credential|credenc|unauthor|invalid|api[\s_-]?key|401|403/i.test(health.lastError))
+    // Item 063: quinta classe — falha de job (timeout/5xx/erro de execucao)
+    // sem ser problema de credencial/quota/rate-limit.
+    const jobFailed =
+      !!health.lastError &&
+      !credentialInvalid &&
+      /job|coleta|timeout|timed?[\s_-]?out|5\d\d|falh|fail/i.test(health.lastError)
     const hasIssue =
-      isPaused || isDown || isRateLimited || isQuotaExhausted || credentialInvalid || health.status === 'DEGRADED'
-    return { isRateLimited, isQuotaExhausted, isPaused, isDown, credentialInvalid, hasIssue }
+      isPaused || isDown || isRateLimited || isQuotaExhausted || credentialInvalid || jobFailed || health.status === 'DEGRADED'
+    return { isRateLimited, isQuotaExhausted, isPaused, isDown, credentialInvalid, jobFailed, hasIssue }
   }, [health, now])
 
   function announce(next: ActionFeedback) {
@@ -332,6 +338,7 @@ export function InlineRecoveryPanel({ health, onRecovered, className }: InlineRe
           {conditions.isRateLimited ? <li>Rate-limit ativo ate {formatTimestamp(health.rateLimitResetAt)}.</li> : null}
           {conditions.isDown ? <li>Provider fora do ar: erros consecutivos detectados. Considere pausar e acionar fallback.</li> : null}
           {conditions.isPaused ? <li>Provider pausado: nenhuma coleta sera roteada ate retomar.</li> : null}
+          {conditions.jobFailed ? <li>Falha recente de job neste provider: revise os jobs com falha e reprocesse.</li> : null}
         </ul>
       ) : null}
 
@@ -353,14 +360,14 @@ export function InlineRecoveryPanel({ health, onRecovered, className }: InlineRe
           Testar credencial
         </Button>
 
-        {/* Destino real (sem deadend); o source vai como hint de filtro forward-compatible. */}
+        {/* Item 063: deep-link real — a fila pre-aplica status/kind da URL. */}
         <Link
-          href={`/admin/jobs/fila?source=${encodeURIComponent(health.source)}`}
+          href={`/admin/jobs/fila?${conditions.jobFailed ? 'status=FAILED&' : ''}source=${encodeURIComponent(health.source)}`}
           className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
           data-testid={`recovery-open-jobs-${health.source}`}
         >
           <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-          Abrir jobs filtrados
+          {conditions.jobFailed ? 'Ver jobs com falha' : 'Abrir jobs filtrados'}
         </Link>
 
         {conditions.isPaused ? (

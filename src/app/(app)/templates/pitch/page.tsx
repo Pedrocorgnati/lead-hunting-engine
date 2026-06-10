@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Plus, Star, Copy, Trash2, Search } from 'lucide-react'
-import { getPitchTemplates, deletePitchTemplate, duplicatePitchTemplate } from '@/actions/pitch-templates'
+import { Plus, Star, Search } from 'lucide-react'
+import { getPitchTemplates } from '@/actions/pitch-templates'
+import { TemplateCardActions } from './_components/TemplateCardActions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -101,26 +102,7 @@ export default async function TemplatesPitchPage({ searchParams }: PageProps) {
                       Editar
                     </Button>
                   </Link>
-                  <form
-                    action={async () => {
-                      'use server'
-                      await duplicatePitchTemplate(t.id)
-                    }}
-                  >
-                    <Button variant="outline" size="sm" type="submit" title="Duplicar">
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </form>
-                  <form
-                    action={async () => {
-                      'use server'
-                      await deletePitchTemplate(t.id)
-                    }}
-                  >
-                    <Button variant="outline" size="sm" type="submit" title="Remover" className="text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </form>
+                  <TemplateCardActions templateId={t.id} templateName={t.name} />
                 </div>
               </CardContent>
             </Card>

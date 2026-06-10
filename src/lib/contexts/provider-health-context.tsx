@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * ProviderHealthContext — fetch compartilhado de /api/v1/admin/providers/status.
+ * ProviderHealthContext — fetch compartilhado de /api/v1/health/providers.
  *
+ * Endpoint AUTENTICADO (nao admin-only): operadores tambem veem o badge.
  * Uma unica instancia por arvore de componentes, polling a cada 30s.
  * Alimenta todos os <ProviderHealthBadge /> sem requests duplicados.
  */
@@ -46,7 +47,7 @@ export function ProviderHealthProvider({ children }: { children: React.ReactNode
 
   async function fetchAll() {
     try {
-      const res = await fetch('/api/v1/admin/providers/status')
+      const res = await fetch('/api/v1/health/providers')
       if (!res.ok) {
         setState((s) => ({ ...s, loading: false, error: true }))
         timerRef.current = setTimeout(() => void fetchAll(), RETRY_INTERVAL_MS)

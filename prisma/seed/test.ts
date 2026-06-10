@@ -9,6 +9,7 @@
  */
 
 import 'dotenv/config'
+import { createSeedClient } from './client'
 import {
   PrismaClient,
   UserRole,
@@ -25,7 +26,7 @@ const STATUS_NEGOTIATING  = 'NEGOTIATING'  as unknown as LeadStatus
 const STATUS_DISQUALIFIED = 'DISQUALIFIED' as unknown as LeadStatus
 import { seedScoringRules } from './scoring-rules'
 
-const prisma = new PrismaClient()
+const prisma = createSeedClient()
 
 // ─── UUIDs fixos para testes ──────────────────────────────────────────────────
 // Prefixo 0x10+ para não colidir com dev seed (0x01+)

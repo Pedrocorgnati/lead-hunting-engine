@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { InlineRecoveryPanel, type ProviderHealth } from '@/components/InlineRecoveryPanel'
 import { ProviderHealthBadge } from '@/components/ProviderHealthBadge'
 
-interface StatusResponse { data?: { providers: ProviderHealth[] }; error?: { code: string; message: string } }
+// Contrato real de GET /api/v1/admin/providers/status: successResponse(items)
+// => { data: ProviderHealth[] } (array direto, mesmo parse do provider-health-context).
+interface StatusResponse { data?: ProviderHealth[]; error?: { code: string; message: string } }
 
 export default function ProvedoresPage() {
   const [providers, setProviders] = useState<ProviderHealth[]>([])
@@ -19,7 +21,7 @@ export default function ProvedoresPage() {
       const res = await fetch('/api/v1/admin/providers/status')
       const json = (await res.json().catch(() => ({}))) as StatusResponse
       if (!res.ok) { setError(json.error?.message ?? 'Erro ao carregar provedores.'); return }
-      setProviders(json.data?.providers ?? [])
+      setProviders(Array.isArray(json.data) ? json.data : [])
     } catch { setError('Erro de rede.') }
     finally { setLoading(false) }
   }, [])

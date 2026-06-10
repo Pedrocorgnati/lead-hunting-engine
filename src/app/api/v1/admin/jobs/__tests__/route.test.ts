@@ -1,3 +1,6 @@
+// dispatchCollectLeads usa trigger.dev quando TRIGGER_SECRET_KEY esta setado;
+// sem ele os testes cairiam no fallback local-queue (fora do escopo destas suites).
+process.env.TRIGGER_SECRET_KEY = 'test-secret'
 const requireAdminMock = jest.fn()
 class MockAuthError extends Error {}
 jest.mock('@/lib/auth', () => ({

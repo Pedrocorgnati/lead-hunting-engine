@@ -4,7 +4,7 @@
 # Resolve pending action: M2-4 (G2-003)
 #
 # Pre-requisitos:
-#   1. App rodando em http://localhost:3000 (npm run start ou npm run dev)
+#   1. App rodando em http://localhost:3000 (pnpm start ou pnpm dev)
 #   2. Token de convite valido (para auditar /invite/{token})
 #   3. Node + npx (axe-core sera baixado on-the-fly via npx)
 #
@@ -52,7 +52,7 @@ fi
 # ─── Pre-flight ───────────────────────────────────────────────────────────────
 echo "━━━ audit-a11y.sh — BASE=${BASE} ━━━"
 if ! curl -fs -o /dev/null "${BASE}/login" 2>/dev/null; then
-  echo "ERRO: ${BASE}/login nao respondeu. Suba o app antes (npm run dev ou npm run start)." >&2
+  echo "ERRO: ${BASE}/login nao respondeu. Suba o app antes (pnpm dev ou pnpm start)." >&2
   exit 2
 fi
 

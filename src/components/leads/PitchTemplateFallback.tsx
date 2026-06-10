@@ -109,7 +109,7 @@ export function PitchTemplateFallback({ variant, onApply }: Props) {
             Você ainda não tem templates manuais salvos.
           </p>
           <a
-            href="/perfil?tab=pitch-templates"
+            href="/templates/pitch/novo"
             className="inline-flex items-center justify-center gap-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
             data-testid="pitch-template-create-cta"
           >

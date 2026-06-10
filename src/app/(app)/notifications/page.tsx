@@ -143,7 +143,7 @@ export default function NotificationsPage() {
         <h1 className="text-2xl font-bold text-foreground">Notificacoes</h1>
         <div className="flex items-center gap-2">
           <Link
-            href="/settings/notifications"
+            href="/notificacoes/preferencias"
             data-testid="notifications-settings-link"
             className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
           >

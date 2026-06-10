@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-utils'
 import { prisma } from '@/lib/prisma'
+import { AuditService } from '@/lib/services/audit-service'
 import { buildErrorList } from '../_errors-mapper'
 import { maskPiiDeep } from '@/lib/pii-mask'
 
@@ -28,6 +29,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       exportedAt: new Date().toISOString(),
       total: errors.length,
       errors,
+    })
+
+    await AuditService.log({
+      userId: user.id,
+      action: 'collection_error.exported',
+      resource: 'collection_job',
+      resourceId: id,
+      metadata: { total: errors.length },
     })
 
     const body = JSON.stringify(masked, null, 2)

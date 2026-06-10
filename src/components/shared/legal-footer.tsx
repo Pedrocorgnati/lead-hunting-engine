@@ -21,6 +21,9 @@ export function LegalFooter({ className }: LegalFooterProps) {
           Termos v{termsVersion}
         </Link>
         <span aria-hidden>•</span>
+        <Link href="/consentimento" className="hover:text-foreground hover:underline">
+          Consentimento
+        </Link>
         <Link href="/privacidade" className="hover:text-foreground hover:underline">
           Privacidade v{privacyVersion}
         </Link>

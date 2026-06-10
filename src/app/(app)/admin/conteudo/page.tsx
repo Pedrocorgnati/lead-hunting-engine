@@ -50,7 +50,7 @@ export default async function ConteudoAdminPage() {
     redirect(Routes.LOGIN)
   }
   if (authUser.role !== 'ADMIN') {
-    redirect(Routes.DASHBOARD)
+    redirect('/erro/403')
   }
 
   return (

@@ -1,9 +1,11 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "regions": ["gru1"],
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "regions": [
+    "gru1"
+  ],
   "env": {
     "NODE_ENV": "production"
   },

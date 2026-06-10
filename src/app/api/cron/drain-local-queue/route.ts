@@ -5,20 +5,8 @@
  * Seguranca: requer header `x-cron-secret` === `CRON_SECRET` env var.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { leaseBatch, ackDone, ackFailed, reclaimExpired } from '@/lib/workers/local-queue'
-import { captureException } from '@/lib/observability/sentry'
-
-// Handlers por `kind`. Novos kinds devem se registrar aqui.
-type Handler = (payload: unknown) => Promise<void>
-const HANDLERS: Record<string, () => Promise<Handler>> = {
-  export: async () => {
-    const mod = await import('@/lib/workers/export-worker')
-    return async (payload: unknown) => {
-      const { exportId } = payload as { exportId: string }
-      await mod.runExportWorker(exportId)
-    }
-  },
-}
+import { runDrainLocalQueue } from '@/lib/workers/drain-local-queue'
+import { isCronPaused, recordCronRun } from '@/lib/cron/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,35 +21,12 @@ function authorize(request: NextRequest): boolean {
 }
 
 async function runDrain() {
-
-  const reclaimed = await reclaimExpired().catch(() => 0)
-  const batch = await leaseBatch({ limit: 10, leaseMs: 120_000 })
-
-  const results: Array<{ id: string; status: 'done' | 'failed'; terminal?: boolean; error?: string }> = []
-
-  for (const job of batch) {
-    try {
-      const loader = HANDLERS[job.kind]
-      if (!loader) throw new Error(`no handler registered for kind=${job.kind}`)
-      const handler = await loader()
-      await handler(job.payload)
-      await ackDone(job.id)
-      results.push({ id: job.id, status: 'done' })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const { terminal } = await ackFailed(job.id, msg)
-      if (terminal) {
-        captureException(err, { layer: 'local-queue', kind: job.kind, jobId: job.id })
-      }
-      results.push({ id: job.id, status: 'failed', terminal, error: msg })
-    }
+  if (await isCronPaused('drain-local-queue')) {
+    return NextResponse.json({ skipped: true, reason: 'paused' })
   }
-
-  return NextResponse.json({
-    reclaimed,
-    processed: batch.length,
-    results,
-  })
+  const result = await runDrainLocalQueue()
+  void recordCronRun('drain-local-queue', 'ok')
+  return NextResponse.json(result)
 }
 
 export async function GET(request: NextRequest) {

@@ -7,6 +7,7 @@ import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
 import { Limits } from '@/lib/constants/limits'
 import { getPrisma } from '@/lib/prisma'
 import { dispatcher as defaultDispatcher } from '@/lib/notifications/dispatcher'
+import { runProcessLeads } from '@/lib/workers/process-leads-core'
 import type { DispatchPayload } from '@/lib/notifications/dispatcher'
 import type { Prisma } from '@prisma/client'
 import type { DataSource as DataSourceType } from '@/lib/constants/enums'
@@ -52,6 +53,12 @@ export interface CollectLeadsDeps {
    * o lifecycle do CollectionJob.
    */
   dispatcher?: NotificationDispatcherLike
+  /**
+   * Processador RawLeadData -> Lead encadeado apos a coleta (fix money-path:
+   * antes, process-leads era orfao e leads nunca materializavam). Injetavel
+   * para testes; default = runProcessLeads do core compartilhado.
+   */
+  processLeads?: typeof runProcessLeads
 }
 
 // Mapeia o slug do provider para o enum DataSource do DB
@@ -76,6 +83,7 @@ export function getDefaultDeps(): Omit<CollectLeadsDeps, 'triggerRunId'> {
     sanitizeRawJson,
     logger,
     dispatcher: defaultDispatcher,
+    processLeads: runProcessLeads,
   }
 }
 
@@ -316,6 +324,35 @@ export async function runCollection(payload: CollectLeadsPayload, deps: CollectL
 
     log.info('Job concluido', { jobId: payload.jobId, processed: finalProcessed })
 
+    // Encadeia o processamento (enrichment -> scoring -> classificacao ->
+    // Lead). Falha aqui NAO reabre o job (a coleta em si concluiu): os raws
+    // ficam PENDING e o retry acontece via local-queue kind 'process-leads'.
+    let leadsProcessed = 0
+    if (deps.processLeads) {
+      try {
+        const processing = await deps.processLeads(
+          { jobId: payload.jobId, userId: job.userId },
+          {
+            info: (m) => log.info(m),
+            warn: (m) => log.warn(m),
+            error: (m) => (log.error ?? log.warn)(m),
+          },
+        )
+        leadsProcessed = processing.processed
+      } catch (err) {
+        log.warn('[collect-leads] processamento pos-coleta falhou; raws seguem PENDING para retry', {
+          jobId: payload.jobId,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        try {
+          const { enqueue } = await import('@/lib/workers/local-queue')
+          await enqueue({ kind: 'process-leads', payload: { jobId: payload.jobId, userId: job.userId } })
+        } catch {
+          // fila local indisponivel: raws PENDING ainda podem ser reprocessados manualmente
+        }
+      }
+    }
+
     await safeDispatch(deps.dispatcher, {
       event: 'JOB_COMPLETED',
       userId: job.userId,
@@ -326,7 +363,7 @@ export async function runCollection(payload: CollectLeadsPayload, deps: CollectL
       },
     }, log)
 
-    return { success: true, processed: finalProcessed }
+    return { success: true, processed: finalProcessed, leadsProcessed }
   } catch (error) {
     // C1: cancelamento detectado durante a execucao nao deve transicionar
     // para FAILED nem disparar JOB_FAILED — e finalizacao limpa.

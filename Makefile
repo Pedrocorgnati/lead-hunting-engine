@@ -51,52 +51,52 @@ health:
 
 # === Desenvolvimento ===
 dev:
-	@npm run dev
+	@pnpm run dev
 
 build:
-	@npm run build
+	@pnpm run build
 
 start:
-	@npm run start
+	@pnpm run start
 
 # === Qualidade ===
 test:
-	@npm run test
+	@pnpm run test
 
 test-int:
-	@npm run test:integration
+	@pnpm run test:integration
 
 test-all:
-	@npm run test:all
+	@pnpm run test:all
 
 lint:
-	@npm run lint
+	@pnpm run lint
 
 type-check:
-	@npm run type-check
+	@pnpm run type-check
 
 # === Dados ===
 seed-dev:
-	@npm run seed:dev
+	@pnpm run seed:dev
 
 seed-test:
-	@npm run seed:test
+	@pnpm run seed:test
 
 seed-prod:
-	@npm run seed:prod
+	@pnpm run seed:prod
 
 # === Docker ===
 docker-up:
-	@npm run docker:dev
+	@pnpm run docker:dev
 
 docker-down:
-	@npm run docker:down
+	@pnpm run docker:down
 
 docker-clean:
-	@npm run docker:clean
+	@pnpm run docker:clean
 
 docker-build:
-	@npm run docker:prod:build
+	@pnpm run docker:prod:build
 
 # === CI/CD ===
 ci: lint type-check test

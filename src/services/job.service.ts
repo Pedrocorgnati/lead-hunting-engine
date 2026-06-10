@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { CollectionJobStatus } from '@/lib/constants/enums'
 import { AuthError } from '@/lib/auth'
-import { tasks } from '@trigger.dev/sdk/v3'
 import { JOB_052 } from '@/constants/errors'
 import { quotaEnforcer } from '@/lib/services/quota-enforcer'
 import type { CreateJobInput } from '@/schemas/job.schema'
 import type { CollectionJob } from '@prisma/client'
+import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
 
 export class JobService {
   async findAllByUser(userId: string): Promise<CollectionJob[]> {
@@ -37,7 +37,7 @@ export class JobService {
     })
 
     // Disparar trigger.dev assincronamente (não bloqueia response)
-    await tasks.trigger('collect-leads', {
+    await dispatchCollectLeads( {
       jobId: job.id,
       query: job.niche,
       location: job.state ? `${job.city}, ${job.state}` : job.city,

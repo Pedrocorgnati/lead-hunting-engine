@@ -85,6 +85,39 @@ async function resolveChannels(
 }
 
 /**
+ * Janela nao-perturbe (item 037). Pura para testes: start<=end = janela no
+ * mesmo dia; start>end = janela cruzando meia-noite (ex.: 22:00-07:00).
+ */
+export function timeInDndWindow(current: string, start: string, end: string): boolean {
+  if (start === end) return false
+  if (start <= end) return current >= start && current < end
+  return current >= start || current < end
+}
+
+/**
+ * DND do usuario (persistido em NotificationPreference.doNotDisturbStart/End
+ * pela tela de preferencias). Durante a janela, canais EXTERNOS (push/email)
+ * sao suprimidos; o in-app continua sendo criado (Zero Silencio — historico
+ * permanece consultavel sem interromper o usuario).
+ */
+async function isInDndWindow(userId: string, now: Date = new Date()): Promise<boolean> {
+  try {
+    const rows = await (prisma as unknown as {
+      notificationPreference: {
+        findMany: (args: { where: { userId: string } }) =>
+          Promise<Array<{ doNotDisturbStart: string | null; doNotDisturbEnd: string | null }>>
+      }
+    }).notificationPreference.findMany({ where: { userId } })
+    const first = rows.find((r) => r.doNotDisturbStart && r.doNotDisturbEnd)
+    if (!first?.doNotDisturbStart || !first.doNotDisturbEnd) return false
+    const current = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    return timeInDndWindow(current, first.doNotDisturbStart, first.doNotDisturbEnd)
+  } catch {
+    return false
+  }
+}
+
+/**
  * Push channel — agora delega para web-push-channel.ts (VAPID).
  * Retorna true se pelo menos uma subscription recebeu o payload;
  * false em qualquer caso de fallback (sem VAPID, sem sub, sem package).
@@ -154,15 +187,18 @@ export async function dispatch(payload: DispatchPayload): Promise<void> {
     const data = payload.data ?? {}
     const results: ChannelSendResult[] = []
 
+    // Item 037: dentro da janela DND os canais externos sao suprimidos.
+    const dndActive = await isInDndWindow(payload.userId)
+
     let deliveredExternal = false
 
-    if (enabled.includes('push')) {
+    if (!dndActive && enabled.includes('push')) {
       const ok = await sendPush(payload.userId, copy.title, copy.body, data).catch(() => false)
       results.push({ channel: 'push', ok })
       if (ok) deliveredExternal = true
     }
 
-    if (enabled.includes('email')) {
+    if (!dndActive && enabled.includes('email')) {
       const ok = await sendEmail(payload.userId, copy.title, copy.body).catch(() => false)
       results.push({ channel: 'email', ok })
       if (ok) deliveredExternal = true

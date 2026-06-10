@@ -5,7 +5,7 @@ import { handleApiError, successResponse } from '@/lib/api-utils'
 import { AuditService } from '@/lib/services/audit-service'
 import { CollectionJobStatus } from '@/lib/constants/enums'
 import { errorResponse, JOB_080, JOB_051, JOB_052 } from '@/constants/errors'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
 
 export async function POST(
   _request: NextRequest,
@@ -39,7 +39,7 @@ export async function POST(
     })
 
     try {
-      await tasks.trigger('collect-leads', {
+      await dispatchCollectLeads( {
         jobId: retry.id,
         query: retry.niche,
         location: retry.state ? `${retry.city}, ${retry.state}` : retry.city,

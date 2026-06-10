@@ -21,6 +21,12 @@ export interface DispatchInput<T> {
   /** Funcao opcional que dispara o job no provedor remoto. Se ausente ou lancar, cai no fallback local. */
   triggerFn?: (payload: T) => Promise<unknown>
   triggerTimeoutMs?: number
+  /**
+   * Apos enfileirar no fallback local, dispara um drain best-effort imediato
+   * (fire-and-forget) para o job rodar sem esperar o cron de 2min. Default
+   * true; em serverless o cron drain-local-queue continua sendo o backstop.
+   */
+  drainImmediately?: boolean
 }
 
 export interface DispatchResult {
@@ -41,6 +47,15 @@ export async function dispatchJob<T>(input: DispatchInput<T>): Promise<DispatchR
   }
 
   const { id } = await enqueue({ kind: input.kind, payload: input.payload })
+
+  if (input.drainImmediately !== false) {
+    // Fire-and-forget: roda o job agora no mesmo processo (next start /
+    // self-hosted). Falha aqui nao importa — o cron drain reprocessa.
+    void import('./drain-local-queue')
+      .then(({ runDrainLocalQueue }) => runDrainLocalQueue())
+      .catch(() => {})
+  }
+
   return { mode: 'local_queue', jobId: id }
 }
 

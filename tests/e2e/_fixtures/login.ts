@@ -72,6 +72,10 @@ export async function loginAsUser(page: Page, options: LoginOptions = {}) {
   }
 
   const cacheKey = `${role}:${email}`
+  // Sessao anterior (ex.: beforeEach logou OPERATOR e o teste pede ADMIN)
+  // precisa ser limpa: /login redireciona usuario logado para /dashboard e o
+  // fill do form estoura timeout.
+  await page.context().clearCookies()
   // Cache em DISCO alem do in-memory: workers paralelos do Playwright nao
   // compartilham modulo, e N workers relogando estoura o rate-limit por IP
   // do /api/v1/auth/login.

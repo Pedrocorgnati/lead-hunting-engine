@@ -16,11 +16,14 @@ const NAV_ITEMS = [
 export function BottomNavigation() {
   const pathname = usePathname()
 
+  // bg OPACO no <nav>: o fundo translucido (/95 + blur) fazia o axe computar
+  // a cor efetiva misturada com o conteudo atras (ex.: #cccccc) e o item
+  // ativo text-primary reprovava contraste de forma nao-deterministica.
   return (
     <nav
       data-testid="bottom-navigation"
       aria-label="Navegação principal"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background"
     >
       <div className="flex h-16 items-center justify-around px-2">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {

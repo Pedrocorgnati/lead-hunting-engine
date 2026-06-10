@@ -68,6 +68,8 @@ test.describe('A11y — Shell (axe-core WCAG 2.1 AA)', () => {
 
   test('Drawer mobile aberto — sem violations critical/serious', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'cobre apenas chromium-mobile project')
+    // hamburger so existe em viewport mobile (md:hidden no desktop)
+    await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
     await page.getByTestId('header-mobile-menu-button').click()

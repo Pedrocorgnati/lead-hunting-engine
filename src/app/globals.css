@@ -65,13 +65,18 @@
   --popover-foreground: #111827;
   --primary: #4F46E5;
   --primary-foreground: #FFFFFF;
-  --secondary: #6366F1;
+  /* WCAG AA: branco sobre #6366F1 = 4.46:1; indigo-700 = 8.36:1 */
+  --secondary: #4338CA;
   --secondary-foreground: #FFFFFF;
   --muted: #F3F4F6;
-  --muted-foreground: #9CA3AF;
+  /* WCAG AA: era #9CA3AF (2.53:1 sobre branco — 95 violations no axe);
+     #4B5563 da 7.56:1 sobre branco e 6.86:1 sobre --muted */
+  --muted-foreground: #4B5563;
   --accent: #F3F4F6;
   --accent-foreground: #111827;
-  --destructive: #DC2626;
+  /* WCAG AA: #DC2626 dava 4.13:1 sobre bg-destructive/5; red-700 passa
+     tambem como bg de botao com texto branco (5.9:1) */
+  --destructive: #B91C1C;
   --destructive-foreground: #FFFFFF;
   --border: #E5E7EB;
   --input: #E5E7EB;
@@ -125,7 +130,8 @@
   --secondary: #162032;
   --secondary-foreground: #F8FAFC;
   --muted: #162032;
-  --muted-foreground: #64748B;
+  /* WCAG AA dark: era #64748B (~4.0:1); #94A3B8 da 7+:1 sobre o bg escuro */
+  --muted-foreground: #94A3B8;
   --accent: #1E3A5F;
   --accent-foreground: #BFDBFE;
   --destructive: #FB7185;

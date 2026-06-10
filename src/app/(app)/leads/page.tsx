@@ -91,6 +91,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           <Link
             href={Routes.LEADS_DUPLICATAS}
             data-testid="leads-duplicatas-button"
+            aria-label="Resolver duplicatas"
             className="flex items-center gap-2 px-4 py-2 border text-sm font-medium rounded-lg hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[44px]"
           >
             <CopyCheck className="h-4 w-4" aria-hidden={true} />
@@ -99,6 +100,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           <Link
             href={Routes.LEADS_COMPARAR}
             data-testid="leads-comparar-button"
+            aria-label="Comparar leads"
             className="flex items-center gap-2 px-4 py-2 border text-sm font-medium rounded-lg hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[44px]"
           >
             <GitCompareArrows className="h-4 w-4" aria-hidden={true} />
@@ -111,6 +113,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
               return qs ? `${Routes.EXPORTAR}?${qs}` : Routes.EXPORTAR
             })()}
             data-testid="leads-export-button"
+            aria-label="Exportar leads"
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px]"
           >
             <Download className="h-4 w-4" aria-hidden={true} />
@@ -125,7 +128,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           href={`/leads?${buildSearchParams({ recency: params.recency === '24h' ? undefined : '24h', page: undefined })}`}
           data-testid="leads-filter-recency-24h"
           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors min-h-[32px] ${params.recency === '24h' ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent border-border'}`}
-          aria-pressed={params.recency === '24h'}
+          aria-current={params.recency === '24h' ? 'true' : undefined}
         >
           Novos 24h
         </Link>

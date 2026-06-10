@@ -83,7 +83,6 @@ export function FalsePositiveGlobalCard({ days = 30 }: { days?: number }) {
           <p className="text-sm text-muted-foreground">Falso-positivo (global)</p>
           <p
             className="text-2xl font-bold tabular-nums text-foreground"
-            aria-label={`Taxa de falso-positivo global nos últimos ${data.days} dias: ${pct}`}
           >
             {pct}
           </p>

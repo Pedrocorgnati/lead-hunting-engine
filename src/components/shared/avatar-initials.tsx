@@ -5,7 +5,7 @@ const AVATAR_COLORS = [
   'bg-secondary',
   'bg-violet-700',
   'bg-blue-600',
-  'bg-cyan-600',
+  'bg-cyan-700',
   'bg-success',
 ]
 

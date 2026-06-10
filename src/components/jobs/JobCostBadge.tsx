@@ -134,7 +134,6 @@ export function JobCostBadge({ jobId, status, pollIntervalMs = 30_000 }: JobCost
           <Badge
             variant="secondary"
             data-testid="job-cost-badge"
-            aria-label={`Custo estimado da coleta: ${label}`}
           >
             Custo: {label}
           </Badge>

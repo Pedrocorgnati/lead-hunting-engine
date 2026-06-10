@@ -40,7 +40,6 @@ function MetricCard({ icon, label, value, subText, testId }: MetricCardProps) {
           <p className="text-sm text-muted-foreground">{label}</p>
           <p
             className="text-2xl font-bold tabular-nums text-foreground"
-            aria-label={`${label}: ${value.toLocaleString('pt-BR')}`}
           >
             {value.toLocaleString('pt-BR')}
           </p>

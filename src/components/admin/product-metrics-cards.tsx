@@ -83,7 +83,6 @@ function ProductMetricCard({
           </div>
           <p
             className="text-2xl font-bold tabular-nums text-foreground"
-            aria-label={`${spec.title}: ${valueDisplay}`}
           >
             {valueDisplay}
           </p>
@@ -193,7 +192,6 @@ function ActiveOperatorsCard({ data }: { data: ProductMetricsPayload['activeOper
                 <p
                   className="text-2xl font-bold tabular-nums text-foreground"
                   data-testid={w.testId}
-                  aria-label={`Operadores ativos nos últimos ${w.label}: ${w.value}`}
                 >
                   {w.value}
                 </p>

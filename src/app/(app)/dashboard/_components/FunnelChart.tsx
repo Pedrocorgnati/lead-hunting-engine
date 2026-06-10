@@ -68,6 +68,7 @@ export function FunnelChart({ data, loading }: Props) {
               </div>
               <div className="h-6 w-full rounded bg-muted overflow-hidden">
                 <div
+                  role="img"
                   className="h-full bg-primary transition-all"
                   style={{ width: `${widthPct}%` }}
                   aria-label={`${stage.stage}: ${stage.count}`}

@@ -19,9 +19,22 @@ describe('Sidebar', () => {
     expect(screen.getAllByTestId('sidebar-nav-main').length).toBeGreaterThan(0)
   })
 
+  it('prioriza Nova busca no topo da navegacao principal', () => {
+    render(<Sidebar mobileOpen={false} onMobileClose={() => {}} />)
+    const mainNav = screen.getAllByTestId('sidebar-nav-main')[0]
+    const links = mainNav.querySelectorAll('a')
+    expect(links[0]).toHaveTextContent('Nova busca')
+    expect(links[1]).toHaveTextContent('Leads')
+  })
+
   it('NAO renderiza secao admin para usuario nao admin', () => {
     render(<Sidebar mobileOpen={false} onMobileClose={() => {}} />)
     expect(screen.queryAllByTestId('sidebar-nav-admin')).toHaveLength(0)
+  })
+
+  it('NAO mostra Contato admin-only para operador', () => {
+    render(<Sidebar mobileOpen={false} onMobileClose={() => {}} />)
+    expect(screen.queryByText('Contato')).not.toBeInTheDocument()
   })
 
   it('renderiza secao admin para usuario admin', () => {
@@ -33,6 +46,22 @@ describe('Sidebar', () => {
     } as ReturnType<typeof useAuth>)
     render(<Sidebar mobileOpen={false} onMobileClose={() => {}} />)
     expect(screen.getAllByTestId('sidebar-nav-admin').length).toBeGreaterThan(0)
+  })
+
+  it('agrupa admin e mantem categorias de baixa frequencia recolhidas', () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 'u1', email: 'a@example.com', name: 'A', role: 'ADMIN' as const },
+      isAdmin: true,
+      loading: false,
+      signOut: jest.fn(),
+    } as ReturnType<typeof useAuth>)
+    render(<Sidebar mobileOpen={false} onMobileClose={() => {}} />)
+
+    expect(screen.getAllByTestId('sidebar-nav-group-admin-essencial').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Credenciais').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Baixa frequência').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Programa piloto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Provedores')).not.toBeInTheDocument()
   })
 
   it('toggle button alterna aria-expanded', () => {

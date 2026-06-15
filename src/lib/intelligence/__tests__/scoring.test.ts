@@ -11,6 +11,7 @@ import { calculateScore, scoreRawSignals } from '../scoring/scoring-engine'
 import { OpportunityType } from '@/lib/constants/enums'
 import type { ScoreResult } from '../scoring/scoring-engine'
 import type { EnrichedLeadData } from '../enrichment/types'
+import type { WhatsappEnrichment } from '../enrichment/enrichment-data'
 
 function getMockedPrisma() {
    
@@ -26,10 +27,16 @@ const baseScores = {
 
 const baseBreakdown: ScoreResult['breakdown'] = {}
 
+// Sinal WhatsApp neutro (campo obrigatorio do contrato enrichment-data.ts).
+const baseWhatsapp: WhatsappEnrichment = {
+  level: 'unknown', confidence: 0, evidence: [], number: null,
+  numberDivergesFromPhone: null, source: null, detectedAt: '2026-06-11T00:00:00.000Z',
+}
+
 const baseEnriched: EnrichedLeadData = {
   name: 'Test Lead', address: null, city: null, state: null,
   phone: null, website: null, category: null, lat: null, lng: null, rating: null,
-  scores: baseScores, enrichmentSources: [], enrichedAt: new Date(),
+  scores: baseScores, whatsapp: baseWhatsapp, enrichmentSources: [], enrichedAt: new Date(),
 }
 
 describe('classifyOpportunity', () => {
@@ -55,6 +62,30 @@ describe('classifyOpportunity', () => {
     const enriched: EnrichedLeadData = { ...baseEnriched, scores: { ...baseScores, businessMaturity: 0, digitalGap: 0 } }
     const result = classifyOpportunity({ totalScore: 0, breakdown: baseBreakdown }, enriched)
     expect(result).toBe(OpportunityType.E_SCALE)
+  })
+
+  // P-05: o eixo de AUSENCIA de website agora entra direto na classificacao.
+  it('[P-05] negocio estabelecido SEM site -> A_NEEDS_SITE (website absence puxa pra cima)', () => {
+    const enriched: EnrichedLeadData = {
+      ...baseEnriched,
+      website: null,
+      scores: { ...baseScores, businessMaturity: 85, digitalGap: 90, websitePresence: 0 },
+    }
+    // 85*0.4 + 90*0.4 + (100-0)*0.2 = 34 + 36 + 20 = 90 -> A_NEEDS_SITE
+    const result = classifyOpportunity({ totalScore: 90, breakdown: baseBreakdown }, enriched)
+    expect(result).toBe(OpportunityType.A_NEEDS_SITE)
+  })
+
+  it('[P-05] MESMO negocio mas COM site bom -> tier inferior (nao precisa de site)', () => {
+    const enriched: EnrichedLeadData = {
+      ...baseEnriched,
+      website: 'https://exemplo.com.br',
+      scores: { ...baseScores, businessMaturity: 85, digitalGap: 90, websitePresence: 100 },
+    }
+    // 85*0.4 + 90*0.4 + (100-100)*0.2 = 34 + 36 + 0 = 70 -> B_NEEDS_SYSTEM (nao A)
+    const result = classifyOpportunity({ totalScore: 70, breakdown: baseBreakdown }, enriched)
+    expect(result).not.toBe(OpportunityType.A_NEEDS_SITE)
+    expect(result).toBe(OpportunityType.B_NEEDS_SYSTEM)
   })
 })
 

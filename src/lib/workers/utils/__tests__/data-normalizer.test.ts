@@ -1,4 +1,10 @@
-import { normalizeRawLead, normalizePhone, normalizeUrl, sanitizeRawJson } from '../data-normalizer'
+import {
+  normalizeRawLead,
+  normalizePhone,
+  normalizePhoneE164,
+  normalizeUrl,
+  sanitizeRawJson,
+} from '../data-normalizer'
 
 describe('normalizePhone', () => {
   it('formata telefone BR 11 dígitos com +55', () => {
@@ -21,6 +27,24 @@ describe('normalizePhone', () => {
 
   it('faz trim de espaços', () => {
     expect(normalizePhone('  +5511999999999  ')).toBe('+5511999999999')
+  })
+})
+
+describe('normalizePhoneE164 (R3-2 — contrato da coluna phone_normalized)', () => {
+  it('normaliza fixo BR de 10 digitos (caso que normalizePhone deixava cru)', () => {
+    expect(normalizePhoneE164('(11) 3333-4444')).toBe('+551133334444')
+    expect(normalizePhone('(11) 3333-4444')).toBe('(11) 3333-4444') // o gap original
+  })
+
+  it('normaliza celular BR de 11 digitos e preserva +55 existente', () => {
+    expect(normalizePhoneE164('11987654321')).toBe('+5511987654321')
+    expect(normalizePhoneE164('+55 (11) 98765-4321')).toBe('+5511987654321')
+  })
+
+  it('retorna null para input nulo ou implausivel', () => {
+    expect(normalizePhoneE164(null)).toBeNull()
+    expect(normalizePhoneE164(undefined)).toBeNull()
+    expect(normalizePhoneE164('123')).toBeNull()
   })
 })
 
@@ -114,5 +138,52 @@ describe('sanitizeRawJson', () => {
     const input = { owner_name: 'João' }
     sanitizeRawJson(input)
     expect(input.owner_name).toBe('João')
+  })
+
+  it('remove PII ANINHADO em subobjetos (LGPD)', () => {
+    const input = {
+      name: 'Restaurante Bom',
+      _pii_test_payload: {
+        note: 'campo de teste',
+        owner_cpf: '123.456.789-00',
+        owner_email: 'marco@personal.example',
+      },
+    }
+    const result = sanitizeRawJson(input) as { name: string; _pii_test_payload: Record<string, unknown> }
+    expect(result.name).toBe('Restaurante Bom')
+    expect(result._pii_test_payload.note).toBe('campo de teste')
+    expect(result._pii_test_payload.owner_cpf).toBe('[PII_REMOVED]')
+    expect(result._pii_test_payload.owner_email).toBe('[PII_REMOVED]')
+    // valor original com PII nao deve sobreviver na serializacao
+    expect(JSON.stringify(result)).not.toContain('123.456.789-00')
+    expect(JSON.stringify(result)).not.toContain('marco@personal.example')
+  })
+
+  it('remove PII dentro de arrays de objetos', () => {
+    const input = { partners: [{ owner_name: 'Ana' }, { role: 'gerente' }] }
+    const result = sanitizeRawJson(input) as { partners: Array<Record<string, unknown>> }
+    expect(result.partners[0].owner_name).toBe('[PII_REMOVED]')
+    expect(result.partners[1].role).toBe('gerente')
+  })
+
+  it('remove PII com chaves pt-BR, inclusive com diacriticos (R2-2 LGPD)', () => {
+    const input = {
+      name: 'Restaurante Bom',
+      ['proprietário']: 'João Silva',
+      email_pessoal: 'joao@gmail.com',
+      ['sócio']: { nome: 'Maria' },
+      responsavel: 'Pedro',
+      data_nascimento: '01/01/1980',
+      celular_pessoal: '+5511999998888',
+    }
+    const result = sanitizeRawJson(input)
+    expect(result.name).toBe('Restaurante Bom')
+    expect(result['proprietário']).toBe('[PII_REMOVED]')
+    expect(result.email_pessoal).toBe('[PII_REMOVED]')
+    expect(result['sócio']).toBe('[PII_REMOVED]')
+    expect(result.responsavel).toBe('[PII_REMOVED]')
+    expect(result.data_nascimento).toBe('[PII_REMOVED]')
+    expect(result.celular_pessoal).toBe('[PII_REMOVED]')
+    expect(JSON.stringify(result)).not.toContain('joao@gmail.com')
   })
 })

@@ -9,11 +9,14 @@
 
 import { z } from 'zod'
 import { TONE_OPTIONS } from '@/lib/pitch/tone-config'
+import { CHANNEL_OPTIONS } from '@/lib/pitch/channel-config'
 
 export const PitchTemplateCreateSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório.').max(255),
   content: z.string().min(1, 'Conteúdo é obrigatório.').max(10_000),
   tone: z.enum(TONE_OPTIONS).default('formal'),
+  channel: z.enum(CHANNEL_OPTIONS).default('email'),
+  subject: z.string().max(255).optional(),
   isFavorite: z.boolean().default(false),
 })
 
@@ -22,6 +25,8 @@ export const PitchTemplateUpdateSchema = z
     name: z.string().min(1).max(255).optional(),
     content: z.string().min(1).max(10_000).optional(),
     tone: z.enum(TONE_OPTIONS).optional(),
+    channel: z.enum(CHANNEL_OPTIONS).optional(),
+    subject: z.string().max(255).optional(),
     isFavorite: z.boolean().optional(),
   })
   .strict()

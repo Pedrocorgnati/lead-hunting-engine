@@ -5,15 +5,19 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { NavItem } from './nav-config'
 
+const EXACT_ONLY_ROUTES = new Set(['/dashboard', '/admin'])
+
 interface NavItemProps {
   item: NavItem
   collapsed?: boolean
+  activePathname?: string
   onClick?: () => void
 }
 
-export function NavItemComponent({ item, collapsed = false, onClick }: NavItemProps) {
-  const pathname = usePathname()
-  const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+export function NavItemComponent({ item, collapsed = false, activePathname, onClick }: NavItemProps) {
+  const currentPathname = usePathname()
+  const pathname = activePathname ?? currentPathname
+  const isActive = pathname === item.href || (!EXACT_ONLY_ROUTES.has(item.href) && pathname.startsWith(`${item.href}/`))
   const Icon = item.icon
   const slug = item.href.split('/').filter(Boolean).join('-') || 'home'
 

@@ -9,24 +9,40 @@ import { AlertTriangle } from 'lucide-react'
 
 type State = 'ok' | 'degraded' | 'unknown'
 
+// Exige FAILURE_THRESHOLD checagens falhas consecutivas antes de degradar.
+// Evita falso-positivo em spike transitorio (cold start serverless em prod,
+// compilacao on-demand do dev server) quando o auth esta de fato saudavel.
+const FAILURE_THRESHOLD = 2
+
 export function AuthOfflineBanner() {
   const [state, setState] = useState<State>('unknown')
 
   useEffect(() => {
     let cancelled = false
     let timer: ReturnType<typeof setInterval> | null = null
+    let consecutiveFailures = 0
 
     const check = async () => {
       if (document.hidden) return
+      let healthy = false
       try {
         const ctrl = new AbortController()
-        const t = setTimeout(() => ctrl.abort(), 4_000)
+        const t = setTimeout(() => ctrl.abort(), 8_000)
         const res = await fetch('/api/health?service=supabase', { cache: 'no-store', signal: ctrl.signal })
         clearTimeout(t)
         if (cancelled) return
-        setState(res.ok ? 'ok' : 'degraded')
+        healthy = res.ok
       } catch {
-        if (!cancelled) setState('degraded')
+        if (cancelled) return
+        healthy = false
+      }
+
+      if (healthy) {
+        consecutiveFailures = 0
+        setState('ok')
+      } else {
+        consecutiveFailures += 1
+        if (consecutiveFailures >= FAILURE_THRESHOLD) setState('degraded')
       }
     }
 

@@ -46,7 +46,7 @@ export function ProviderHealthIndicator() {
         <TooltipTrigger
           render={
             <Link
-              href="/admin/provedores"
+              href="/admin/credenciais"
               data-testid="provider-health-indicator"
               aria-label={label}
               className="flex items-center gap-1"
@@ -61,7 +61,7 @@ export function ProviderHealthIndicator() {
         <TooltipContent className="text-xs max-w-xs">
           <p className="font-semibold mb-1">{label}</p>
           <p className="text-muted-foreground">{names}</p>
-          <p className="mt-1 opacity-70">Clique para gerenciar provedores</p>
+          <p className="mt-1 opacity-70">Clique para gerenciar credenciais e provedores</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

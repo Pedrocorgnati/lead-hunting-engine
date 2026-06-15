@@ -11,7 +11,6 @@
 import 'dotenv/config'
 import { createSeedClient } from './client'
 import {
-  PrismaClient,
   UserRole,
   LeadStatus,
   LeadTemperature,
@@ -83,7 +82,6 @@ async function main() {
       name: 'Admin Test',
       role: UserRole.ADMIN,
       termsAcceptedAt: daysAgo(30),
-      onboardingCompletedAt: daysAgo(30),
     },
   })
 
@@ -96,7 +94,6 @@ async function main() {
       name: 'Operador Test',
       role: UserRole.OPERATOR,
       termsAcceptedAt: daysAgo(15),
-      onboardingCompletedAt: daysAgo(15),
     },
   })
 

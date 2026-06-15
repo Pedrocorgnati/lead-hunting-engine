@@ -29,6 +29,7 @@ import { Loader2 } from 'lucide-react'
 import { formatLastUpdated } from '@/lib/live-status'
 import { useProviderHealthContext } from '@/lib/contexts/provider-health-context'
 import type { ProviderHealthItem } from '@/lib/contexts/provider-health-context'
+import { cn } from '@/lib/utils'
 
 export interface ProviderHealthBadgeProps {
   provider: string
@@ -37,18 +38,27 @@ export interface ProviderHealthBadgeProps {
 
 type ProviderStatus = ProviderHealthItem['status']
 
-const VARIANT: Record<ProviderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  UP: 'secondary',
-  DEGRADED: 'outline',
-  DOWN: 'destructive',
-  PAUSED: 'destructive',
-}
-
-const STATUS_LABEL: Record<ProviderStatus, string> = {
-  UP: 'Operacional',
-  DEGRADED: 'Degradado',
-  DOWN: 'Fora do ar',
-  PAUSED: 'Pausado',
+const STATUS_BADGE: Record<ProviderStatus, { label: string; className: string }> = {
+  UP: {
+    label: 'Operacional',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+  },
+  DEGRADED: {
+    label: 'Degradado',
+    className: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300',
+  },
+  DOWN: {
+    label: 'Fora do ar',
+    className: 'border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300',
+  },
+  PAUSED: {
+    label: 'Pausado',
+    className: 'border-yellow-200 bg-yellow-50 text-yellow-800 hover:bg-yellow-100 dark:border-yellow-900/60 dark:bg-yellow-950/30 dark:text-yellow-300',
+  },
+  UNCONFIGURED: {
+    label: 'Não configurado',
+    className: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+  },
 }
 
 function fmtLatency(ms: number | null): string {
@@ -114,26 +124,26 @@ export function ProviderHealthBadge({ provider, className }: ProviderHealthBadge
     )
   }
 
-  const statusLabel = STATUS_LABEL[item.status]
+  const badge = STATUS_BADGE[item.status]
 
   return (
     <TooltipProvider delay={150}>
       <Tooltip>
         <TooltipTrigger>
           <Badge
-            variant={VARIANT[item.status]}
-            className={className}
+            variant="outline"
+            className={cn(badge.className, className)}
             data-testid={`provider-health-badge-${provider}`}
             data-state={item.status}
             aria-describedby={liveRegionId}
-            aria-label={`Provedor ${item.label}: ${statusLabel}`}
+            aria-label={`Provedor ${item.label}: ${badge.label}`}
           >
-            {statusLabel}
+            {badge.label}
           </Badge>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs text-xs">
           <div className="space-y-1">
-            <p className="font-semibold">{item.label}: {statusLabel}</p>
+            <p className="font-semibold">{item.label}: {badge.label}</p>
             <p>Latencia: {fmtLatency(item.latencyMs)}</p>
             <p>Quota restante: {fmtQuota(item.quotaRemaining)}</p>
             <p>Rate-limit reset: {fmtResetAt(item.rateLimitResetAt)}</p>
@@ -145,7 +155,7 @@ export function ProviderHealthBadge({ provider, className }: ProviderHealthBadge
         </TooltipContent>
       </Tooltip>
       <span id={liveRegionId} role="status" aria-live="polite" className="sr-only">
-        Provedor {item.label}: {statusLabel}
+        Provedor {item.label}: {badge.label}
       </span>
     </TooltipProvider>
   )

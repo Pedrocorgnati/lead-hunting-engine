@@ -60,6 +60,21 @@ export const CRON_REGISTRY: CronJobDef[] = [
     schedule: '0 3 * * *',
     path: '/api/cron/lgpd-cleanup',
   },
+  {
+    id: 'outreach-scheduler',
+    name: 'Scheduler de outreach',
+    description:
+      'Re-enfileira envios outbound devidos, dispara sync de respostas IMAP e monitora fila parada.',
+    schedule: '*/5 * * * *',
+    path: '/api/cron/outreach-scheduler',
+  },
+  {
+    id: 'radar-recurrence',
+    name: 'Radar recorrente',
+    description: 'Re-coleta presets de radar cuja ultima execucao excede a cadencia configurada.',
+    schedule: '0 6 * * *',
+    path: '/api/cron/radar-recurrence',
+  },
 ]
 
 export function getCronJob(id: string): CronJobDef | undefined {

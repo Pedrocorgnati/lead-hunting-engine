@@ -1,4 +1,15 @@
-import { randomBytes } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
+
+/**
+ * H-13: comparacao constant-time da phrase do challenge (evita enumeracao por
+ * timing). Length-guard antes do timingSafeEqual (que lanca em tamanhos diferentes).
+ */
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a)
+  const bb = Buffer.from(b)
+  if (ba.length !== bb.length) return false
+  return timingSafeEqual(ba, bb)
+}
 
 type Scope = string
 
@@ -168,7 +179,7 @@ export function verifyChallenge(input: {
     return { ok: false as const, reason: 'REAUTH_REQUIRED' as const }
   }
 
-  if (entry.phrase !== input.phrase.trim()) return { ok: false as const, reason: 'PHRASE_MISMATCH' as const }
+  if (!safeEqual(entry.phrase, input.phrase.trim())) return { ok: false as const, reason: 'PHRASE_MISMATCH' as const }
 
   entry.consumedAt = Date.now()
   challengeStore.set(entry.id, entry)

@@ -1,10 +1,12 @@
 import { getPrisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
+import { DEDUP_CONFIG } from './dedup-config'
 
 export interface DedupCandidate {
   name: string
   address: string | null
   externalId: string
+  userId?: string
 }
 
 export interface DedupResult {
@@ -24,6 +26,21 @@ interface RadarMetadata {
 
 const SIMILARITY_THRESHOLD = 0.85
 
+/**
+ * P-12: normaliza para comparacao de dedup — remove diacriticos (NFD), baixa
+ * caixa, troca pontuacao por espaco e colapsa espacos. Faz 'Clínica São José'
+ * e 'Clinica Sao Jose' colidirem (nomes BR de clinicas variam muito no acento).
+ */
+export function normalizeForDedup(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export class DedupEngine {
   /**
    * Verifica se um RawLeadData é duplicata de um Lead existente.
@@ -33,15 +50,49 @@ export class DedupEngine {
     if (!candidate.name) return { isDuplicate: false, existingLeadId: null, similarity: 0 }
 
     const prisma = getPrisma()
+    const userScopeFilter = candidate.userId ? { userId: candidate.userId } : {}
+
+    // P-12: curto-circuito exato por place_id. Para re-coletas do mesmo
+    // estabelecimento (Google), Lead.placeId === candidate.externalId e match
+    // 100% preciso — sem fuzzy e sem o problema de acento do prefilter abaixo.
+    if (candidate.externalId) {
+      const scopedExact = await prisma.lead.findFirst({
+        where: { placeId: candidate.externalId, ...userScopeFilter },
+        select: { id: true },
+      })
+      if (scopedExact) return { isDuplicate: true, existingLeadId: scopedExact.id, similarity: 1 }
+
+      if (candidate.userId && DEDUP_CONFIG.globalFallbackEnabled) {
+        const globalExact = await prisma.lead.findFirst({
+          where: { placeId: candidate.externalId },
+          select: { id: true },
+        })
+        if (globalExact) return { isDuplicate: true, existingLeadId: globalExact.id, similarity: 1 }
+      }
+    }
+
     const nameParts = candidate.name.toLowerCase().split(' ').slice(0, 2).join('%')
 
-    const existingLeads = await prisma.lead.findMany({
+    // NB: o `contains` do Postgres e accent-SENSITIVE; o match cross-acento
+    // depende do curto-circuito por placeId acima (ou de `unaccent`, fora deste
+    // escopo). A normalizacao abaixo cobre os candidatos que o prefilter retorna.
+    let existingLeads = await prisma.lead.findMany({
       where: {
-        businessName: { contains: nameParts, mode: 'insensitive' },
+        businessName: { contains: nameParts, mode: 'insensitive' as const },
+        ...userScopeFilter,
       },
       select: { id: true, businessName: true, address: true },
       take: 20,
     })
+    if (existingLeads.length === 0 && candidate.userId && DEDUP_CONFIG.globalFallbackEnabled) {
+      existingLeads = await prisma.lead.findMany({
+        where: {
+          businessName: { contains: nameParts, mode: 'insensitive' as const },
+        },
+        select: { id: true, businessName: true, address: true },
+        take: 20,
+      })
+    }
 
     if (existingLeads.length === 0) {
       return { isDuplicate: false, existingLeadId: null, similarity: 0 }
@@ -50,8 +101,8 @@ export class DedupEngine {
     let bestMatch = { id: '', similarity: 0 }
 
     for (const lead of existingLeads) {
-      const nameKey = `${candidate.name} ${candidate.address ?? ''}`.toLowerCase().trim()
-      const existingKey = `${lead.businessName} ${lead.address ?? ''}`.toLowerCase().trim()
+      const nameKey = normalizeForDedup(`${candidate.name} ${candidate.address ?? ''}`)
+      const existingKey = normalizeForDedup(`${lead.businessName ?? ''} ${lead.address ?? ''}`)
 
       const similarity = stringSimilarity(nameKey, existingKey)
 

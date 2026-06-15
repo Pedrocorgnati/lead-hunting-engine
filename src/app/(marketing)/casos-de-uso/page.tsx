@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import casesIndex from '@/content/cases/index.json'
 
@@ -32,6 +33,15 @@ export default function CasosDeUsoPage() {
 
       {cases.length === 0 ? (
         <div className="mt-10 rounded-lg border border-dashed border-gray-300 p-8 text-center">
+          <Image
+            src="/images/cases-empty-illustration.png"
+            alt=""
+            width={724}
+            height={543}
+            className="mx-auto mb-6 w-full max-w-md rounded-lg"
+            priority
+            aria-hidden="true"
+          />
           <p className="text-gray-600">
             Estamos preparando os primeiros estudos de caso do programa piloto.
           </p>

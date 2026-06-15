@@ -25,8 +25,16 @@ const DEFAULT_RULES: ClassificationRuleConfig[] = [
 /**
  * Classifica oportunidade comercial.
  *
- * Lógica: opportunityScore = (businessMaturity * 0.5 + digitalGap * 0.5)
- * - A_NEEDS_SITE  ≥ 80 → negócio estabelecido sem site
+ * Lógica (P-05): opportunityScore =
+ *   businessMaturity * 0.4 + digitalGap * 0.4 + (100 - websitePresence) * 0.2
+ *
+ * O 3o termo (ausência de website) é DIRETO e não-diluído — antes a única
+ * fonte de sinal de site era digitalGap, que é abatido por reviewCount/priceLevel
+ * (stage-digital-gap), mascarando "negócio sem site". (100 - websitePresence)
+ * vale 100 quando não há site, ~40-60 num site fraco/sem mobile, e 0 num site
+ * bom — exatamente o eixo do caso de uso (vender site para quem não tem).
+ *
+ * - A_NEEDS_SITE  ≥ 80 → negócio estabelecido SEM site
  * - B_NEEDS_SYSTEM ≥ 65 → negócio com site mas sem sistema
  * - C_NEEDS_AUTOMATION ≥ 50 → negócio digital básico sem automação
  * - D_NEEDS_ECOMMERCE ≥ 35 → negócio digital com gap de e-commerce
@@ -60,8 +68,12 @@ export function classifyOpportunityWithConfig(
 
   const digitalGap = enriched.scores.digitalGap
   const businessMaturity = enriched.scores.businessMaturity
+  // websitePresence ausente/desconhecido -> trata como 0 (gap maximo), o
+  // pressuposto conservador do caso de uso (sem sinal de site = oportunidade).
+  const websiteAbsence = 100 - (enriched.scores.websitePresence ?? 0)
 
-  const opportunityScore = businessMaturity * 0.5 + digitalGap * 0.5
+  const opportunityScore =
+    businessMaturity * 0.4 + digitalGap * 0.4 + websiteAbsence * 0.2
 
   const rules = config ?? DEFAULT_RULES
 

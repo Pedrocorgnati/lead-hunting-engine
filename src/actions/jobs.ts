@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { CollectionJobStatus } from '@/lib/constants/enums'
+import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
 import { quotaEnforcer } from '@/lib/services/quota-enforcer'
 import type { CollectionJobSummary } from '@/lib/types/entities'
 import { dispatchCollectLeads } from '@/lib/workers/collect-dispatch'
@@ -68,6 +68,12 @@ export async function createJob(data: {
   location: string
   radiusMeters: number
   maxResults: number
+  /**
+   * P-10: fontes de coleta. Opcional para compatibilidade (UI ainda envia so
+   * Google); default GOOGLE_MAPS. Valores invalidos sao descartados e, se a
+   * lista ficar vazia, recai em GOOGLE_MAPS — nunca cria job sem fonte.
+   */
+  sources?: DataSource[]
 }): Promise<{ id: string }> {
   const user = await requireAuth()
 
@@ -80,6 +86,11 @@ export async function createJob(data: {
   const city = parts[0] ?? data.location
   const state = parts[1] ?? null
 
+  const validSources = (data.sources ?? []).filter((s): s is DataSource =>
+    Object.values(DataSource).includes(s),
+  )
+  const sources = validSources.length > 0 ? [...new Set(validSources)] : [DataSource.GOOGLE_MAPS]
+
   const job = await prisma.collectionJob.create({
     data: {
       userId: user.id,
@@ -88,7 +99,7 @@ export async function createJob(data: {
       city,
       state,
       country: 'BR',
-      sources: ['GOOGLE_MAPS'],
+      sources,
       limitVal: data.maxResults,
       status: CollectionJobStatus.PENDING,
     },
@@ -101,6 +112,7 @@ export async function createJob(data: {
     location: data.location,
     radius: data.radiusMeters,
     maxResults: data.maxResults,
+    sources,
   })
 
   return { id: job.id }

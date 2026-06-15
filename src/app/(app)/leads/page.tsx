@@ -7,6 +7,7 @@ import { LeadsTable } from '@/components/leads/leads-table'
 import { Input } from '@/components/ui/input'
 import { LeadsPagination } from './_components/LeadsPagination'
 import { SavedViewsBar } from '@/components/leads/SavedViewsBar'
+import { BulkAddToCampaign } from '@/components/leads/BulkAddToCampaign'
 import { LeadStatus, OpportunityType, LEAD_STATUS_MAP, OPPORTUNITY_TYPE_MAP, LEAD_TEMPERATURE_MAP, LeadTemperature } from '@/lib/constants/enums'
 
 export const metadata: Metadata = {
@@ -29,6 +30,10 @@ interface PageProps {
     // M12/G-002: ordenacao na UI
     sortBy?: string
     sortOrder?: string
+    // outreach-engine (06-10): filtros de prontidao para envio
+    hasEmail?: string
+    noSite?: string
+    ready?: string
   }>
 }
 
@@ -40,7 +45,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
   const scoreMax = params.scoreMax ? Math.max(0, Math.min(100, parseInt(params.scoreMax) || 100)) : undefined
   const sortBy = params.sortBy ?? 'createdAt'
   const sortOrder: 'asc' | 'desc' = params.sortOrder === 'asc' ? 'asc' : 'desc'
-  const { data: leads, total, pages } = await getLeads({
+  const { data: leads, total, pages, coverage } = await getLeads({
     page,
     search: params.search,
     type: params.type,
@@ -53,6 +58,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
     sortBy,
     sortOrder,
     recency,
+    hasEmail: params.hasEmail === '1',
+    noSite: params.noSite === '1',
+    ready: params.ready === '1',
   })
 
   // M12/G-001 + G-002: helper para preservar todos os filtros ao montar URLs (paginacao, recency pill)
@@ -70,6 +78,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
     if (params.recency) base.recency = params.recency
     if (params.sortBy) base.sortBy = params.sortBy
     if (params.sortOrder) base.sortOrder = params.sortOrder
+    if (params.hasEmail) base.hasEmail = params.hasEmail
+    if (params.noSite) base.noSite = params.noSite
+    if (params.ready) base.ready = params.ready
     for (const [k, v] of Object.entries(overrides)) {
       if (v === undefined || v === '') delete base[k]
       else base[k] = v
@@ -123,7 +134,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Quick filter pills */}
-      <div className="flex items-center gap-2" data-testid="leads-quick-filters">
+      <div className="flex flex-wrap items-center gap-2" data-testid="leads-quick-filters">
         <Link
           href={`/leads?${buildSearchParams({ recency: params.recency === '24h' ? undefined : '24h', page: undefined })}`}
           data-testid="leads-filter-recency-24h"
@@ -132,12 +143,41 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         >
           Novos 24h
         </Link>
+        {/* outreach-engine (06-10): prontidão para envio */}
+        <Link
+          href={`/leads?${buildSearchParams({ noSite: params.noSite === '1' ? undefined : '1', page: undefined })}`}
+          data-testid="leads-filter-no-site"
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors min-h-[32px] ${params.noSite === '1' ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent border-border'}`}
+          aria-current={params.noSite === '1' ? 'true' : undefined}
+        >
+          Sem site
+        </Link>
+        <Link
+          href={`/leads?${buildSearchParams({ hasEmail: params.hasEmail === '1' ? undefined : '1', page: undefined })}`}
+          data-testid="leads-filter-has-email"
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors min-h-[32px] ${params.hasEmail === '1' ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent border-border'}`}
+          aria-current={params.hasEmail === '1' ? 'true' : undefined}
+        >
+          Tem e-mail
+        </Link>
+        <Link
+          href={`/leads?${buildSearchParams({ ready: params.ready === '1' ? undefined : '1', page: undefined })}`}
+          data-testid="leads-filter-ready"
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs border transition-colors min-h-[32px] ${params.ready === '1' ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent border-border'}`}
+          aria-current={params.ready === '1' ? 'true' : undefined}
+        >
+          Pronto p/ envio
+        </Link>
       </div>
 
       {/* Filters bar */}
       <form method="GET" data-testid="leads-filters" className="flex flex-col sm:flex-row gap-3">
         {/* Preserve recency quando usuario aplica outros filtros */}
         {params.recency === '24h' && <input type="hidden" name="recency" value="24h" />}
+        {/* Preserve pills de prontidao de outreach */}
+        {params.noSite === '1' && <input type="hidden" name="noSite" value="1" />}
+        {params.hasEmail === '1' && <input type="hidden" name="hasEmail" value="1" />}
+        {params.ready === '1' && <input type="hidden" name="ready" value="1" />}
         <Input
           type="search"
           name="search"
@@ -180,6 +220,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         {params.type && <input type="hidden" name="type" value={params.type} />}
         {params.status && <input type="hidden" name="status" value={params.status} />}
         {params.recency && <input type="hidden" name="recency" value={params.recency} />}
+        {params.noSite === '1' && <input type="hidden" name="noSite" value="1" />}
+        {params.hasEmail === '1' && <input type="hidden" name="hasEmail" value="1" />}
+        {params.ready === '1' && <input type="hidden" name="ready" value="1" />}
         <Input
           type="text"
           name="city"
@@ -266,6 +309,9 @@ export default async function LeadsPage({ searchParams }: PageProps) {
       {/* TASK-16/ST004 intake-review (CL-267): visoes de filtros salvas */}
       <SavedViewsBar />
 
+      {/* outreach-engine (3o passe UX): caminho de menor cliques para enviar em lote */}
+      <BulkAddToCampaign />
+
       {/* Total count */}
       <p data-testid="leads-total-count" className="text-sm text-muted-foreground">
         {total} {total === 1 ? 'lead encontrado' : 'leads encontrados'}
@@ -293,13 +339,28 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         </div>
       ) : (
         <>
+          {/* Cobertura de contato HONESTA do conjunto filtrado — o que dá pra
+              agir agora. Negócio sem site raramente tem e-mail; telefone idem.
+              Review 06-11 R1-2 (critério 19): WhatsApp confirmado (evidência
+              de HTML) e provável (celular BR) NUNCA aparecem agregados sem
+              qualificador. */}
+          <div data-testid="leads-contact-coverage" className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+            <span><strong className="text-foreground">{total}</strong> leads</span>
+            <span><strong className="text-foreground">{coverage.withPhone}</strong> com telefone</span>
+            <span><strong className="text-foreground">{coverage.withWhatsappConfirmed}</strong> WhatsApp confirmado</span>
+            <span><strong className="text-foreground">{coverage.withWhatsappProbable}</strong> WhatsApp provável (celular BR)</span>
+            <span><strong className="text-foreground">{coverage.withEmail}</strong> com e-mail</span>
+            {coverage.withPhone > 0 && (
+              <Link href={Routes.ADMIN_OUTREACH} className="text-primary hover:underline">Trabalhar no Contato direto →</Link>
+            )}
+          </div>
           <LeadsTable leads={leads} />
           {/* Pagination — TASK-25/ST005 (CL-274): useTransition + skeleton inline. M12/G-001: preserva todos os filtros via buildSearchParams */}
           {pages > 1 && (
             <LeadsPagination
               page={page}
               pages={pages}
-              buildHref={(nextPage) => `/leads?${buildSearchParams({ page: String(nextPage) })}`}
+              baseQuery={buildSearchParams({})}
             />
           )}
         </>

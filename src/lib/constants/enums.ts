@@ -147,6 +147,15 @@ export const CredentialProvider = {
   ANTHROPIC: 'ANTHROPIC',
   HERE_MAPS: 'HERE_MAPS',
   TOMTOM: 'TOMTOM',
+  KIMI: 'KIMI',
+  // H-09: completar com os providers do catalogo que aceitam credencial.
+  APONTADOR: 'APONTADOR',
+  GUIA_MAIS: 'GUIA_MAIS',
+  LINKEDIN_COMPANY: 'LINKEDIN_COMPANY',
+  INSTAGRAM_GRAPH: 'INSTAGRAM_GRAPH',
+  INSTAGRAM_APIFY: 'INSTAGRAM_APIFY',
+  FACEBOOK_GRAPH: 'FACEBOOK_GRAPH',
+  FACEBOOK_INTERMEDIARY: 'FACEBOOK_INTERMEDIARY',
   CUSTOM: 'CUSTOM',
 } as const
 export type CredentialProvider = (typeof CredentialProvider)[keyof typeof CredentialProvider]
@@ -159,6 +168,14 @@ export const CREDENTIAL_PROVIDER_MAP: Record<CredentialProvider, { label: string
   [CredentialProvider.ANTHROPIC]: { label: 'Anthropic' },
   [CredentialProvider.HERE_MAPS]: { label: 'HERE Maps' },
   [CredentialProvider.TOMTOM]: { label: 'TomTom' },
+  [CredentialProvider.KIMI]: { label: 'Kimi' },
+  [CredentialProvider.APONTADOR]: { label: 'Apontador' },
+  [CredentialProvider.GUIA_MAIS]: { label: 'GuiaMais' },
+  [CredentialProvider.LINKEDIN_COMPANY]: { label: 'LinkedIn Companies' },
+  [CredentialProvider.INSTAGRAM_GRAPH]: { label: 'Instagram Graph API' },
+  [CredentialProvider.INSTAGRAM_APIFY]: { label: 'Instagram (Apify)' },
+  [CredentialProvider.FACEBOOK_GRAPH]: { label: 'Facebook Graph API' },
+  [CredentialProvider.FACEBOOK_INTERMEDIARY]: { label: 'Facebook (Intermediary)' },
   [CredentialProvider.CUSTOM]: { label: 'Personalizado' },
 }
 

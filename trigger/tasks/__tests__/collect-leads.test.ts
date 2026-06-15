@@ -77,7 +77,12 @@ function makePrismaSpy(
   return {
     collectionJob: {
       findUniqueOrThrow: jest.fn().mockResolvedValue({ userId, name: jobName }),
-      findUnique: jest.fn(() => {
+      findUnique: jest.fn((args?: { select?: Record<string, boolean> }) => {
+        // P-07: o fetch inicial do job (select userId/name) agora usa findUnique;
+        // as checagens periodicas de cancelamento usam select status.
+        if (args?.select?.userId || args?.select?.name) {
+          return Promise.resolve({ userId, name: jobName })
+        }
         const status = cancelSequence[cancelCallIdx] ?? CollectionJobStatus.RUNNING
         cancelCallIdx++
         return Promise.resolve({ status })
@@ -198,7 +203,7 @@ describe('runCollection — clamp MAX_COLLECTION_SIZE', () => {
 
     await runCollection({ ...basePayload, maxResults: 1000 }, deps)
 
-    expect(searchBusinesses).toHaveBeenCalledWith(expect.objectContaining({ maxResults: 500 }))
+    expect(searchBusinesses).toHaveBeenCalledWith(expect.objectContaining({ maxResults: 500 }), expect.anything())
   })
 
   it('respeita maxResults menor quando ja abaixo do limite', async () => {
@@ -208,7 +213,7 @@ describe('runCollection — clamp MAX_COLLECTION_SIZE', () => {
 
     await runCollection({ ...basePayload, maxResults: 50 }, deps)
 
-    expect(searchBusinesses).toHaveBeenCalledWith(expect.objectContaining({ maxResults: 50 }))
+    expect(searchBusinesses).toHaveBeenCalledWith(expect.objectContaining({ maxResults: 50 }), expect.anything())
   })
 })
 
@@ -595,5 +600,88 @@ describe('runCollection — encadeia process-leads apos a coleta (fix money-path
       expect.stringContaining('processamento pos-coleta falhou'),
       expect.objectContaining({ jobId: 'job-1' }),
     )
+  })
+})
+
+describe('runCollection — P-01 enriquecimento Place Details (fetchGmb)', () => {
+  function gmbResult(over: Record<string, unknown> = {}) {
+    return {
+      placeId: 'gp:x', name: 'X', hours: null, photos: null, categories: null,
+      phone: '+551231234567', website: 'https://medcenter.com.br',
+      rating: null, userRatingsTotal: null, googleMapsUrl: null,
+      ...over,
+    }
+  }
+
+  it('busca website/phone via fetchGmb para lead Google sem site e habilita analyzeSite', async () => {
+    const prismaSpy = makePrismaSpy()
+    const businesses = [makeBusiness({ externalId: 'gp:no-site', website: null, phone: null })]
+    const fetchGmb = jest.fn().mockResolvedValue(gmbResult())
+    const deps = makeDeps(prismaSpy, {
+      searchBusinesses: jest.fn().mockResolvedValue(businesses),
+      fetchGmb: fetchGmb as unknown as CollectLeadsDeps['fetchGmb'],
+    })
+
+    await runCollection(basePayload, deps)
+
+    expect(fetchGmb).toHaveBeenCalledWith('gp:no-site')
+    const created = prismaSpy.rawLeadData.upsertCalls[0].create
+    expect(created.website).toBe('https://medcenter.com.br')
+    expect(created.phone).toBeTruthy()
+    // website agora presente -> o bloco analyzeSite (antes morto p/ Google) dispara
+    expect(deps.analyzeSite).toHaveBeenCalledWith('https://medcenter.com.br')
+  })
+
+  it('NAO chama fetchGmb quando o lead Google ja tem website', async () => {
+    const prismaSpy = makePrismaSpy()
+    const fetchGmb = jest.fn()
+    const deps = makeDeps(prismaSpy, {
+      searchBusinesses: jest.fn().mockResolvedValue([makeBusiness({ externalId: 'gp:has', website: 'https://ja-tem.com' })]),
+      fetchGmb: fetchGmb as unknown as CollectLeadsDeps['fetchGmb'],
+    })
+    await runCollection(basePayload, deps)
+    expect(fetchGmb).not.toHaveBeenCalled()
+  })
+
+  it('NAO chama fetchGmb para fonte nao-Google', async () => {
+    const prismaSpy = makePrismaSpy()
+    const fetchGmb = jest.fn()
+    const deps = makeDeps(prismaSpy, {
+      searchBusinesses: jest.fn().mockResolvedValue([makeBusiness({ externalId: 'os:1', source: 'outscraper', website: null })]),
+      fetchGmb: fetchGmb as unknown as CollectLeadsDeps['fetchGmb'],
+    })
+    await runCollection(basePayload, deps)
+    expect(fetchGmb).not.toHaveBeenCalled()
+  })
+
+  it('fetchGmb lancando erro NAO interrompe a coleta (website fica null)', async () => {
+    const prismaSpy = makePrismaSpy()
+    const fetchGmb = jest.fn().mockRejectedValue(new Error('places down'))
+    const deps = makeDeps(prismaSpy, {
+      searchBusinesses: jest.fn().mockResolvedValue([makeBusiness({ externalId: 'gp:err', website: null, phone: null })]),
+      fetchGmb: fetchGmb as unknown as CollectLeadsDeps['fetchGmb'],
+    })
+    const result = await runCollection(basePayload, deps)
+    expect((result as { success?: boolean }).success).toBe(true)
+    expect(prismaSpy.rawLeadData.upsertCalls[0].create.website).toBeNull()
+  })
+})
+
+describe('runCollection — P-07 CollectionJob ausente (guard anti-zumbi)', () => {
+  it('retorna gracioso sem throw e sem transicionar para RUNNING quando o job nao existe', async () => {
+    const prismaSpy = makePrismaSpy()
+    prismaSpy.collectionJob.findUnique = jest.fn((args?: { select?: Record<string, boolean> }) => {
+      if (args?.select?.userId || args?.select?.name) return Promise.resolve(null)
+      return Promise.resolve({ status: CollectionJobStatus.RUNNING })
+    }) as unknown as PrismaSpy['collectionJob']['findUnique']
+    const deps = makeDeps(prismaSpy, { searchBusinesses: jest.fn().mockResolvedValue([]) })
+
+    const result = await runCollection(basePayload, deps)
+
+    expect((result as { missing?: boolean }).missing).toBe(true)
+    const markedRunning = prismaSpy.collectionJob.updateCalls.some(
+      (c) => c.data.status === CollectionJobStatus.RUNNING,
+    )
+    expect(markedRunning).toBe(false)
   })
 })

@@ -19,7 +19,7 @@ const ListQuerySchema = z.object({
  *
  * Lista o cohort do programa piloto: usuarios com ao menos uma tag `pilot-*`
  * (convencao M14-G-010). Reaproveita `UserProfile.tags` sem duplicar dados.
- * Cada item ja traz contagem de leads, status de onboarding e ultimo NPS para
+ * Cada item ja traz contagem de leads e ultimo NPS para
  * a tela `/admin/programa-piloto` montar a taxonomia admin propria.
  */
 export async function GET(request: NextRequest) {
@@ -51,7 +51,6 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         tags: true,
-        onboardingCompletedAt: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -92,7 +91,6 @@ export async function GET(request: NextRequest) {
         name: u.name,
         role: u.role,
         pilotTags: pilotTagsOf(u.tags),
-        onboardingCompleted: u.onboardingCompletedAt !== null,
         joinedAt: u.createdAt.toISOString(),
         leadsCount: leadByUser.get(u.id) ?? 0,
         lastNpsScore: nps?.score ?? null,

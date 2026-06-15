@@ -1,6 +1,7 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
 import { analyzeEngagement } from './facebook-graph'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS, POLL_TIMEOUT_MS } from './_timeouts'
 import type { SocialProvider, SocialSearchParams, SocialProfileData } from './types'
 
 const APIFY_BASE = 'https://api.apify.com/v2'
@@ -19,6 +20,7 @@ export const FacebookIntermediaryProvider: SocialProvider = {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ startUrls: [], searchQuery: params.query, maxPagesPerSearch: 1 }),
+        ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
       })
       if (!res.ok) throw new Error(`Apify FB run start HTTP ${res.status}`)
       return res.json() as Promise<{ data?: { id?: string } }>
@@ -34,7 +36,9 @@ export const FacebookIntermediaryProvider: SocialProvider = {
       await new Promise(r => setTimeout(r, 5000))
       const r = await fetch(`${APIFY_BASE}/actor-runs/${runId}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
+        ...abortAfter(POLL_TIMEOUT_MS),
       })
+      if (!r.ok) throw new Error(`Apify FB poll HTTP ${r.status}`)
       statusData = await r.json() as typeof statusData
     } while (['RUNNING', 'READY'].includes(statusData.data?.status ?? ''))
 
@@ -44,8 +48,9 @@ export const FacebookIntermediaryProvider: SocialProvider = {
 
     const dataRes = await fetch(
       `${APIFY_BASE}/datasets/${statusData.data.defaultDatasetId}/items?limit=1`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
+      { headers: { Authorization: `Bearer ${apiKey}` }, ...abortAfter(POLL_TIMEOUT_MS) }
     )
+    if (!dataRes.ok) throw new Error(`Apify FB dataset HTTP ${dataRes.status}`)
     const items = (await dataRes.json()) as Array<Record<string, unknown>>
     if (!items?.length) return []
 

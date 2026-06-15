@@ -24,12 +24,17 @@ export const PROVIDER_CATALOG: ProviderDescriptor[] = [
   { source: 'APONTADOR',             label: 'Apontador (headless)',    tier: 'HEADLESS',     category: 'BUSINESS' },
   { source: 'GUIA_MAIS',             label: 'GuiaMais (headless)',     tier: 'HEADLESS',     category: 'BUSINESS' },
   { source: 'LINKEDIN_COMPANY',      label: 'LinkedIn Companies',      tier: 'INTERMEDIARY', category: 'BUSINESS' },
-  { source: 'HERE_MAPS',             label: 'HERE Maps',               tier: 'OFFICIAL_API', category: 'BUSINESS' },
-  { source: 'TOMTOM',                label: 'TomTom',                  tier: 'OFFICIAL_API', category: 'BUSINESS' },
+  // H-06: HERE/TomTom sao GEOCODERS (endereco->coords, vivem em workers/geo/),
+  // nunca entram no PROVIDER_ORDER de searchBusinesses. category OTHER para a UI
+  // nao os mostrar como fontes de busca de negocio.
+  { source: 'HERE_MAPS',             label: 'HERE Maps (geocoder)',    tier: 'OFFICIAL_API', category: 'OTHER'    },
+  { source: 'TOMTOM',                label: 'TomTom (geocoder)',       tier: 'OFFICIAL_API', category: 'OTHER'    },
   { source: 'INSTAGRAM_GRAPH',       label: 'Instagram Graph API',     tier: 'OFFICIAL_API', category: 'SOCIAL'   },
   { source: 'INSTAGRAM_APIFY',       label: 'Instagram (Apify)',       tier: 'INTERMEDIARY', category: 'SOCIAL'   },
   { source: 'FACEBOOK_GRAPH',        label: 'Facebook Graph API',      tier: 'OFFICIAL_API', category: 'SOCIAL'   },
   { source: 'FACEBOOK_INTERMEDIARY', label: 'Facebook (Intermediary)', tier: 'INTERMEDIARY', category: 'SOCIAL'   },
-  { source: 'OPENAI',                label: 'OpenAI',                  tier: 'OFFICIAL_API', category: 'LLM'      },
-  { source: 'ANTHROPIC',             label: 'Anthropic',               tier: 'OFFICIAL_API', category: 'LLM'      },
+  // H-10: LLMs (geracao de pitch), nao fontes de coleta.
+  { source: 'KIMI',                  label: 'Kimi (pitch)',            tier: 'OFFICIAL_API', category: 'LLM'      },
+  { source: 'OPENAI',                label: 'OpenAI (pitch)',          tier: 'OFFICIAL_API', category: 'LLM'      },
+  { source: 'ANTHROPIC',             label: 'Anthropic (pitch)',       tier: 'OFFICIAL_API', category: 'LLM'      },
 ]

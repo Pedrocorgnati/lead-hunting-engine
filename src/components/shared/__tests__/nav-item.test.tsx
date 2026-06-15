@@ -32,11 +32,18 @@ describe('NavItemComponent', () => {
     expect(link).not.toHaveAttribute('aria-current')
   })
 
-  it('marca aria-current quando href nao /dashboard mas pathname comeca com href', () => {
+  it('marca aria-current quando href operacional usa rota filha', () => {
+    mockUsePathname.mockReturnValue('/leads/lead-1')
+    const leadsItem: NavItem = { ...dashboardItem, href: '/leads', label: 'Leads', tooltip: 'Leads' }
+    render(<NavItemComponent item={leadsItem} />)
+    expect(screen.getByTestId('sidebar-nav-item-leads')).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('NAO marca /admin como ativo para qualquer subrota admin', () => {
     mockUsePathname.mockReturnValue('/admin/convites')
     const adminItem: NavItem = { ...dashboardItem, href: '/admin', label: 'Admin', tooltip: 'Admin' }
     render(<NavItemComponent item={adminItem} />)
-    expect(screen.getByTestId('sidebar-nav-item-admin')).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByTestId('sidebar-nav-item-admin')).not.toHaveAttribute('aria-current')
   })
 
   it('NAO marca aria-current para /dashboard quando pathname comeca com /dashboard mas e diferente', () => {

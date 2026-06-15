@@ -33,19 +33,10 @@ export async function stageWebsitePresence(raw: RawLeadInput): Promise<Enrichmen
       }
     }
 
-    // TASK-1 intake-review (CL-141): heuristica LGPD para emails descobertos.
-    // Prefere genericos (contato@, vendas@, sac@) sobre pessoais quando ha
-    // multiplos candidatos no mesmo dominio. Nunca quebra o estagio.
-    const discovered = discoverEmails({ rawJson: raw.rawJson ?? null })
-    if (discovered.primary) {
-      metadata.emailPrimary = discovered.primary
-      metadata.emailSecondary = discovered.secondary
-      for (const s of discovered.sources) {
-        if (!sources.includes(s)) sources.push(s)
-      }
-    }
-
-    // TASK-6 (CL-036): analise profunda de UX a partir do HTML capturado
+    // Quick win (blacksmith 06-11, Task 2): siteHtml e lido UMA vez do rawJson,
+    // ANTES de discoverEmails, para alimentar tanto a descoberta de e-mails
+    // quanto a analise de UX (TASK-6 CL-036). Sem HTML o comportamento e
+    // identico ao legado (regressao garantida por teste).
     const rj = (raw.rawJson ?? {}) as Record<string, unknown>
     const siteHtml =
       typeof rj.siteHtml === 'string'
@@ -59,6 +50,25 @@ export async function stageWebsitePresence(raw: RawLeadInput): Promise<Enrichmen
         : typeof rj.loadTimeMs === 'number'
           ? (rj.loadTimeMs as number)
           : null
+
+    // TASK-1 intake-review (CL-141): heuristica LGPD para emails descobertos.
+    // Prefere genericos (contato@, vendas@, sac@) sobre pessoais quando ha
+    // multiplos candidatos no mesmo dominio. Nunca quebra o estagio.
+    // Feature 06-11 (criterios 2/6-7): HTML capturado entra como fonte e o
+    // website canonico reordena dominio canonico > externo no prioritizer.
+    const discovered = discoverEmails({
+      rawJson: raw.rawJson ?? null,
+      html: siteHtml,
+      websiteUrl: raw.website ?? null,
+    })
+    if (discovered.primary) {
+      metadata.emailPrimary = discovered.primary
+      metadata.emailSecondary = discovered.secondary
+      metadata.emailDomainClass = discovered.primaryDomainClass
+      for (const s of discovered.sources) {
+        if (!sources.includes(s)) sources.push(s)
+      }
+    }
 
     if (siteHtml || siteLoadTimeMs !== null) {
       const ux = analyzeUx({ html: siteHtml, loadTimeMs: siteLoadTimeMs })

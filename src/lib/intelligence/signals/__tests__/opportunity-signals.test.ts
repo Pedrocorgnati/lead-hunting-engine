@@ -4,6 +4,18 @@ import {
   getSignalDefinition,
 } from '../opportunity-signals'
 import type { EnrichedLeadData } from '../../enrichment/types'
+import type { WhatsappEnrichment } from '../../enrichment/enrichment-data'
+
+// Sinal WhatsApp neutro (campo obrigatorio do contrato enrichment-data.ts).
+const baseWhatsapp: WhatsappEnrichment = {
+  level: 'unknown',
+  confidence: 0,
+  evidence: [],
+  number: null,
+  numberDivergesFromPhone: null,
+  source: null,
+  detectedAt: '2026-06-11T00:00:00.000Z',
+}
 
 function baseEnriched(overrides: Partial<EnrichedLeadData> = {}): EnrichedLeadData {
   return {
@@ -29,6 +41,7 @@ function baseEnriched(overrides: Partial<EnrichedLeadData> = {}): EnrichedLeadDa
     hasEcommerce: false,
     ecommercePlatform: null,
     analyticsPixels: [],
+    whatsapp: baseWhatsapp,
     enrichmentSources: ['raw_lead_data'],
     enrichedAt: new Date(),
     ...overrides,

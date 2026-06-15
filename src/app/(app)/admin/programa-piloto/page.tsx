@@ -14,9 +14,9 @@ export const metadata: Metadata = {
  * /admin/programa-piloto (AD30) — Task 56 / C6.
  *
  * Consolida o programa piloto numa taxonomia admin propria: cohort por tags
- * `pilot-{periodo}` (reuso de M14-G-010), KPIs derivados (onboarding, leads,
- * NPS), agendamento de entrevistas via notificacao e relatorio CSV. Nao
- * duplica dados de waitlist/onboarding — apenas os reaproveita.
+ * `pilot-{periodo}` (reuso de M14-G-010), KPIs derivados (leads, NPS),
+ * agendamento de entrevistas via notificacao e relatorio CSV. Nao duplica
+ * dados de waitlist — apenas os reaproveita.
  */
 export default async function ProgramaPilotoPage() {
   const supabase = await createClient()

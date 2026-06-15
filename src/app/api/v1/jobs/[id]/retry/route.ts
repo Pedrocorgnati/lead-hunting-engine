@@ -44,6 +44,7 @@ export async function POST(
         query: retry.niche,
         location: retry.state ? `${retry.city}, ${retry.state}` : retry.city,
         maxResults: retry.limitVal ?? 100,
+        sources: retry.sources,
         // C2: worker usa retriedFromId para herdar leads do parent — checkpointing real.
         retriedFromId: parent.id,
       })

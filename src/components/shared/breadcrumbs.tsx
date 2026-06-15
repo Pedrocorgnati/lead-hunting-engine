@@ -28,7 +28,6 @@ const SLUG_LABELS: Record<string, string> = {
   providers: 'Providers',
   settings: 'Configurações',
   notifications: 'Notificações',
-  onboarding: 'Onboarding',
   'audit-log': 'Audit Log',
 }
 

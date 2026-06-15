@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { NavItemComponent } from './nav-item'
-import { APP_NAV_ITEMS, ADMIN_NAV_ITEMS } from './nav-config'
+import { APP_NAV_ITEMS, ADMIN_NAV_GROUPS, type NavGroup, type NavItem } from './nav-config'
+import { UserRole } from '@/lib/constants'
+
+const EXACT_ONLY_ROUTES = new Set(['/dashboard', '/admin'])
 
 interface SidebarProps {
   mobileOpen: boolean
@@ -22,6 +26,26 @@ interface NavContentProps {
 // Componente top-level (fora de Sidebar) para evitar lint react-hooks/static-components.
 // Recebe estado/callbacks via props — sem dependencia de closure do componente pai.
 function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavContentProps) {
+  const pathname = usePathname()
+  const currentRole = isAdmin ? UserRole.ADMIN : UserRole.OPERATOR
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(ADMIN_NAV_GROUPS.filter((group) => group.defaultOpen).map((group) => group.id))
+  )
+
+  const visibleAppItems = APP_NAV_ITEMS.filter((item) => canShowItem(item, currentRole))
+
+  function toggleGroup(groupId: string) {
+    setOpenGroups((current) => {
+      const next = new Set(current)
+      if (next.has(groupId)) {
+        next.delete(groupId)
+      } else {
+        next.add(groupId)
+      }
+      return next
+    })
+  }
+
   return (
     <>
       <div
@@ -39,7 +63,10 @@ function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavC
           aria-label="Navegação principal"
           className="flex flex-col gap-1"
         >
-          {APP_NAV_ITEMS.map((item) => (
+          <div className="px-3 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            {!collapsed && 'Trabalho'}
+          </div>
+          {visibleAppItems.map((item) => (
             <NavItemComponent
               key={item.href}
               item={item}
@@ -58,12 +85,16 @@ function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavC
             <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {!collapsed && 'Admin'}
             </div>
-            {ADMIN_NAV_ITEMS.map((item) => (
-              <NavItemComponent
-                key={item.href}
-                item={item}
+            {ADMIN_NAV_GROUPS.map((group) => (
+              <NavGroupSection
+                key={group.id}
+                group={group}
                 collapsed={collapsed}
-                onClick={onItemClick}
+                currentRole={currentRole}
+                pathname={pathname}
+                open={openGroups.has(group.id) || groupContainsPath(group, pathname)}
+                onToggle={() => toggleGroup(group.id)}
+                onItemClick={onItemClick}
               />
             ))}
           </nav>
@@ -92,6 +123,77 @@ function NavContent({ collapsed, isAdmin, onToggleCollapsed, onItemClick }: NavC
         )}
       </button>
     </>
+  )
+}
+
+function canShowItem(item: NavItem, currentRole: UserRole) {
+  return !item.roles || item.roles.includes(currentRole)
+}
+
+function groupContainsPath(group: NavGroup, pathname: string) {
+  return group.items.some((item) => {
+    return pathname === item.href || (!EXACT_ONLY_ROUTES.has(item.href) && pathname.startsWith(`${item.href}/`))
+  })
+}
+
+interface NavGroupSectionProps {
+  group: NavGroup
+  collapsed: boolean
+  currentRole: UserRole
+  pathname: string
+  open: boolean
+  onToggle: () => void
+  onItemClick?: () => void
+}
+
+function NavGroupSection({
+  group,
+  collapsed,
+  currentRole,
+  pathname,
+  open,
+  onToggle,
+  onItemClick,
+}: NavGroupSectionProps) {
+  const items = group.items.filter((item) => canShowItem(item, currentRole))
+  if (items.length === 0) return null
+
+  return (
+    <div data-testid={`sidebar-nav-group-${group.id}`} className="space-y-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={`sidebar-nav-group-panel-${group.id}`}
+        title={collapsed ? group.label : undefined}
+        onClick={onToggle}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+          'hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          collapsed && 'justify-center px-2'
+        )}
+      >
+        {open ? (
+          <ChevronDown className="h-4 w-4 shrink-0" aria-hidden={true} />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden={true} />
+        )}
+        {!collapsed && <span className="truncate">{group.label}</span>}
+      </button>
+
+      {open && (
+        <div id={`sidebar-nav-group-panel-${group.id}`} className="flex flex-col gap-1">
+          {items.map((item) => (
+            <NavItemComponent
+              key={item.href}
+              item={item}
+              collapsed={collapsed}
+              activePathname={pathname}
+              onClick={onItemClick}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -8,6 +8,11 @@ import { Limits } from '@/lib/constants/limits'
 import { LeadTemperature, CollectionJobStatus, LeadStatus } from '@/lib/constants/enums'
 import type { Lead } from '@prisma/client'
 import { getLeadTasksFromMetadata } from '@/lib/leads/lead-tasks'
+import {
+  resolveWhatsappLevel,
+  summarizeChannelCoverage,
+  type WhatsappLevel,
+} from '@/lib/outreach/channel-metrics'
 // ─── DTOs usados nas páginas (Server Components) ─────────────────────────────
 
 export interface LeadSummary {
@@ -15,11 +20,33 @@ export interface LeadSummary {
   name: string
   city: string | null
   category: string | null
+  // segmento de busca (ex.: "clínica médica") — mais útil que `category`, que é
+  // o tipo cru do Google Places ("establishment" na maioria).
+  niche: string | null
+  // contato acionável (a coluna que faltava na lista). email é raro no ICP.
+  phone: string | null
+  email: string | null
   temperature: string
   opportunities: string[]
   score: number
   status: string
   createdAt: string
+  // outreach-engine (06-10, task 29): prontidão de contato (chip green/yellow/
+  // red derivado do integrityScore) e próxima ação sugerida (Lead.metadata).
+  integrityScore: number | null
+  nextAction: string | null
+  nextActionLabel: string | null
+}
+
+function nextActionFromMetadata(metadata: unknown): { action: string | null; label: string | null } {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return { action: null, label: null }
+  }
+  const m = metadata as Record<string, unknown>
+  return {
+    action: typeof m.nextAction === 'string' ? m.nextAction : null,
+    label: typeof m.nextActionLabel === 'string' ? m.nextActionLabel : null,
+  }
 }
 
 export interface DashboardStats {
@@ -29,6 +56,9 @@ export interface DashboardStats {
   coldLeads: string
   conversionRate: string
   activeJobs: string
+  newLeads: string
+  readyLeads: string
+  contactableLeads: string
 }
 
 export interface DashboardReminder {
@@ -70,6 +100,9 @@ export interface LeadDetailView {
   }[]
   // TASK-3 intake-review: sinais estruturados
   isWhatsappChannel: boolean | null
+  // W9 (blacksmith 06-11, criterio 19): nivel do sinal WhatsApp ao lado da
+  // flag legada — 'probable' NUNCA pode ser exibido como confirmado.
+  whatsappLevel: WhatsappLevel
   hasEcommerce: boolean | null
   ecommercePlatform: string | null
   analyticsPixels: string[]
@@ -91,7 +124,17 @@ async function getAuthenticatedUserId(): Promise<string> {
 export async function getDashboardStats(): Promise<DashboardStats> {
   const userId = await getAuthenticatedUserId()
 
-  const [totalLeads, hotLeads, warmLeads, coldLeads, convertedLeads, activeJobs] = await Promise.all([
+  const [
+    totalLeads,
+    hotLeads,
+    warmLeads,
+    coldLeads,
+    convertedLeads,
+    activeJobs,
+    newLeads,
+    readyLeads,
+    contactableLeads,
+  ] = await Promise.all([
     prisma.lead.count({ where: { userId } }),
     prisma.lead.count({ where: { userId, temperature: LeadTemperature.HOT } }),
     prisma.lead.count({ where: { userId, temperature: LeadTemperature.WARM } }),
@@ -101,6 +144,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       where: {
         userId,
         status: { in: [CollectionJobStatus.PENDING, CollectionJobStatus.RUNNING] },
+      },
+    }),
+    prisma.lead.count({ where: { userId, status: LeadStatus.NEW } }),
+    prisma.lead.count({
+      where: {
+        userId,
+        status: { in: [LeadStatus.NEW, LeadStatus.CONTACTED] },
+        integrityScore: { gte: 60 },
+      },
+    }),
+    prisma.lead.count({
+      where: {
+        userId,
+        OR: [
+          { email: { not: null } },
+          { phone: { not: null } },
+        ],
       },
     }),
   ])
@@ -116,6 +176,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     coldLeads: String(coldLeads),
     conversionRate: `${conversionRate}%`,
     activeJobs: String(activeJobs),
+    newLeads: String(newLeads),
+    readyLeads: String(readyLeads),
+    contactableLeads: String(contactableLeads),
   }
 }
 
@@ -131,25 +194,39 @@ export async function getRecentLeads(): Promise<LeadSummary[]> {
       businessName: true,
       city: true,
       category: true,
+      niche: true,
+      phone: true,
+      email: true,
       temperature: true,
       opportunities: true,
       score: true,
       status: true,
       createdAt: true,
+      integrityScore: true,
+      metadata: true,
     },
   })
 
-  return leads.map((l) => ({
-    id: l.id,
-    name: l.businessName,
-    city: l.city,
-    category: l.category,
-    temperature: l.temperature,
-    opportunities: l.opportunities,
-    score: l.score,
-    status: l.status,
-    createdAt: l.createdAt.toISOString(),
-  }))
+  return leads.map((l) => {
+    const next = nextActionFromMetadata(l.metadata)
+    return {
+      id: l.id,
+      name: l.businessName,
+      city: l.city,
+      category: l.category,
+      niche: l.niche,
+      phone: l.phone,
+      email: l.email,
+      temperature: l.temperature,
+      opportunities: l.opportunities,
+      score: l.score,
+      status: l.status,
+      createdAt: l.createdAt.toISOString(),
+      integrityScore: l.integrityScore,
+      nextAction: next.action,
+      nextActionLabel: next.label,
+    }
+  })
 }
 
 export async function getUpcomingLeadReminders(limit = 5): Promise<DashboardReminder[]> {
@@ -201,7 +278,28 @@ export async function getLeads(params?: {
   sortOrder?: 'asc' | 'desc'
   /** CL-174: filtro rapido de janela temporal (24h | 7d | 30d) */
   recency?: '24h' | '7d' | '30d'
-}): Promise<{ data: LeadSummary[]; total: number; pages: number }> {
+  // outreach-engine (06-10, fix da revisao): filtros operacionais de prontidao.
+  /** so leads com e-mail (alvos enviaveis) */
+  hasEmail?: boolean
+  /** so leads SEM site (o gancho central: A_NEEDS_SITE) */
+  noSite?: boolean
+  /** prontos para auto-outbound: com e-mail + integridade >= limiar */
+  ready?: boolean
+}): Promise<{
+  data: LeadSummary[]
+  total: number
+  pages: number
+  // Review 06-11 R1-2 (criterio 19): a metrica antiga `withWhatsapp` contava
+  // celular BR (nivel 'probable') sem qualificador — 'probable' NUNCA pode
+  // ser exibido/contado como WhatsApp confirmado. Agora os dois niveis saem
+  // separados (via computeChannelFacts/summarizeChannelCoverage).
+  coverage: {
+    withPhone: number
+    withWhatsappConfirmed: number
+    withWhatsappProbable: number
+    withEmail: number
+  }
+}> {
   const userId = await getAuthenticatedUserId()
 
   const page = Math.max(1, params?.page ?? 1)
@@ -232,6 +330,12 @@ export async function getLeads(params?: {
       ...(params.scoreMax !== undefined ? { lte: params.scoreMax } : {}),
     }
   }
+  // Filtros operacionais de prontidao para outreach (fix da revisao):
+  // "tem e-mail" (alvo enviavel), "sem site" (o gancho A_NEEDS_SITE),
+  // "pronto" (e-mail + integridade >= limiar).
+  if (params?.hasEmail || params?.ready) where.email = { not: null }
+  if (params?.noSite) where.website = null
+  if (params?.ready) where.integrityScore = { gte: 60 }
 
   const validSortFields: Record<string, string> = {
     score: 'score',
@@ -242,7 +346,7 @@ export async function getLeads(params?: {
   const safeSortBy = params?.sortBy && validSortFields[params.sortBy] ? params.sortBy : 'createdAt'
   const orderBy = { [safeSortBy]: params?.sortOrder ?? 'desc' }
 
-  const [leads, total] = await Promise.all([
+  const [leads, total, coverageRows] = await Promise.all([
     prisma.lead.findMany({
       where,
       orderBy,
@@ -253,30 +357,66 @@ export async function getLeads(params?: {
         businessName: true,
         city: true,
         category: true,
+        niche: true,
+        phone: true,
+        email: true,
         temperature: true,
         opportunities: true,
         score: true,
         status: true,
         createdAt: true,
+        integrityScore: true,
+        metadata: true,
       },
     }),
     prisma.lead.count({ where }),
+    // Cobertura de contato HONESTA (filtro-escopada) via computeChannelFacts:
+    // separa WhatsApp confirmado (evidencia HTML) de provavel (celular BR) —
+    // criterios 17/19 (review 06-11 R1-1/R1-2). Select minimo por linha.
+    prisma.lead.findMany({
+      where,
+      select: {
+        phone: true,
+        phoneNormalized: true,
+        email: true,
+        website: true,
+        isWhatsappChannel: true,
+        enrichmentData: true,
+      },
+    }),
   ])
 
+  const channelCoverage = summarizeChannelCoverage(coverageRows)
+
   return {
-    data: leads.map((l) => ({
-      id: l.id,
-      name: l.businessName,
-      city: l.city,
-      category: l.category,
-      temperature: l.temperature,
-      opportunities: l.opportunities,
-      score: l.score,
-      status: l.status,
-      createdAt: l.createdAt.toISOString(),
-    })),
+    data: leads.map((l) => {
+      const next = nextActionFromMetadata(l.metadata)
+      return {
+        id: l.id,
+        name: l.businessName,
+        city: l.city,
+        category: l.category,
+        niche: l.niche,
+        phone: l.phone,
+        email: l.email,
+        temperature: l.temperature,
+        opportunities: l.opportunities,
+        score: l.score,
+        status: l.status,
+        createdAt: l.createdAt.toISOString(),
+        integrityScore: l.integrityScore,
+        nextAction: next.action,
+        nextActionLabel: next.label,
+      }
+    }),
     total,
     pages: Math.ceil(total / limit),
+    coverage: {
+      withPhone: channelCoverage.withPhone,
+      withWhatsappConfirmed: channelCoverage.withWhatsappConfirmed,
+      withWhatsappProbable: channelCoverage.withWhatsappProbable,
+      withEmail: channelCoverage.withEmail,
+    },
   }
 }
 
@@ -324,6 +464,11 @@ export async function getLead(id: string): Promise<LeadDetailView | null> {
     createdAt: lead.createdAt,
     updatedAt: lead.updatedAt,
     isWhatsappChannel: lead.isWhatsappChannel ?? null,
+    whatsappLevel: resolveWhatsappLevel({
+      isWhatsappChannel: lead.isWhatsappChannel,
+      phoneNormalized: lead.phoneNormalized,
+      enrichmentData: lead.enrichmentData,
+    }),
     hasEcommerce: lead.hasEcommerce ?? null,
     ecommercePlatform: lead.ecommercePlatform ?? null,
     analyticsPixels: lead.analyticsPixels ?? [],

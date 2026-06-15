@@ -6,6 +6,7 @@ import { leadService } from '@/services/lead.service'
 import { UpdateLeadPitchSchema } from '@/schemas/lead.schema'
 import { prisma } from '@/lib/prisma'
 import { generatePitch, HallucinatedPitchError } from '@/lib/pitch/pitch-generator'
+import { signalsToLabels } from '@/lib/outreach/pitch-bridge'
 import { LLMUnavailableError } from '@/lib/pitch/llm-client'
 import { TONE_OPTIONS } from '@/lib/pitch/tone-config'
 import { PITCH_ERROR_CODES } from '@/lib/pitch/errors'
@@ -93,6 +94,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         score: true,
         scoreBreakdown: true,
         opportunities: true,
+        signals: true,
+        problems: true,
+        isWhatsappChannel: true,
+        hasEcommerce: true,
         pitchContent: true,
         pitchTone: true,
         updatedAt: true,
@@ -140,6 +145,11 @@ export async function POST(req: NextRequest, { params }: Params) {
         digitalGapScore,
         opportunityLabel: String(opportunityLabel),
         scoreBreakdown: breakdown,
+        // O problema real identificado no enriquecimento (fix da revisao).
+        signalLabels: signalsToLabels(lead.signals),
+        problems: lead.problems,
+        isWhatsappChannel: lead.isWhatsappChannel,
+        hasEcommerce: lead.hasEcommerce,
       },
       tone,
       {

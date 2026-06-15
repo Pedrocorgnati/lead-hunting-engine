@@ -12,19 +12,32 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main data-testid="login-page" className="min-h-screen flex">      <a
+    <main data-testid="login-page" className="min-h-screen flex">
+      <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded-md focus:shadow-md focus:ring-2 focus:ring-primary focus:outline-none text-sm"
       >
         Pular para o conteúdo principal
-      </a>      <div
+      </a>
+
+      <div
         data-testid="login-decorative-panel"
         aria-hidden="true"
-        className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12"
+        className="relative hidden overflow-hidden bg-slate-950 lg:flex lg:w-1/2 items-center justify-center p-12"
       >
-        <div className="text-primary-foreground max-w-md text-center space-y-4">
+        <Image
+          src="/images/login-intelligence-panel.png"
+          alt=""
+          fill
+          sizes="50vw"
+          className="absolute inset-0 object-cover object-center"
+          priority
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-primary/80" />
+        <div className="relative z-10 text-primary-foreground max-w-md text-center space-y-4">
           <div className="mb-8">
-                        <Image
+            <Image
               src="/images/logo-symbol.png"
               alt="Lead Hunting Engine"
               width={120}
@@ -61,9 +74,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-            <div data-testid="login-form-panel" className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
+      <div data-testid="login-form-panel" className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
         <div id="main-content" data-testid="login-form-container" className="w-full max-w-md space-y-8">
-                    <div className="lg:hidden mb-6">
+          <div className="lg:hidden mb-6">
             <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
               Lead Hunting Engine
             </span>

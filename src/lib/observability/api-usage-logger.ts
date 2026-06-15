@@ -16,6 +16,11 @@ export interface LogApiUsageInput {
   userId?: string | null
   jobId?: string | null
   metadata?: Record<string, unknown>
+  // outreach-engine (06-10, task 24/F-05): colunas agregaveis de qualidade
+  // por fonte (resultados retornados vs uteis) — metadata Json nao agrega via
+  // groupBy. usefulCount = leads efetivamente aproveitados (nao-duplicados).
+  resultCount?: number | null
+  usefulCount?: number | null
 }
 
 /**
@@ -34,6 +39,8 @@ export async function logApiUsage(input: LogApiUsageInput): Promise<void> {
         userId: input.userId ?? null,
         jobId: input.jobId ?? null,
         metadata: input.metadata as never,
+        resultCount: input.resultCount ?? null,
+        usefulCount: input.usefulCount ?? null,
       },
     })
   } catch {

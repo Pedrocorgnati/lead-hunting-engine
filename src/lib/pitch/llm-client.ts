@@ -63,7 +63,29 @@ export async function generateWithLLM(
   userPrompt: string,
   costCtx?: LLMCostContext
 ): Promise<LLMResult> {
-  // Tentar Anthropic primeiro
+  // Prioridade LLM: Kimi -> OpenAI -> Anthropic.
+  const kimiKey = await getApiKey('kimi')
+  if (kimiKey) {
+    try {
+      return await instrumented('kimi', 'kimi-k2.6', costCtx, () =>
+        generateWithKimi(kimiKey, systemPrompt, userPrompt)
+      )
+    } catch (e) {
+      console.warn('Kimi falhou, tentando OpenAI:', (e as Error).message)
+    }
+  }
+
+  const openaiKey = await getApiKey('openai')
+  if (openaiKey) {
+    try {
+      return await instrumented('openai', 'gpt-4o-mini', costCtx, () =>
+        generateWithOpenAI(openaiKey, systemPrompt, userPrompt)
+      )
+    } catch (e) {
+      console.warn('OpenAI falhou, tentando Anthropic:', (e as Error).message)
+    }
+  }
+
   const anthropicKey = await getApiKey('anthropic')
   if (anthropicKey) {
     try {
@@ -74,26 +96,42 @@ export async function generateWithLLM(
         () => generateWithAnthropic(anthropicKey, systemPrompt, userPrompt)
       )
     } catch (e) {
-      console.warn('Anthropic falhou, tentando OpenAI:', (e as Error).message)
-    }
-  }
-
-  // Fallback OpenAI
-  const openaiKey = await getApiKey('openai')
-  if (openaiKey) {
-    try {
-      return await instrumented('openai', 'gpt-4o-mini', costCtx, () =>
-        generateWithOpenAI(openaiKey, systemPrompt, userPrompt)
-      )
-    } catch (e) {
-      console.warn('OpenAI falhou:', (e as Error).message)
+      console.warn('Anthropic falhou:', (e as Error).message)
     }
   }
 
   // Nenhum provider disponível → PITCH_050
   throw new LLMUnavailableError(
-    'Nenhum provider LLM disponível. Configure Anthropic ou OpenAI em Configurações > Credenciais.'
+    'Nenhum provider LLM disponível. Configure Kimi, OpenAI ou Anthropic em Configurações > Credenciais.'
   )
+}
+
+async function generateWithKimi(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string
+): Promise<LLMResult> {
+  const { default: OpenAI } = await import('openai')
+  const client = new OpenAI({ apiKey, baseURL: 'https://api.moonshot.ai/v1' })
+
+  const response = await client.chat.completions.create({
+    model: 'kimi-k2.6',
+    max_tokens: LLM_MAX_OUTPUT_TOKENS,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt.slice(0, LLM_MAX_INPUT_TOKENS * 4) },
+    ],
+  })
+
+  const content = response.choices[0]?.message?.content ?? ''
+
+  return {
+    content,
+    provider: 'kimi',
+    model: 'kimi-k2.6',
+    inputTokens: response.usage?.prompt_tokens ?? 0,
+    outputTokens: response.usage?.completion_tokens ?? 0,
+  }
 }
 
 async function generateWithAnthropic(

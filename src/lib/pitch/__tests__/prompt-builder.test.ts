@@ -47,6 +47,26 @@ describe('buildPitchPrompt', () => {
     expect(userPrompt).not.toContain('Localização')
   })
 
+  // outreach-engine (06-10): o problema REAL do lead entra no prompt.
+  it('inclui os problemas/sinais identificados como gancho do pitch', () => {
+    const lead = makeLead({ website: null, signalLabels: ['Site ruim ou inexistente', 'WhatsApp manual como canal principal'] })
+    const { userPrompt } = buildPitchPrompt(lead, 'formal')
+    expect(userPrompt).toContain('Problemas/lacunas identificados')
+    expect(userPrompt).toContain('Site ruim ou inexistente')
+    expect(userPrompt).toContain('WhatsApp manual como canal principal')
+  })
+
+  it('cai para problems livres quando não há signalLabels', () => {
+    const lead = makeLead({ signalLabels: [], problems: ['Sem presença no Instagram'] })
+    const { userPrompt } = buildPitchPrompt(lead, 'formal')
+    expect(userPrompt).toContain('Sem presença no Instagram')
+  })
+
+  it('não inclui bloco de problemas quando não há nenhum (anti-alucinação)', () => {
+    const { userPrompt } = buildPitchPrompt(makeLead(), 'formal')
+    expect(userPrompt).not.toContain('Problemas/lacunas identificados')
+  })
+
   it('produz system prompts diferentes para tons diferentes', () => {
     const tones: ToneOption[] = ['formal', 'informal', 'tecnico']
     const prompts = tones.map(

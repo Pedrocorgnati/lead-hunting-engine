@@ -118,9 +118,6 @@ model UserProfile {
   avatarUrl           String?   @map("avatar_url")
   termsAcceptedAt     DateTime? @map("terms_accepted_at")
   deletionRequestedAt     DateTime? @map("deletion_requested_at")
-  onboardingCompletedAt   DateTime? @map("onboarding_completed_at")
-  onboardingStep          Int       @default(0) @map("onboarding_step")
-  onboardingData          Json?     @map("onboarding_data")
   leadsPerMonthMax        Int       @default(500) @map("leads_per_month_max")
   maxConcurrentJobs       Int       @default(3)   @map("max_concurrent_jobs")
   deactivatedAt           DateTime? @map("deactivated_at")
@@ -311,6 +308,9 @@ model Lead {
   placeId             String?         @map("place_id") @db.VarChar(255)
   facebookPageId      String?         @map("facebook_page_id") @db.VarChar(100)
   niche               String?         @db.VarChar(255)
+  // outreach-engine (06-10, task 19/F-19): score 0-100 de integridade de dados
+  // (email/telefone/site/placeId/frescor) — gate de elegibilidade de auto-outbound.
+  integrityScore      Int?            @map("integrity_score")
   metadata            Json?
   createdAt           DateTime        @default(now()) @map("created_at")
   updatedAt           DateTime        @updatedAt @map("updated_at")
@@ -372,6 +372,11 @@ model PitchTemplate {
   name       String   @db.VarChar(255)
   content    String
   tone       String   @default("formal") @db.VarChar(50)
+  // canal de envio do template (email|whatsapp|telefone) — o cadastro passou a
+  // diferenciar canal (antes era so "pitch" generico).
+  channel    String   @default("email") @db.VarChar(20)
+  // assunto do e-mail (so usado quando channel=email).
+  subject    String?  @db.VarChar(255)
   isFavorite Boolean  @default(false) @map("is_favorite")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -439,11 +444,15 @@ model ScoringRuleHistory {
   snapshot    Json
   changedBy   String?  @map("changed_by") @db.Uuid
   changeReason String? @map("change_reason") @db.VarChar(500)
+  // outreach-engine (06-10, task 23/F-06): rastreabilidade de ajuste de peso
+  // por experimento de campanha/fonte.
+  experimentId String? @map("experiment_id") @db.VarChar(80)
   createdAt   DateTime @default(now()) @map("created_at")
 
   rule ScoringRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId, createdAt])
+  @@index([experimentId])
   @@map("scoring_rule_history")
 }
 
@@ -794,6 +803,10 @@ model ApiUsageLog {
   costUsd       Decimal?  @db.Decimal(10, 6) @map("cost_usd")
   latencyMs     Int?      @map("latency_ms")
   correlationId String?   @map("correlation_id") @db.VarChar(100)
+  // outreach-engine (06-10, task 24/F-05): colunas numericas agregaveis de
+  // qualidade por fonte (metadata Json nao agrega via groupBy).
+  resultCount   Int?      @map("result_count")
+  usefulCount   Int?      @map("useful_count")
 
   @@index([provider, timestamp])
   @@index([provider, callType, timestamp])
@@ -862,6 +875,8 @@ enum ContactChannel {
   TELEFONE
   PRESENCIAL
   OUTRO
+  // outreach-engine (06-10): canal de campanha multicanal (F-18)
+  LINKEDIN
 }
 
 enum ContactOutcome {
@@ -870,6 +885,13 @@ enum ContactOutcome {
   INTERESTED
   REJECTED
   SCHEDULED
+  // outreach-engine (06-10): lifecycle de envio/resposta automatizada (F-09/F-12)
+  SENT
+  BOUNCED
+  OPT_OUT
+  FORWARDED
+  OUT_OF_OFFICE
+  AMBIGUOUS
 }
 
 model ContactEvent {
@@ -879,10 +901,16 @@ model ContactEvent {
   channel   ContactChannel
   outcome   ContactOutcome
   note      String?        @db.Text
+  // outreach-engine (06-10): vinculo dispatch->evento + payload estruturado
+  // (messageId, smtpResponse, dryRun, abVariant). Nullable: eventos manuais
+  // da UI continuam sem dispatch.
+  dispatchId String?       @map("dispatch_id") @db.Uuid
+  metadata   Json?
   createdAt DateTime       @default(now()) @map("created_at")
 
   @@index([leadId, createdAt])
   @@index([userId, createdAt])
+  @@index([dispatchId])
   @@map("contact_events")
 }
 
@@ -927,6 +955,12 @@ model LocalQueueJob {
   payload     Json
   status      String    @default("PENDING") @db.VarChar(20)
   attempts    Int       @default(0)
+  // outreach-engine (06-10, task 03): separa tentativa tecnica (attempts,
+  // incrementado no lease — crashes contam) de falha de negocio
+  // (failureCount, incrementado no ackFailed). reasonCode carrega a taxonomia
+  // de falha (auth|provider|validation|suppression|idempotency|inbox_parse|network).
+  failureCount Int      @default(0) @map("failure_count")
+  reasonCode  String?   @map("reason_code") @db.VarChar(40)
   leasedUntil DateTime? @map("leased_until")
   lastError   String?   @map("last_error")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -1048,4 +1082,236 @@ model UndoToken {
   @@index([leadId])
   @@index([expiresAt])
   @@map("undo_tokens")
+}
+
+// ─────────────────────────────────────────
+// OUTREACH ENGINE — brainstorm 06-10
+// (integracao-email-hostinger-lead-hunting)
+// F-09 campanhas, F-10 supressao, F-11 janela/kill-switch,
+// F-12 inbound, F-18 multicanal, F-22 replay seguro
+// ─────────────────────────────────────────
+
+enum OutreachChannel {
+  EMAIL
+  WHATSAPP
+  LINKEDIN
+}
+
+enum OutreachMailboxStatus {
+  ACTIVE
+  PAUSED
+  UNHEALTHY
+}
+
+enum OutreachCampaignStatus {
+  DRAFT
+  IN_REVIEW
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+// Estados transacionais de envio (task 02 do plano 06-10):
+// SCHEDULED -> LOCKED -> SENDING -> SENT | FAILED | AMBIGUOUS | FAILED_PERMANENT.
+// SUPPRESSED/CANCELLED sao terminais administrativos (supressao/pausa).
+// Toda transicao termina em estado final registrado (Zero Estados Indefinidos).
+enum OutreachDispatchStatus {
+  SCHEDULED
+  LOCKED
+  SENDING
+  SENT
+  FAILED
+  AMBIGUOUS
+  FAILED_PERMANENT
+  SUPPRESSED
+  CANCELLED
+}
+
+enum SuppressionKind {
+  EMAIL
+  DOMAIN
+  // contato direto (F-1 WhatsApp/telefone): "não perturbe" por número E.164.
+  PHONE
+}
+
+enum SuppressionReason {
+  BOUNCED
+  UNSUBSCRIBED
+  REPLIED
+  COMPLAINT
+  MANUAL
+}
+
+/// Caixa de envio SMTP/IMAP (Hostinger ou compativel). Senha cifrada
+/// AES-256-GCM no formato packed "ciphertext:authTag" + iv (mesmo padrao
+/// de ApiCredential / CryptoUtil). N caixas por dominio suportadas.
+model OutreachMailbox {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label             String                @db.VarChar(120)
+  emailAddress      String                @unique @map("email_address") @db.VarChar(255)
+  fromName          String?               @map("from_name") @db.VarChar(255)
+  replyTo           String?               @map("reply_to") @db.VarChar(255)
+  provider          String                @default("hostinger") @db.VarChar(50)
+  smtpHost          String                @map("smtp_host") @db.VarChar(255)
+  smtpPort          Int                   @default(465) @map("smtp_port")
+  smtpSecure        Boolean               @default(true) @map("smtp_secure")
+  imapHost          String?               @map("imap_host") @db.VarChar(255)
+  imapPort          Int?                  @map("imap_port")
+  username          String                @db.VarChar(255)
+  encryptedPassword String?               @map("encrypted_password")
+  passwordIv        String?               @map("password_iv") @db.VarChar(32)
+  status            OutreachMailboxStatus @default(PAUSED)
+  timezone          String                @default("America/Sao_Paulo") @db.VarChar(60)
+  sendWindowStart   String                @default("09:00") @map("send_window_start") @db.VarChar(5)
+  sendWindowEnd     String                @default("18:00") @map("send_window_end") @db.VarChar(5)
+  dailyCap          Int                   @default(50) @map("daily_cap")
+  minGapSeconds     Int                   @default(90) @map("min_gap_seconds")
+  jitterSeconds     Int                   @default(60) @map("jitter_seconds")
+  region            String?               @db.VarChar(10)
+  lastSentAt        DateTime?             @map("last_sent_at")
+  lastError         String?               @map("last_error") @db.VarChar(1000)
+  lastInboundSyncAt DateTime?             @map("last_inbound_sync_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  dispatches OutreachDispatch[]
+
+  @@index([status])
+  @@map("outreach_mailboxes")
+}
+
+/// Sequencia de passos de abordagem (1a/2a/3a mensagem). Passo seguinte so
+/// agenda apos resultado do anterior (task 08).
+model OutreachSequence {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(255)
+  description String?   @db.VarChar(500)
+  isActive    Boolean   @default(true) @map("is_active")
+  pausedAt    DateTime? @map("paused_at")
+  createdBy   String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  steps     OutreachSequenceStep[]
+  campaigns OutreachCampaign[]
+
+  @@map("outreach_sequences")
+}
+
+model OutreachSequenceStep {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sequenceId      String          @map("sequence_id") @db.Uuid
+  stepOrder       Int             @map("step_order")
+  channel         OutreachChannel @default(EMAIL)
+  subjectTemplate String?         @map("subject_template") @db.VarChar(500)
+  bodyTemplate    String          @map("body_template")
+  waitHours       Int             @default(72) @map("wait_hours")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  sequence OutreachSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@unique([sequenceId, stepOrder, channel])
+  @@map("outreach_sequence_steps")
+}
+
+/// Campanha cold-outbound. dryRun=true por default (contingencia 9.1 do
+/// fonte: sem pre-validacao verde, nada e enviado de verdade). Ativacao em
+/// massa exige approvedBy/approvedAt registrados (revisao humana, Fase 1).
+model OutreachCampaign {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String                 @map("user_id") @db.Uuid
+  name                 String                 @db.VarChar(255)
+  status               OutreachCampaignStatus @default(DRAFT)
+  market               String                 @default("BR") @db.VarChar(10)
+  niche                String?                @db.VarChar(255)
+  sequenceId           String?                @map("sequence_id") @db.Uuid
+  killSwitch           Boolean                @default(false) @map("kill_switch")
+  dryRun               Boolean                @default(true) @map("dry_run")
+  reviewedBy           String?                @map("reviewed_by") @db.Uuid
+  reviewedAt           DateTime?              @map("reviewed_at")
+  approvedBy           String?                @map("approved_by") @db.Uuid
+  approvedAt           DateTime?              @map("approved_at")
+  marketGateApprovedBy String?                @map("market_gate_approved_by") @db.Uuid
+  marketGateApprovedAt DateTime?              @map("market_gate_approved_at")
+  pausedAt             DateTime?              @map("paused_at")
+  pauseReason          String?                @map("pause_reason") @db.VarChar(500)
+  slaHours             Int?                   @map("sla_hours")
+  abConfig             Json?                  @map("ab_config")
+  metadata             Json?
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+
+  sequence   OutreachSequence?  @relation(fields: [sequenceId], references: [id], onDelete: SetNull)
+  dispatches OutreachDispatch[]
+
+  @@index([userId, status])
+  @@map("outreach_campaigns")
+}
+
+/// Row transacional de envio (1 tentativa logica de contato por passo).
+/// Anti double-send: alem do unique replayToken (F-22), a migration cria um
+/// partial unique index (lead_id, channel) WHERE status IN
+/// ('SCHEDULED','LOCKED','SENDING') — nenhum lead tem 2 envios ativos no
+/// mesmo canal (invariante 1.1 do fonte; nao representavel em Prisma DSL).
+model OutreachDispatch {
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId         String                 @map("campaign_id") @db.Uuid
+  leadId             String                 @map("lead_id") @db.Uuid
+  userId             String                 @map("user_id") @db.Uuid
+  mailboxId          String?                @map("mailbox_id") @db.Uuid
+  sequenceStep       Int                    @default(1) @map("sequence_step")
+  channel            OutreachChannel        @default(EMAIL)
+  status             OutreachDispatchStatus @default(SCHEDULED)
+  priority           Int                    @default(0)
+  toEmail            String?                @map("to_email") @db.VarChar(255)
+  toDomain           String?                @map("to_domain") @db.VarChar(255)
+  subject            String?                @db.VarChar(500)
+  abVariant          String?                @map("ab_variant") @db.VarChar(10)
+  replayToken        String                 @unique @map("replay_token") @db.VarChar(80)
+  scheduledAt        DateTime               @default(now()) @map("scheduled_at")
+  lockedAt           DateTime?              @map("locked_at")
+  sentAt             DateTime?              @map("sent_at")
+  failedAt           DateTime?              @map("failed_at")
+  messageId          String?                @map("message_id") @db.VarChar(500)
+  smtpResponse       String?                @map("smtp_response") @db.VarChar(1000)
+  reasonCode         String?                @map("reason_code") @db.VarChar(40)
+  failReason         String?                @map("fail_reason") @db.VarChar(2000)
+  dryRun             Boolean                @default(false) @map("dry_run")
+  contactEventId     String?                @map("contact_event_id") @db.Uuid
+  replyOutcome       String?                @map("reply_outcome") @db.VarChar(40)
+  repliedAt          DateTime?              @map("replied_at")
+  metadata           Json?
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+
+  campaign OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  mailbox  OutreachMailbox? @relation(fields: [mailboxId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, status])
+  @@index([leadId, createdAt])
+  @@index([status, scheduledAt])
+  @@index([mailboxId, sentAt])
+  @@index([toDomain, sentAt])
+  @@map("outreach_dispatches")
+}
+
+/// Supressao operacional (F-10): bloqueio por e-mail/dominio com motivo e
+/// cooldown opcional (null = permanente). Checada SEMPRE antes de envio;
+/// indisponibilidade da checagem forca DRY_RUN (contingencia 9.1).
+model SuppressionEntry {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind          SuppressionKind
+  value         String            @db.VarChar(320)
+  reason        SuppressionReason
+  source        String?           @db.VarChar(50)
+  cooldownUntil DateTime?         @map("cooldown_until")
+  notes         String?           @db.VarChar(500)
+  createdBy     String?           @map("created_by") @db.Uuid
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  @@unique([kind, value])
+  @@index([cooldownUntil])
+  @@map("suppression_entries")
 }

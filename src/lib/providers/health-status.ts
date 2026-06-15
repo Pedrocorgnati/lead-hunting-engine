@@ -14,7 +14,9 @@ import { findFallbackProvider } from '@/app/api/v1/admin/providers/[provider]/_p
  * excecao da resolucao de fallback — degrada para null com warning.
  */
 
-export type ProviderStatus = 'UP' | 'DEGRADED' | 'DOWN' | 'PAUSED'
+// H-07: UNCONFIGURED (sem credencial) e distinto de PAUSED (credencial existe
+// mas foi pausada). A UI nao deve mostrar "sem credencial" em vermelho de falha.
+export type ProviderStatus = 'UP' | 'DEGRADED' | 'DOWN' | 'PAUSED' | 'UNCONFIGURED'
 
 export interface ProviderHealthItem {
   source: string
@@ -55,8 +57,9 @@ function extractLogError(metadata: unknown): string | null {
  * Resolve o status do provider a partir do estado de credencial e da janela de
  * logs recentes (ordenados do mais recente para o mais antigo).
  *
- * Prioridade: PAUSED > DOWN > DEGRADED > UP.
- *  - PAUSED:   credencial inativa (ou ausente).
+ * Prioridade: UNCONFIGURED/PAUSED > DOWN > DEGRADED > UP.
+ *  - UNCONFIGURED: inativo E sem credencial no banco (nunca configurado).
+ *  - PAUSED:   inativo MAS credencial existe (pausa explicita pelo admin).
  *  - DOWN:     ativo E >= 3 logs consecutivos com erro na janela recente.
  *  - DEGRADED: ativo E (latencia media > 1000ms OU houve erro na janela mas o
  *              log mais recente esta limpo - recuperacao em andamento).
@@ -66,8 +69,9 @@ export function resolveStatus(
   isActive: boolean,
   errorFlags: boolean[],
   avgLatencyMs: number | null,
+  hasCredential = true,
 ): ProviderStatus {
-  if (!isActive) return 'PAUSED'
+  if (!isActive) return hasCredential ? 'PAUSED' : 'UNCONFIGURED'
 
   let consecutive = 0
   for (const hasError of errorFlags) {
@@ -149,7 +153,7 @@ export async function computeProviderHealth(): Promise<ProviderHealthItem[]> {
       const lastError =
         logs.map((log) => extractLogError(log.metadata)).find((value) => value !== null) ?? null
 
-      const status = resolveStatus(isActive, errorFlags, avgLatencyMs)
+      const status = resolveStatus(isActive, errorFlags, avgLatencyMs, cred !== undefined)
       const fallbackProvider = await resolveFallback(descriptor.source)
 
       return {

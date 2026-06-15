@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Download, UserPlus, CalendarClock, Trash2, Loader2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,7 +32,6 @@ interface CohortMember {
   name: string | null
   role: string
   pilotTags: string[]
-  onboardingCompleted: boolean
   joinedAt: string
   leadsCount: number
   lastNpsScore: number | null
@@ -42,8 +40,6 @@ interface CohortMember {
 
 interface Kpis {
   cohortSize: number
-  onboardingCompleted: number
-  onboardingRate: number
   totalLeads: number
   activeJobs: number
   npsResponses: number
@@ -241,11 +237,6 @@ export function PilotProgramDashboard() {
       ) : kpis ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Participantes" value={String(kpis.cohortSize)} />
-          <KpiCard
-            label="Onboarding concluido"
-            value={`${kpis.onboardingRate}%`}
-            hint={`${kpis.onboardingCompleted}/${kpis.cohortSize}`}
-          />
           <KpiCard label="Leads gerados" value={String(kpis.totalLeads)} hint={`${kpis.activeJobs} coletas ativas`} />
           <KpiCard
             label="NPS medio"
@@ -282,7 +273,6 @@ export function PilotProgramDashboard() {
               <TableRow>
                 <TableHead>Participante</TableHead>
                 <TableHead>Periodos</TableHead>
-                <TableHead>Onboarding</TableHead>
                 <TableHead className="text-right">Leads</TableHead>
                 <TableHead className="text-right">Ultimo NPS</TableHead>
                 <TableHead className="text-right">Acoes</TableHead>
@@ -310,13 +300,6 @@ export function PilotProgramDashboard() {
                         </button>
                       ))}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {m.onboardingCompleted ? (
-                      <Badge variant="outline">Concluido</Badge>
-                    ) : (
-                      <Badge variant="secondary">Pendente</Badge>
-                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{m.leadsCount}</TableCell>
                   <TableCell className="text-right tabular-nums">

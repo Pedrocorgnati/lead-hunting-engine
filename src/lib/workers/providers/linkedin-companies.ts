@@ -1,5 +1,6 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS, POLL_TIMEOUT_MS } from './_timeouts'
 import type { ScraperProvider, BusinessSearchParams, BusinessResult } from './types'
 
 const LINKEDIN_APIFY_ACTOR = 'curious_coder/linkedin-company-scraper'
@@ -42,6 +43,7 @@ export const LinkedInCompaniesProvider: ScraperProvider = {
             maxResults: params.maxResults ?? 25,
             country: 'BR',
           }),
+          ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
         }
       )
       if (res.status === 401) throw new Error('LINKEDIN_APIFY_TOKEN_MISSING: token invalido')
@@ -59,7 +61,9 @@ export const LinkedInCompaniesProvider: ScraperProvider = {
       await new Promise((r) => setTimeout(r, 5000))
       const statusRes = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
+        ...abortAfter(POLL_TIMEOUT_MS),
       })
+      if (!statusRes.ok) throw new Error(`LinkedIn Apify poll: HTTP ${statusRes.status}`)
       statusData = (await statusRes.json()) as typeof statusData
     } while (['RUNNING', 'READY'].includes(statusData.data?.status ?? ''))
 
@@ -71,8 +75,9 @@ export const LinkedInCompaniesProvider: ScraperProvider = {
     const limit = params.maxResults ?? 25
     const dataRes = await fetch(
       `https://api.apify.com/v2/datasets/${datasetId}/items?limit=${limit}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
+      { headers: { Authorization: `Bearer ${apiKey}` }, ...abortAfter(POLL_TIMEOUT_MS) }
     )
+    if (!dataRes.ok) throw new Error(`LinkedIn Apify dataset: HTTP ${dataRes.status}`)
     const items = (await dataRes.json()) as LinkedInCompanyRaw[]
 
     return (items ?? []).map((c): BusinessResult => {

@@ -1,5 +1,6 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import { dispatchJob, type DispatchResult } from './dispatcher'
+import { DataSource } from '@/lib/constants/enums'
 
 /**
  * Despacho canonico da coleta (fix critic P0: antes, 7 call-sites chamavam
@@ -17,6 +18,7 @@ export interface CollectLeadsDispatchPayload {
   location: string
   radius?: number
   maxResults?: number
+  sources?: DataSource[]
   retriedFromId?: string
   correlationId?: string
   origin?: string

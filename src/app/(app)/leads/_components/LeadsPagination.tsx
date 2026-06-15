@@ -13,16 +13,28 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 interface LeadsPaginationProps {
   page: number
   pages: number
-  buildHref: (nextPage: number) => string
+  /**
+   * Query string serializado dos filtros atuais (sem `page`). String e
+   * RSC-safe — antes era `buildHref: (n) => string`, mas funcoes nao podem ser
+   * passadas de Server Component para Client Component (erro Next 16). O href e
+   * remontado aqui no cliente.
+   */
+  baseQuery: string
 }
 
-export function LeadsPagination({ page, pages, buildHref }: LeadsPaginationProps) {
+export function LeadsPagination({ page, pages, baseQuery }: LeadsPaginationProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  const hrefFor = (nextPage: number) => {
+    const sp = new URLSearchParams(baseQuery)
+    sp.set('page', String(nextPage))
+    return `/leads?${sp.toString()}`
+  }
+
   const go = (nextPage: number) => {
     startTransition(() => {
-      router.push(buildHref(nextPage), { scroll: false })
+      router.push(hrefFor(nextPage), { scroll: false })
     })
   }
 

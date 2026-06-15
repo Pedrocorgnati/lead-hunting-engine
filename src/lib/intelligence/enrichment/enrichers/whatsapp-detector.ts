@@ -3,6 +3,17 @@
  *
  * Detecta se o negocio usa WhatsApp como canal principal de atendimento.
  * Puro, sem chamadas externas. Opera sobre HTML capturado e telefone ja coletado.
+ *
+ * Feature aumentar e-mails/WhatsApp (blacksmith 06-11, Task 6): alem de
+ * pontuar confianca, extrai os numeros embutidos em links wa.me e
+ * api.whatsapp.com/send?phone= (campo `extractedNumbers`), normalizados
+ * para '+<digitos>' e validados contra E.164 (8-15 digitos).
+ *
+ * Nota sobre o parametro `phone`: ele continua aceito (participa apenas do
+ * early-return quando nao ha HTML). A derivacao de nivel 'probable' a partir
+ * do telefone do lead NAO acontece aqui — e responsabilidade da pipeline,
+ * via classifyBRPhone/isMobileBR (phone-classifier.ts), mantendo este
+ * detector restrito a evidencia de HTML.
  */
 
 export interface WhatsappDetectorInput {
@@ -16,6 +27,69 @@ export interface WhatsappDetectorResult {
   isWhatsappChannel: boolean
   confidence: number // 0..1
   evidence: string[]
+  /**
+   * Numeros extraidos de links wa.me/<n> e api.whatsapp.com/send?phone=<n>,
+   * normalizados para '+<digitos>', deduplicados, em ordem de aparicao.
+   * Links malformados sao ignorados em silencio (nunca lanca).
+   */
+  extractedNumbers: string[]
+}
+
+// Candidatos a numero embutido em link. Captura tolerante — a validacao
+// rigorosa (E.164, separadores) acontece em normalizeWaCandidate.
+const WA_NUMBER_SOURCES: RegExp[] = [
+  // wa.me/<valor> — para em ?, #, &, aspas, espacos ou fim de atributo.
+  /https?:\/\/wa\.me\/([^"'\s<>?#&]+)/gi,
+  // api.whatsapp.com/send?...phone=<valor> — phone pode nao ser o 1o parametro.
+  /api\.whatsapp\.com\/send\?(?:[^"'\s<>&]*&)*phone=([^"'\s<>&#]+)/gi,
+]
+
+// Separadores ignoraveis dentro do candidato (no maximo 2 por numero).
+const WA_SEPARATOR_RE = /[\s().-]/g
+
+/**
+ * Normaliza um candidato capturado de link para '+<digitos>'.
+ * Regras: aceita '+' literal ou '%2B'; tolera ate 2 separadores ignoraveis
+ * (espaco/parentese/ponto/hifen, inclusive '%20'); exige 8-15 digitos
+ * (E.164). Retorna null para candidato malformado — nunca lanca.
+ */
+function normalizeWaCandidate(raw: string): string | null {
+  // Decodifica apenas os escapes relevantes ('+' e espaco); decodeURIComponent
+  // completo poderia lancar em sequencias invalidas.
+  let candidate = raw.replace(/%2B/gi, '+').replace(/%20/gi, ' ')
+
+  // '+' so e valido como primeiro caractere.
+  if (candidate.startsWith('+')) candidate = candidate.slice(1)
+  if (candidate.includes('+')) return null
+
+  const separators = candidate.match(WA_SEPARATOR_RE)
+  if (separators && separators.length > 2) return null
+  candidate = candidate.replace(WA_SEPARATOR_RE, '')
+
+  // Qualquer caractere restante que nao seja digito = link malformado.
+  if (!/^\d+$/.test(candidate)) return null
+
+  // E.164: 8-15 digitos.
+  if (candidate.length < 8 || candidate.length > 15) return null
+
+  return `+${candidate}`
+}
+
+/**
+ * Extrai numeros de WhatsApp de links no HTML. Pura, nunca lanca;
+ * malformados sao descartados em silencio. Resultado deduplicado.
+ */
+function extractWaNumbers(html: string): string[] {
+  const found = new Set<string>()
+  for (const source of WA_NUMBER_SOURCES) {
+    // Regexes com flag g guardam lastIndex — reseta para manter a funcao pura.
+    source.lastIndex = 0
+    for (const match of html.matchAll(source)) {
+      const normalized = normalizeWaCandidate(match[1])
+      if (normalized) found.add(normalized)
+    }
+  }
+  return [...found]
 }
 
 const WA_LINK_PATTERNS: Array<{ re: RegExp; tag: string; weight: number }> = [
@@ -42,7 +116,7 @@ export function detectWhatsapp(input: WhatsappDetectorInput): WhatsappDetectorRe
   let confidence = 0
 
   if (!html && !input.phone) {
-    return { isWhatsappChannel: false, confidence: 0, evidence: [] }
+    return { isWhatsappChannel: false, confidence: 0, evidence: [], extractedNumbers: [] }
   }
 
   for (const { re, tag, weight } of WA_LINK_PATTERNS) {
@@ -76,5 +150,5 @@ export function detectWhatsapp(input: WhatsappDetectorInput): WhatsappDetectorRe
   confidence = Math.min(1, Math.round(confidence * 100) / 100)
   const isWhatsappChannel = confidence >= 0.3 && evidence.length > 0
 
-  return { isWhatsappChannel, confidence, evidence }
+  return { isWhatsappChannel, confidence, evidence, extractedNumbers: extractWaNumbers(html) }
 }

@@ -124,8 +124,6 @@ export class ProfileService {
         avatarUrl: true,
         termsAcceptedAt: true,
         deletionRequestedAt: true,
-        onboardingCompletedAt: true,
-        onboardingStep: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -272,8 +270,6 @@ export class ProfileService {
         avatar_url: profile.avatarUrl,
         terms_accepted_at: profile.termsAcceptedAt,
         deletion_requested_at: profile.deletionRequestedAt,
-        onboarding_completed_at: profile.onboardingCompletedAt,
-        onboarding_step: profile.onboardingStep,
         created_at: profile.createdAt,
         updated_at: profile.updatedAt,
       },
@@ -312,8 +308,6 @@ export interface UserDataExport {
     avatar_url: string | null
     terms_accepted_at: Date | null
     deletion_requested_at: Date | null
-    onboarding_completed_at: Date | null
-    onboarding_step: number
     created_at: Date
     updated_at: Date
   } | null

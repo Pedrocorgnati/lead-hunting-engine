@@ -1,4 +1,4 @@
-import { DedupEngine, RADAR_NEW_BADGE_WINDOW_MS, stringSimilarity } from '../dedup-engine'
+import { DedupEngine, RADAR_NEW_BADGE_WINDOW_MS, stringSimilarity, normalizeForDedup } from '../dedup-engine'
 
 describe('stringSimilarity', () => {
   it('[SUCCESS] retorna 1 para strings idênticas', () => {
@@ -97,5 +97,28 @@ describe('DedupEngine.isLeadNewFromRadar', () => {
 
   it('RADAR_NEW_BADGE_WINDOW_MS vale 24h', () => {
     expect(RADAR_NEW_BADGE_WINDOW_MS).toBe(24 * 60 * 60 * 1000)
+  })
+})
+
+describe('normalizeForDedup (P-12)', () => {
+  it('remove diacriticos e baixa caixa', () => {
+    expect(normalizeForDedup('Clínica São José')).toBe('clinica sao jose')
+  })
+
+  it('troca pontuacao por espaco e colapsa espacos', () => {
+    expect(normalizeForDedup('Av.  Brasil, 100 - Centro')).toBe('av brasil 100 centro')
+  })
+
+  it('faz nomes acentuados e nao-acentuados colidirem na similaridade', () => {
+    const a = normalizeForDedup('Clínica São José Saúde')
+    const b = normalizeForDedup('Clinica Sao Jose Saude')
+    expect(a).toBe(b)
+    expect(stringSimilarity(a, b)).toBe(1)
+  })
+
+  it('nomes acentuados quase iguais ficam acima do threshold de dedup', () => {
+    const a = normalizeForDedup('Cardiolife Clínica Médica')
+    const b = normalizeForDedup('Cardiolife Clinica Medica')
+    expect(stringSimilarity(a, b)).toBeGreaterThan(0.85)
   })
 })

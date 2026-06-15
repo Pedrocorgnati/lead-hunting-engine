@@ -1,3 +1,5 @@
+import type { WhatsappEnrichment } from './enrichment-data'
+
 export interface EnrichedLeadData {
   // Dados base
   name: string
@@ -26,6 +28,18 @@ export interface EnrichedLeadData {
   hasEcommerce?: boolean | null
   ecommercePlatform?: string | null
   analyticsPixels?: string[]
+
+  // Feature aumentar e-mails/WhatsApp (blacksmith 06-11, criterio 19): sinal
+  // WhatsApp com nivel. 'confirmed' SOMENTE com evidencia de HTML; 'probable'
+  // deriva de celular BR valido (phone-classifier); 'unknown' caso contrario.
+  // Shape canonico em enrichment-data.ts — persistido em Lead.enrichmentData.
+  whatsapp: WhatsappEnrichment
+
+  // P-09: campos derivados ja computados em stage-website.metadata, expostos
+  // para persistencia no Lead (antes eram calculados e descartados).
+  emailPrimary?: string | null   // email priorizado (generico > pessoal) descoberto
+  uxScore?: number | null        // 0-100 da analise de UX do HTML capturado
+  uxSignals?: unknown            // sinais de UX para debug/admin
 
   // Metadata de enriquecimento
   enrichmentSources: string[]   // ex: ['raw_lead_data', 'google-places']

@@ -1,5 +1,6 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
+import { abortAfter, TEXTSEARCH_TIMEOUT_MS } from './_timeouts'
 import type { ScraperProvider, BusinessSearchParams, BusinessResult } from './types'
 
 const GP_BASE = 'https://maps.googleapis.com/maps/api'
@@ -22,7 +23,7 @@ export const GooglePlacesProvider: ScraperProvider = {
       if (nextPageToken) url.searchParams.set('pagetoken', nextPageToken)
 
       const data = await withRetry(async () => {
-        const res = await fetch(url.toString())
+        const res = await fetch(url.toString(), abortAfter(TEXTSEARCH_TIMEOUT_MS))
         if (!res.ok) throw new Error(`Google Places: HTTP ${res.status}`)
         return res.json() as Promise<Record<string, unknown>>
       })

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { CryptoUtil } from '@/lib/services/crypto-util'
+import { maskUrlSecrets } from '@/lib/observability/mask-url'
 import { AuditService } from '@/lib/services/audit-service'
 import type { UpsertCredentialInput, UpdateScoringRuleInput } from '@/schemas/config.schema'
 import type { ScoringRule } from '@prisma/client'
@@ -18,6 +19,9 @@ const PROVIDER_TO_DATA_SOURCES: Record<string, DataSource[]> = {
   APIFY: [DataSource.APIFY],
   HERE_MAPS: [DataSource.HERE_PLACES],
   TOMTOM: [DataSource.TOMTOM],
+  KIMI: [],
+  OPENAI: [],
+  ANTHROPIC: [],
 }
 
 // ─── ApiCredential DTO ───────────────────────────────────────────────────────
@@ -60,6 +64,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   GOOGLE_PLACES: 'Google Places',
   OUTSCRAPER: 'Outscraper',
   APIFY: 'Apify',
+  KIMI: 'Kimi',
   OPENAI: 'OpenAI',
   ANTHROPIC: 'Anthropic',
 }
@@ -273,6 +278,13 @@ export class ConfigService {
           result = { ok: res.ok, message: res.ok ? 'OpenAI: chave válida' : `OpenAI: ${res.status}` }
           break
         }
+        case 'KIMI': {
+          const res = await fetch('https://api.moonshot.ai/v1/models', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          })
+          result = { ok: res.ok, message: res.ok ? 'Kimi: chave valida' : `Kimi: ${res.status}` }
+          break
+        }
         case 'ANTHROPIC': {
           // Live test: chamada minima ao endpoint /v1/models (GET).
           // Anthropic retorna 200 com lista de modelos em chave valida; 401 em invalida.
@@ -308,7 +320,9 @@ export class ConfigService {
         }
       }
     } catch (e) {
-      result = { ok: false, message: `Erro de conexão: ${(e as Error).message}` }
+      // H-01: a mensagem e persistida em auditSummary; mascarar para nao gravar
+      // key/apiKey que a API exige em query string (Google/HERE/TomTom).
+      result = { ok: false, message: maskUrlSecrets(`Erro de conexão: ${(e as Error).message}`) }
     }
 
     await prisma.apiCredential.update({
@@ -331,7 +345,9 @@ export class ConfigService {
   async updateScoringRule(
     ruleId: string,
     data: UpdateScoringRuleInput,
-    opts?: { changedBy?: string; changeReason?: string },
+    // outreach-engine (06-10, task 23/F-06): experimentId rastreia ajuste de
+    // peso por campanha/fonte — permite medir impacto do experimento.
+    opts?: { changedBy?: string; changeReason?: string; experimentId?: string },
   ): Promise<ScoringRule> {
     return prisma.$transaction(async (tx) => {
       const previous = await tx.scoringRule.findUnique({ where: { id: ruleId } })
@@ -342,6 +358,7 @@ export class ConfigService {
             snapshot: previous as never,
             changedBy: opts?.changedBy ?? null,
             changeReason: opts?.changeReason ?? null,
+            experimentId: opts?.experimentId ?? null,
           },
         })
       }
@@ -350,6 +367,19 @@ export class ConfigService {
         // condition é Record<string,unknown> — cast necessário para Prisma InputJsonValue
         data: { ...data, condition: data.condition as never },
       })
+    })
+  }
+
+  /**
+   * outreach-engine (06-10, task 23/F-06): impacto de um experimento de
+   * scoring. Lista as mudancas de peso atribuidas ao experimentId (rastreaveis
+   * por ID) com snapshot antes/depois — base para medir o efeito por campanha.
+   */
+  async getScoringExperimentImpact(experimentId: string) {
+    return prisma.scoringRuleHistory.findMany({
+      where: { experimentId },
+      orderBy: { createdAt: 'desc' },
+      include: { rule: { select: { slug: true, name: true, weight: true } } },
     })
   }
 

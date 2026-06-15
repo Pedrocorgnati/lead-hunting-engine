@@ -97,6 +97,19 @@ export type AuditAction =
   | 'alert.silenced'
   | 'alert.resolved'
   | 'alert.reopened'
+  // outreach-engine (brainstorm 06-10): governanca de campanha/caixa/supressao
+  | 'outreach.killswitch_toggled'
+  | 'outreach.campaign_approved'
+  | 'outreach.campaign_armed'
+  | 'outreach.campaign_paused'
+  | 'outreach.campaign_resumed'
+  | 'outreach.campaign_rolled_back'
+  | 'outreach.dispatch_replayed'
+  | 'outreach.mailbox_created'
+  | 'outreach.mailbox_status_changed'
+  | 'outreach.suppression_added'
+  | 'outreach.suppression_removed'
+  | 'outreach.market_gate_updated'
 
 interface AuditLogParams {
   userId?: string

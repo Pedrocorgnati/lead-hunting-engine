@@ -221,20 +221,34 @@ export async function dispatch(payload: DispatchPayload): Promise<void> {
     }
 
     const delivered = results.filter((r) => r.ok).map((r) => r.channel).join(',')
+    const failedChannels = results.filter((r) => !r.ok).map((r) => r.channel)
     console.info(
       `[notifications] ${payload.event} -> user=${payload.userId} delivered=[${delivered}]`
     )
 
-    // C14.3: telemetria de notificacao despachada (nao bloqueante)
+    // C14.3: telemetria de notificacao despachada (nao bloqueante).
+    // outreach-engine 06-10 (task 04): canal que falhou carrega reason_code
+    // nao nulo — incidentes filtram por reasonCode na trilha do auditLog.
     void track({
       kind: 'notification.dispatched',
       correlationId: makeCorrelationId('notif'),
       userId: payload.userId,
       resourceType: 'notification',
-      metadata: { event: payload.event, delivered, dndSuppressed: dndActive },
+      metadata: {
+        event: payload.event,
+        delivered,
+        dndSuppressed: dndActive,
+        ...(failedChannels.length > 0
+          ? { failedChannels: failedChannels.join(','), reasonCode: 'provider' }
+          : {}),
+      },
     })
   } catch (e) {
-    console.warn('[notifications] falha ao despachar:', (e as Error).message)
+    const { classifyError } = await import('@/lib/workers/reason-codes')
+    console.warn(
+      `[notifications] falha ao despachar (reason_code=${classifyError(e)}):`,
+      (e as Error).message,
+    )
   }
 }
 

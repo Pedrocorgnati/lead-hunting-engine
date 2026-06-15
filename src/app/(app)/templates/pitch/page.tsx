@@ -1,13 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus, Star, Search } from 'lucide-react'
-import { getPitchTemplates } from '@/actions/pitch-templates'
+import { getPitchTemplates, updateSenderProfile } from '@/actions/pitch-templates'
 import { TemplateCardActions } from './_components/TemplateCardActions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TONE_OPTIONS, TONE_LABELS, ToneOption } from '@/lib/pitch/tone-config'
+import { CHANNEL_LABELS, ChannelOption } from '@/lib/pitch/channel-config'
+import { getSenderProfile, senderProfileIncomplete } from '@/lib/outreach/sender-profile'
 
 export const metadata: Metadata = {
   title: 'Templates de pitch',
@@ -29,6 +32,8 @@ export default async function TemplatesPitchPage({ searchParams }: PageProps) {
     search: params.search,
     tone: params.tone,
   })
+  const sender = await getSenderProfile()
+  const senderMissing = senderProfileIncomplete(sender)
 
   return (
     <div className="space-y-6 p-6">
@@ -46,6 +51,38 @@ export default async function TemplatesPitchPage({ searchParams }: PageProps) {
           </Button>
         </Link>
       </div>
+
+      {/* Perfil do remetente — alimenta {{meu_nome}}, {{meu_whatsapp}}, etc. */}
+      <Card data-testid="sender-profile">
+        <CardHeader>
+          <CardTitle className="text-base">
+            Seu perfil de remetente {senderMissing && <span className="ml-2 text-xs font-normal text-destructive">configure seu WhatsApp para os templates funcionarem</span>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={async (formData: FormData) => { 'use server'; await updateSenderProfile(formData) }} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1">
+              <Label htmlFor="sp-name" className="text-xs">Seu nome <span className="text-muted-foreground">{'{{meu_nome}}'}</span></Label>
+              <Input id="sp-name" name="name" defaultValue={sender.name} placeholder="Pedro Corgnati" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sp-company" className="text-xs">Sua empresa <span className="text-muted-foreground">{'{{minha_empresa}}'}</span></Label>
+              <Input id="sp-company" name="company" defaultValue={sender.company} placeholder="Corgnati Tech" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sp-whatsapp" className="text-xs">Seu WhatsApp <span className="text-muted-foreground">{'{{meu_whatsapp}}'}</span></Label>
+              <Input id="sp-whatsapp" name="whatsapp" defaultValue={sender.whatsapp} placeholder="(12) 99999-9999" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sp-portfolio" className="text-xs">Seu portfólio <span className="text-muted-foreground">{'{{meu_portfolio}}'}</span></Label>
+              <Input id="sp-portfolio" name="portfolio" defaultValue={sender.portfolio} placeholder="corgnati.com" />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-4">
+              <Button type="submit" size="sm">Salvar perfil</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <form className="flex gap-2" method="get">
         <div className="relative flex-1">
@@ -92,7 +129,10 @@ export default async function TemplatesPitchPage({ searchParams }: PageProps) {
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-label="Favorito" />
                   )}
                 </div>
-                <Badge variant="outline">{TONE_LABELS[t.tone as ToneOption] ?? t.tone}</Badge>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge>{CHANNEL_LABELS[(t.channel ?? 'email') as ChannelOption] ?? t.channel}</Badge>
+                  <Badge variant="outline">{TONE_LABELS[t.tone as ToneOption] ?? t.tone}</Badge>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="line-clamp-3 text-sm text-muted-foreground">{t.content}</p>

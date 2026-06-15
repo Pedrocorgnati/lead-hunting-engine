@@ -12,7 +12,7 @@ const QuerySchema = z.object({ tag: z.string().trim().optional() })
  * GET /api/v1/admin/pilot-program/kpis — Task 56 / C6.
  *
  * KPIs do programa piloto, todos DERIVADOS de dados existentes (cohort por
- * tags, onboarding, leads, NPS, jobs). Nenhuma metrica nova persistida.
+ * tags, leads, NPS, jobs). Nenhuma metrica nova persistida.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,19 +26,16 @@ export async function GET(request: NextRequest) {
         tag && isPilotTag(tag)
           ? { tags: { has: tag } }
           : { NOT: { tags: { isEmpty: true } } },
-      select: { id: true, tags: true, onboardingCompletedAt: true },
+      select: { id: true, tags: true },
     })
     const cohort = candidates.filter((u) => pilotTagsOf(u.tags).length > 0)
     const ids = cohort.map((u) => u.id)
 
     const cohortSize = cohort.length
-    const onboardingCompleted = cohort.filter((u) => u.onboardingCompletedAt !== null).length
 
     if (ids.length === 0) {
       return successResponse({
         cohortSize: 0,
-        onboardingCompleted: 0,
-        onboardingRate: 0,
         totalLeads: 0,
         activeJobs: 0,
         npsResponses: 0,
@@ -66,8 +63,6 @@ export async function GET(request: NextRequest) {
 
     return successResponse({
       cohortSize,
-      onboardingCompleted,
-      onboardingRate: cohortSize > 0 ? Math.round((onboardingCompleted / cohortSize) * 100) : 0,
       totalLeads,
       activeJobs,
       npsResponses: npsAgg._count._all,

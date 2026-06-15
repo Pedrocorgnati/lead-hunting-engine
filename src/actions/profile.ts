@@ -111,23 +111,3 @@ export async function cancelAccountDeletion(): Promise<{ success: boolean }> {
   revalidatePath('/profile')
   return { success: true }
 }
-
-export async function completeOnboarding(): Promise<{ success: boolean }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const profile = await prisma.userProfile.findUnique({
-    where: { id: user.id },
-    select: { onboardingCompletedAt: true },
-  })
-
-  if (!profile?.onboardingCompletedAt) {
-    await prisma.userProfile.update({
-      where: { id: user.id },
-      data: { onboardingCompletedAt: new Date() },
-    })
-  }
-
-  return { success: true }
-}

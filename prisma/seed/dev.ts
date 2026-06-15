@@ -13,7 +13,6 @@
 import 'dotenv/config'
 import { createSeedClient } from './client'
 import {
-  PrismaClient,
   UserRole,
   InviteStatus,
   CollectionJobStatus,
@@ -39,7 +38,7 @@ const prisma = createSeedClient()
 // Usuários
 const ADMIN_ID     = '00000000-0000-0000-0000-000000000001'
 const OPERATOR_ID  = '00000000-0000-0000-0000-000000000002'
-const OPERATOR2_ID = '00000000-0000-0000-0000-000000000003' // sem onboarding (US-010 edge case)
+const OPERATOR2_ID = '00000000-0000-0000-0000-000000000003' // operador novo (US-010 edge case)
 const DELETION_ID  = '00000000-0000-0000-0000-000000000004' // deletion_requested (USER_050)
 
 // Invites — cobre todos os 4 InviteStatus
@@ -144,8 +143,8 @@ async function main() {
   // NIVEL 0 — UserProfiles
   // =========================================================================
 
-  // ADMIN — onboarding completo
-  const admin = await prisma.userProfile.upsert({
+  // ADMIN
+  await prisma.userProfile.upsert({
     where: { email: 'admin@dev.local' },
     update: {},
     create: {
@@ -154,12 +153,11 @@ async function main() {
       name: 'Pedro Admin',
       role: UserRole.ADMIN,
       termsAcceptedAt: daysAgo(30),
-      onboardingCompletedAt: daysAgo(30),
       avatarUrl: 'https://picsum.photos/seed/admin-dev/80/80',
     },
   })
 
-  // OPERATOR — onboarding completo
+  // OPERATOR
   await prisma.userProfile.upsert({
     where: { email: 'operador@dev.local' },
     update: {},
@@ -169,11 +167,10 @@ async function main() {
       name: 'Carlos Operador',
       role: UserRole.OPERATOR,
       termsAcceptedAt: daysAgo(15),
-      onboardingCompletedAt: daysAgo(15),
     },
   })
 
-  // OPERATOR — sem onboarding (US-010 edge case: primeiro acesso sem completar onboarding)
+  // OPERATOR — novo (US-010 edge case: primeiro acesso)
   await prisma.userProfile.upsert({
     where: { email: 'novato@dev.local' },
     update: {},
@@ -183,7 +180,6 @@ async function main() {
       name: 'Fernanda Novata',
       role: UserRole.OPERATOR,
       termsAcceptedAt: daysAgo(1),
-      onboardingCompletedAt: null,
     },
   })
 
@@ -197,12 +193,11 @@ async function main() {
       name: 'João Saindo',
       role: UserRole.OPERATOR,
       termsAcceptedAt: daysAgo(90),
-      onboardingCompletedAt: daysAgo(90),
       deletionRequestedAt: daysAgo(2),
     },
   })
 
-  console.log('  ✓ UserProfiles (4): ADMIN, OPERATOR, sem-onboarding, deletion-requested')
+  console.log('  ✓ UserProfiles (4): ADMIN, OPERATOR, novo, deletion-requested')
 
   // =========================================================================
   // NIVEL 1 — Invites (cobre todos os 4 InviteStatus)
@@ -765,7 +760,7 @@ async function main() {
       temperature: LeadTemperature.HOT,
       opportunities: [OpportunityType.E_SCALE],
       problems: ['Sistema legado sem integração delivery', 'Sem presença em apps'],
-      suggestions: ['Novo sistema integrado', 'Onboarding iFood e Rappi'],
+      suggestions: ['Novo sistema integrado', 'Ativacao iFood e Rappi'],
       contactedAt: daysAgo(20),
       notes: 'Fechou contrato em 15/03 — R$ 8.500,00. Início da execução: 01/04.',
       scoreBreakdown: {
@@ -1000,7 +995,7 @@ async function main() {
   console.log('\n🎉 Dev seed concluído com sucesso!')
   console.log('   ScoringRules:     6  (website_presence, social_presence, reviews, location, digital_maturity, digital_gap)')
   console.log('   ApiCredentials:   3  (google_places ativo, outscraper inativo, openai ativo)')
-  console.log('   UserProfiles:     4  (ADMIN, OPERATOR, sem-onboarding, deletion-requested)')
+  console.log('   UserProfiles:     4  (ADMIN, OPERATOR, novo, deletion-requested)')
   console.log('   Invites:          4  (PENDING, ACCEPTED, EXPIRED, REVOKED)')
   console.log('   CollectionJobs:   7  (todos os status)')
   console.log('   PitchTemplates:   3  (formal, casual-fav, automação)')

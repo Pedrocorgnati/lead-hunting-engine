@@ -106,3 +106,67 @@ export class InvalidTransitionError extends Error {
 export function asStatus(s: Lead['status']): LeadStatusValue {
   return s as LeadStatusValue
 }
+
+// ─── outreach-engine (brainstorm 06-10) ────────────────────────────────────
+
+/**
+ * Task 22 (F-23): loop de feedback comercial — mapeia outcome de
+ * ContactEvent para o proximo passo executavel. `targetStatus` null = sem
+ * transicao automatica (decisao humana); `nextAction` e sempre sugerida
+ * (Zero Estados Indefinidos: todo outcome tem proximo passo).
+ *
+ * Inclui os outcomes novos do outreach (SENT/BOUNCED/OPT_OUT/FORWARDED/
+ * OUT_OF_OFFICE/AMBIGUOUS) e os legados manuais.
+ */
+export type ContactOutcomeValue =
+  | 'NO_ANSWER'
+  | 'ANSWERED'
+  | 'INTERESTED'
+  | 'REJECTED'
+  | 'SCHEDULED'
+  | 'SENT'
+  | 'BOUNCED'
+  | 'OPT_OUT'
+  | 'FORWARDED'
+  | 'OUT_OF_OFFICE'
+  | 'AMBIGUOUS'
+
+export type NextLeadAction =
+  | 'follow_up'
+  | 'human_review'
+  | 'schedule_meeting'
+  | 'close_lost'
+  | 'close_won_path'
+  | 'enrich_again'
+  | 'none'
+
+export const NEXT_ACTION_BY_OUTCOME: Record<
+  ContactOutcomeValue,
+  { targetStatus: LeadStatusValue | null; nextAction: NextLeadAction; label: string }
+> = {
+  SENT: { targetStatus: 'CONTACTED', nextAction: 'follow_up', label: 'Aguardar resposta / follow-up agendado' },
+  NO_ANSWER: { targetStatus: null, nextAction: 'follow_up', label: 'Sem resposta — follow-up' },
+  ANSWERED: { targetStatus: null, nextAction: 'human_review', label: 'Respondeu — revisar e responder' },
+  INTERESTED: { targetStatus: 'NEGOTIATING', nextAction: 'schedule_meeting', label: 'Interessado — agendar conversa' },
+  SCHEDULED: { targetStatus: 'NEGOTIATING', nextAction: 'close_won_path', label: 'Reuniao marcada — conduzir negociacao' },
+  REJECTED: { targetStatus: 'DISCARDED', nextAction: 'close_lost', label: 'Recusou — encerrar campanha' },
+  OPT_OUT: { targetStatus: 'DISCARDED', nextAction: 'close_lost', label: 'Opt-out — suprimir e encerrar' },
+  BOUNCED: { targetStatus: null, nextAction: 'enrich_again', label: 'Bounce — re-enriquecer contato' },
+  FORWARDED: { targetStatus: null, nextAction: 'human_review', label: 'Encaminhado — revisar novo contato' },
+  OUT_OF_OFFICE: { targetStatus: null, nextAction: 'follow_up', label: 'Fora do escritorio — reagendar follow-up' },
+  AMBIGUOUS: { targetStatus: null, nextAction: 'human_review', label: 'Resposta ambigua — revisao humana' },
+}
+
+/**
+ * Transicao automatica sugerida por outcome, respeitando o state machine.
+ * Retorna null quando nao ha transicao automatica valida a partir do estado
+ * atual (ex.: outcome INTERESTED com lead ja CONVERTED).
+ */
+export function outcomeTargetStatus(
+  outcome: ContactOutcomeValue,
+  current: LeadStatusValue,
+): LeadStatusValue | null {
+  const target = NEXT_ACTION_BY_OUTCOME[outcome]?.targetStatus ?? null
+  if (!target || target === current) return null
+  return isValidTransition(current, target) ? target : null
+}

@@ -84,10 +84,34 @@ export async function PATCH(
       return successResponse(existing)
     }
 
-    const updated = (await prisma.lead.update({
-      where: { id },
-      data: updateData as never,
-    })) as Lead
+    // outreach-engine (06-10, fix da revisao): transicao de status com guard
+    // ATOMICO. Antes era read-modify-write (findFirst -> update by id), que
+    // corria com o worker de outreach (lead-status-bridge) e podia sobrescrever
+    // uma transicao ja aplicada com estado stale. updateMany guarded por
+    // {id, status: fromStatus} faz a transicao PERDER (count=0 -> 409) em vez
+    // de regredir o estado.
+    if (data.status && updateData.status) {
+      const fromStatus = asStatus(existing.status)
+      const res = await prisma.lead.updateMany({
+        where: { ...whereOwnership, status: fromStatus },
+        data: updateData as never,
+      })
+      if (res.count === 0) {
+        return NextResponse.json(
+          {
+            error: {
+              code: 'LEAD_CONFLICT',
+              message: 'O status do lead mudou em outra operação. Recarregue e tente novamente.',
+            },
+          },
+          { status: 409 },
+        )
+      }
+    } else {
+      await prisma.lead.update({ where: { id }, data: updateData as never })
+    }
+
+    const updated = (await prisma.lead.findUnique({ where: { id } })) as Lead
 
     // TASK-5: registrar mudancas em lead_history (best-effort, nao quebra response)
     await trackLeadChanges(

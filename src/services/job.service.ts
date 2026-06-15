@@ -42,6 +42,7 @@ export class JobService {
       query: job.niche,
       location: job.state ? `${job.city}, ${job.state}` : job.city,
       maxResults: job.limitVal ?? 100,
+      sources: job.sources,
     })
 
     return job

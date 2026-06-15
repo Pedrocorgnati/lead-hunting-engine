@@ -1,5 +1,6 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS } from './_timeouts'
 import type { ScraperProvider, BusinessSearchParams, BusinessResult } from './types'
 
 export const OutscraperProvider: ScraperProvider = {
@@ -15,6 +16,7 @@ export const OutscraperProvider: ScraperProvider = {
     const data = await withRetry(async () => {
       const res = await fetch(url, {
         headers: { 'X-API-KEY': apiKey },
+        ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
       })
       if (res.status === 429) throw new Error('429 rate limit')
       if (!res.ok) throw new Error(`Outscraper: HTTP ${res.status}`)

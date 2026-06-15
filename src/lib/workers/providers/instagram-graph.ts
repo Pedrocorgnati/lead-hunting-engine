@@ -1,5 +1,6 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS } from './_timeouts'
 import type { SocialProvider, SocialSearchParams, SocialProfileData } from './types'
 
 const IG_API_BASE = 'https://graph.facebook.com/v19.0'
@@ -22,10 +23,14 @@ export const InstagramGraphProvider: SocialProvider = {
 
     const url = new URL(`${IG_API_BASE}/me`)
     url.searchParams.set('fields', `business_discovery.fields(username,followers_count,biography,website,media_count,media{timestamp})`)
-    url.searchParams.set('access_token', apiKey)
+    // H-01: token via Authorization header (nao em query) — evita vazar em logs
+    // de proxy/CDN/referrer. O Graph API aceita Bearer como alternativa a ?access_token=.
 
     const raw = await withRetry(async () => {
-      const res = await fetch(url.toString())
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
+      })
       if (res.status === 401) throw new Error('INSTAGRAM_TOKEN_MISSING: token invalido ou expirado')
       if (!res.ok) throw new Error(`Instagram Graph API HTTP ${res.status}`)
       return res.json() as Promise<Record<string, unknown>>

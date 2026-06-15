@@ -3,7 +3,7 @@
  * cohort por tags `pilot-{periodo}` ja convencionado em M14-G-010
  * (`/api/v1/admin/users/[id]/tags`). NAO duplica dados: o cohort vive nas
  * `UserProfile.tags`, as entrevistas viram `Notification`, os KPIs sao
- * derivados de leads/onboarding/NPS existentes.
+ * derivados de leads/NPS existentes.
  */
 
 export const PILOT_TAG_PREFIX = 'pilot-'

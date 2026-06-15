@@ -14,7 +14,7 @@ const MARKETING_PATHS = [
   '/privacidade',
   '/termos',
 ]
-const MARKETING_PREFIXES = ['/blog']
+const MARKETING_PREFIXES = ['/blog', '/casos-de-uso']
 const AUTH_PAGE_PATHS = ['/login', '/invite', '/recuperar-senha']
 // Reset-password/update e especial: pode ser acessada por sessao ativa
 // (fluxo "trocar senha depois de receber link")
@@ -111,23 +111,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // G02 — Onboarding gate + TASK-7 (CL-473) must-reset-password gate.
-  // Ambos so aplicam a rotas de app; landing, auth e api publica ficam de fora.
+  // TASK-7 (CL-473) must-reset-password gate.
+  // Aplica a rotas de app; landing, auth e api publica ficam de fora.
   if (user && !marketing && !authPage && !authReset && !publicApi) {
-    const isOnboardingPath = pathname === '/onboarding'
     const isApiPath = pathname.startsWith('/api/')
     const isLogoutPath =
       pathname === '/api/v1/auth/logout' || pathname === '/logout'
     const isUpdatePasswordApi = pathname === '/api/v1/auth/update-password'
 
-    if (!isOnboardingPath && !isApiPath) {
+    if (!isApiPath) {
       try {
         // PostgREST expoe o nome fisico da tabela/colunas (snake_case),
         // nao o nome do model Prisma — 'UserProfile' retornava erro e caia
         // no catch silencioso, deixando os gates inertes.
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('onboarding_completed_at, must_reset_password')
+          .select('must_reset_password')
           .eq('id', user.id)
           .single()
 
@@ -135,12 +134,6 @@ export async function updateSession(request: NextRequest) {
           const url = request.nextUrl.clone()
           url.pathname = '/auth/reset-password/update'
           url.searchParams.set('reason', 'admin_forced')
-          return NextResponse.redirect(url)
-        }
-
-        if (profile && profile.onboarding_completed_at === null) {
-          const url = request.nextUrl.clone()
-          url.pathname = '/onboarding'
           return NextResponse.redirect(url)
         }
       } catch {

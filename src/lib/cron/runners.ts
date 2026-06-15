@@ -40,4 +40,12 @@ export const CRON_RUNNERS: Record<string, () => Promise<unknown>> = {
     const { runLgpdRetentionCleanup } = await import('@/lib/jobs/lgpd-retention-cleanup')
     return runLgpdRetentionCleanup()
   },
+  'outreach-scheduler': async () => {
+    const { runOutreachScheduler } = await import('@/lib/workers/outreach-scheduler')
+    return runOutreachScheduler()
+  },
+  'radar-recurrence': async () => {
+    const { radarService } = await import('@/lib/services/radar-service')
+    return radarService.runRecurringRecollection()
+  },
 }

@@ -33,6 +33,14 @@
     {
       "path": "/api/cron/lgpd-cleanup",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/outreach-scheduler",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/radar-recurrence",
+      "schedule": "0 6 * * *"
     }
   ]
 }

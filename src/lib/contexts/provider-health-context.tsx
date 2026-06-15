@@ -13,7 +13,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 export interface ProviderHealthItem {
   source: string
   label: string
-  status: 'UP' | 'DEGRADED' | 'DOWN' | 'PAUSED'
+  status: 'UP' | 'DEGRADED' | 'DOWN' | 'PAUSED' | 'UNCONFIGURED'
   latencyMs: number | null
   quotaRemaining: number | null
   rateLimitResetAt: string | null

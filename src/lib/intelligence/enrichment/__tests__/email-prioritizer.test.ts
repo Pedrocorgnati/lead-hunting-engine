@@ -1,4 +1,5 @@
 import {
+  classifyEmailDomain,
   GENERIC_EMAIL_PREFIXES,
   isGenericEmail,
   prioritizeEmails,
@@ -144,6 +145,72 @@ describe('email-prioritizer — TASK-1 intake-review (CL-141)', () => {
     it('retorna Map vazio para entrada vazia ou nula', () => {
       expect(prioritizeEmailsByDomain([]).size).toBe(0)
       expect(prioritizeEmailsByDomain(null).size).toBe(0)
+    })
+  })
+
+  describe('classifyEmailDomain — dominio canonico vs externo (blacksmith 06-11)', () => {
+    it('mesmo dominio registravel do site e canonical (com www e path)', () => {
+      expect(classifyEmailDomain('joao@empresa.com.br', 'https://www.empresa.com.br')).toBe('canonical')
+      expect(classifyEmailDomain('contato@empresa.com.br', 'https://www.empresa.com.br/contato?x=1')).toBe(
+        'canonical',
+      )
+    })
+
+    it('subdominio do site canonico conta como canonical (.com.br suportado)', () => {
+      expect(classifyEmailDomain('contato@loja.empresa.com.br', 'https://www.empresa.com.br')).toBe(
+        'canonical',
+      )
+    })
+
+    it('dominio .com simples tambem matcheia', () => {
+      expect(classifyEmailDomain('vendas@acme.com', 'https://acme.com')).toBe('canonical')
+      expect(classifyEmailDomain('vendas@app.acme.com', 'https://www.acme.com')).toBe('canonical')
+    })
+
+    it('gmail.com e plataforma.com sao external', () => {
+      expect(classifyEmailDomain('joao@gmail.com', 'https://empresa.com.br')).toBe('external')
+      expect(classifyEmailDomain('contato@plataforma.com', 'https://empresa.com.br')).toBe('external')
+    })
+
+    it('empresa.com nao matcheia empresa.com.br (registraveis distintos)', () => {
+      expect(classifyEmailDomain('joao@empresa.com', 'https://empresa.com.br')).toBe('external')
+      expect(classifyEmailDomain('joao@outra.com.br', 'https://empresa.com.br')).toBe('external')
+    })
+
+    it('e tolerante a website sem protocolo', () => {
+      expect(classifyEmailDomain('joao@empresa.com.br', 'www.empresa.com.br')).toBe('canonical')
+      expect(classifyEmailDomain('joao@empresa.com.br', 'empresa.com.br')).toBe('canonical')
+    })
+
+    it('e case-insensitive no email', () => {
+      expect(classifyEmailDomain('JOAO@EMPRESA.COM.BR', 'https://empresa.com.br')).toBe('canonical')
+    })
+
+    it('websiteUrl ausente/invalido retorna unknown', () => {
+      expect(classifyEmailDomain('joao@empresa.com.br', null)).toBe('unknown')
+      expect(classifyEmailDomain('joao@empresa.com.br', undefined)).toBe('unknown')
+      expect(classifyEmailDomain('joao@empresa.com.br', '')).toBe('unknown')
+      expect(classifyEmailDomain('joao@empresa.com.br', '   ')).toBe('unknown')
+      expect(classifyEmailDomain('joao@empresa.com.br', 'isso nao e uma url')).toBe('unknown')
+    })
+
+    it('email invalido retorna unknown mesmo com site valido', () => {
+      expect(classifyEmailDomain('nao-eh-email', 'https://empresa.com.br')).toBe('unknown')
+      expect(classifyEmailDomain('', 'https://empresa.com.br')).toBe('unknown')
+    })
+  })
+
+  describe('descarta nomes de arquivo que o regex confunde com e-mail', () => {
+    it('rejeita sprites/assets (ajax-loader@2x.gif, icon@3x.png, app@2x.css)', () => {
+      const res = prioritizeEmails(['ajax-loader@2x.gif', 'icon@3x.png', 'app@2x.css', 'logo@1x.svg'])
+      expect(res.primary).toBeNull()
+      expect(res.secondary).toEqual([])
+    })
+
+    it('mantem e-mail real e descarta o asset no mesmo lote', () => {
+      const res = prioritizeEmails(['ajax-loader@2x.gif', 'adm@medcenter.com.br'])
+      expect(res.primary).toBe('adm@medcenter.com.br')
+      expect(res.secondary).toEqual([])
     })
   })
 })

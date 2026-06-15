@@ -1,5 +1,6 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS } from './_timeouts'
 import type { SocialProvider, SocialSearchParams, SocialProfileData } from './types'
 
 const FB_API_BASE = 'https://graph.facebook.com/v19.0'
@@ -55,10 +56,13 @@ export const FacebookGraphProvider: SocialProvider = {
     const searchUrl = new URL(`${FB_API_BASE}/pages/search`)
     searchUrl.searchParams.set('q', params.query)
     searchUrl.searchParams.set('fields', 'id,name,website,fan_count,about')
-    searchUrl.searchParams.set('access_token', apiKey)
+    // H-01: token via Authorization header (nao em query) — evita vazar em logs de proxy/CDN.
 
     const searchRaw = await withRetry(async () => {
-      const res = await fetch(searchUrl.toString())
+      const res = await fetch(searchUrl.toString(), {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
+      })
       if (res.status === 401) throw new Error('FACEBOOK_TOKEN_MISSING: token invalido ou expirado')
       if (!res.ok) throw new Error(`Facebook Graph API HTTP ${res.status}`)
       return res.json() as Promise<{ data?: Array<Record<string, unknown>> }>
@@ -74,10 +78,12 @@ export const FacebookGraphProvider: SocialProvider = {
       'fields',
       'fan_count,posts{created_time,likes.summary(true)},website,about,username'
     )
-    detailUrl.searchParams.set('access_token', apiKey)
 
     const detail = await withRetry(async () => {
-      const res = await fetch(detailUrl.toString())
+      const res = await fetch(detailUrl.toString(), {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
+      })
       if (!res.ok) throw new Error(`Facebook page detail HTTP ${res.status}`)
       return res.json() as Promise<Record<string, unknown>>
     })

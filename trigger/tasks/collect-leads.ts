@@ -2,7 +2,8 @@ import { task, logger } from '@trigger.dev/sdk/v3'
 import { searchBusinesses } from '@/lib/workers/providers/provider-manager'
 import { geocodeAddress } from '@/lib/workers/geo/geo-manager'
 import { analyzeSite } from '@/lib/workers/providers/site-analyzer'
-import { normalizeRawLead, sanitizeRawJson } from '@/lib/workers/utils/data-normalizer'
+import { fetchGmb } from '@/lib/workers/providers/google-my-business'
+import { normalizeRawLead, normalizeUrl, normalizePhone, sanitizeRawJson } from '@/lib/workers/utils/data-normalizer'
 import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
 import { Limits } from '@/lib/constants/limits'
 import { getPrisma } from '@/lib/prisma'
@@ -22,6 +23,7 @@ export interface CollectLeadsPayload {
   location: string
   radius?: number
   maxResults?: number
+  sources?: DataSource[]
   /**
    * ID do job parent quando este e um retry. Quando presente, o worker
    * herda os RawLeadData ja coletados pelo parent (re-atribuindo jobId)
@@ -37,11 +39,43 @@ interface MinimalLogger {
   error?: (message: string, meta?: Record<string, unknown>) => void
 }
 
+interface CollectionAttempt {
+  provider: string
+  source: string
+  status: 'skipped' | 'empty' | 'error' | 'success'
+  reason: string
+  resultCount?: number
+}
+
+function normalizeRequestedSources(
+  payloadSources: DataSource[] | undefined,
+  persistedSources: DataSource[] | null | undefined,
+): DataSource[] {
+  const fromPayload = Array.isArray(payloadSources) ? payloadSources : []
+  const fromJob = Array.isArray(persistedSources) ? persistedSources : []
+  const raw = fromPayload.length > 0 ? fromPayload : fromJob
+  const valid = Array.from(
+    new Set(
+      raw.filter((source): source is DataSource =>
+        Object.values(DataSource).includes(source),
+      ),
+    ),
+  )
+  if (valid.length > 0) return valid
+  return [DataSource.GOOGLE_MAPS]
+}
+
 export interface CollectLeadsDeps {
   prisma: ReturnType<typeof getPrisma>
   searchBusinesses: typeof searchBusinesses
   geocodeAddress: typeof geocodeAddress
   analyzeSite: typeof analyzeSite
+  /**
+   * Place Details (Google) — TextSearch nao retorna website/phone; fetchGmb
+   * busca esses campos por place_id (externalId). Opcional/injetavel para
+   * testes; ausencia desativa o enriquecimento Place Details (no-op seguro).
+   */
+  fetchGmb?: typeof fetchGmb
   normalizeRawLead: typeof normalizeRawLead
   sanitizeRawJson: typeof sanitizeRawJson
   logger: MinimalLogger
@@ -79,6 +113,7 @@ export function getDefaultDeps(): Omit<CollectLeadsDeps, 'triggerRunId'> {
     searchBusinesses,
     geocodeAddress,
     analyzeSite,
+    fetchGmb,
     normalizeRawLead,
     sanitizeRawJson,
     logger,
@@ -131,10 +166,20 @@ async function isJobCancelled(
 export async function runCollection(payload: CollectLeadsPayload, deps: CollectLeadsDeps) {
   const { prisma, logger: log, triggerRunId } = deps
 
-  const job = await prisma.collectionJob.findUniqueOrThrow({
+  // P-07: CollectionJob pode ter sido deletado (ex.: limpeza LGPD) entre o
+  // enqueue e o drain. findUnique + guard gracioso evita throw -> o drain da
+  // ackDone em vez de empilhar FAILED zumbi (retry inutil + ruido Sentry).
+  const job = await prisma.collectionJob.findUnique({
     where: { id: payload.jobId },
-    select: { userId: true, name: true },
+    select: { userId: true, name: true, sources: true, metadata: true },
   })
+
+  if (!job) {
+    log.warn('CollectionJob ausente (possivelmente deletado); encerrando sem erro', {
+      jobId: payload.jobId,
+    })
+    return { success: false, missing: true }
+  }
 
   await prisma.collectionJob.update({
     where: { id: payload.jobId },
@@ -176,13 +221,31 @@ export async function runCollection(payload: CollectLeadsPayload, deps: CollectL
       payload.maxResults ?? Limits.MAX_COLLECTION_SIZE,
       Limits.MAX_COLLECTION_SIZE
     )
+    const requestedSources = normalizeRequestedSources(payload.sources, job.sources)
+    const providerAttempts: CollectionAttempt[] = []
+    const collectionMetadataBase =
+      job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? job.metadata as Record<string, unknown>
+        : {}
+    const collectionRunMetadata = {
+      ...collectionMetadataBase,
+      collectionRun: {
+        requestedSources,
+        startedAt: new Date().toISOString(),
+      },
+    }
 
     const businesses = await deps.searchBusinesses({
       query: payload.query,
       location: payload.location,
       radius: payload.radius,
       maxResults,
-    })
+    },
+    {
+      sources: requestedSources,
+      attemptTrace: providerAttempts,
+    },
+    )
 
     log.info(`Encontrados ${businesses.length} negocios`, { count: businesses.length })
 
@@ -191,6 +254,16 @@ export async function runCollection(payload: CollectLeadsPayload, deps: CollectL
       data: {
         totalEstimated: businesses.length + inheritedCount,
         currentSource: businesses[0]?.source ?? null,
+        metadata: {
+          ...collectionRunMetadata,
+          collectionRun: {
+            ...collectionRunMetadata.collectionRun as Record<string, unknown>,
+            sourceAttempts: providerAttempts,
+            finalSource: businesses[0]?.source ?? null,
+            resultCount: businesses.length + inheritedCount,
+            completedAt: new Date().toISOString(),
+          },
+        } as unknown as Prisma.InputJsonValue,
       },
     })
 
@@ -209,6 +282,39 @@ export async function runCollection(payload: CollectLeadsPayload, deps: CollectL
       }
 
       const normalized = deps.normalizeRawLead({ ...business })
+
+      // P-01: Place Details — Google TextSearch nao retorna website/phone (so
+      // vem via place/details/json). fetchGmb busca esses campos por place_id
+      // (externalId). Sem isso, leads Google ficam SEMPRE com website=null e o
+      // bloco analyzeSite abaixo nunca dispara — justamente o sinal nº1 do
+      // caso de uso (negocio "sem site"). Best-effort: erro/timeout/cache-miss
+      // nunca interrompe a coleta (fetchGmb ja retorna null em falha).
+      if (
+        deps.fetchGmb &&
+        toDataSource(normalized.source) === DataSource.GOOGLE_MAPS &&
+        !normalized.website &&
+        normalized.externalId
+      ) {
+        try {
+          const gmb = await deps.fetchGmb(normalized.externalId)
+          if (gmb) {
+            if (!normalized.website && gmb.website) normalized.website = normalizeUrl(gmb.website)
+            if (!normalized.phone && gmb.phone) normalized.phone = normalizePhone(gmb.phone)
+            if (gmb.website || gmb.phone) {
+              log.info('Place Details enriqueceu lead', {
+                externalId: normalized.externalId,
+                hasWebsite: Boolean(gmb.website),
+                hasPhone: Boolean(gmb.phone),
+              })
+            }
+          }
+        } catch (err) {
+          log.warn('Place Details (fetchGmb) falhou; seguindo sem website', {
+            externalId: normalized.externalId,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        }
+      }
 
       // Atualizar currentSource quando provider muda no meio do batch
       if (normalized.source && normalized.source !== lastSource) {

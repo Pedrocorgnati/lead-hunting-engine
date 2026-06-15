@@ -8,6 +8,27 @@ import {
   PitchTemplateUpdateSchema,
 } from '@/lib/schemas/pitch-template'
 import { handleApiError } from '@/lib/api-utils'
+import { setSenderProfile } from '@/lib/outreach/sender-profile'
+
+/** Salva o perfil do remetente que alimenta {{meu_*}} dos templates. */
+export async function updateSenderProfile(formData: FormData) {
+  try {
+    const user = await requireAuth()
+    await setSenderProfile(
+      {
+        name: String(formData.get('name') ?? '').trim(),
+        company: String(formData.get('company') ?? '').trim(),
+        whatsapp: String(formData.get('whatsapp') ?? '').trim(),
+        portfolio: String(formData.get('portfolio') ?? '').trim(),
+      },
+      user.id,
+    )
+    revalidatePath('/templates/pitch')
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
 
 export async function getPitchTemplates(query: {
   page?: number
@@ -66,6 +87,8 @@ export async function createPitchTemplate(formData: FormData) {
       name: raw.name,
       content: raw.content,
       tone: raw.tone,
+      channel: raw.channel || undefined,
+      subject: raw.subject || undefined,
       isFavorite: raw.isFavorite === 'true',
     })
 
@@ -94,6 +117,8 @@ export async function updatePitchTemplate(id: string, formData: FormData) {
       name: raw.name || undefined,
       content: raw.content || undefined,
       tone: raw.tone || undefined,
+      channel: raw.channel || undefined,
+      subject: raw.subject || undefined,
       isFavorite: raw.isFavorite === 'true' ? true : raw.isFavorite === 'false' ? false : undefined,
     })
 

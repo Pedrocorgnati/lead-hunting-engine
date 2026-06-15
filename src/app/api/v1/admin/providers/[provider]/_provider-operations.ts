@@ -5,6 +5,9 @@ import { handleApiError, successResponse } from '@/lib/api-utils'
 import { prisma } from '@/lib/prisma'
 import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
 import { validateReauthSession } from '@/lib/security/reauth-challenge-store'
+import { PROVIDER_CATALOG } from '@/lib/constants/provider-catalog'
+
+const CATALOG_SOURCES = new Set(PROVIDER_CATALOG.map((p) => p.source))
 
 export type ProviderOperation = 'pause' | 'resume' | 'force-fallback'
 
@@ -32,6 +35,12 @@ const PROVIDER_SLUG_MAP: Record<string, string> = {
   'facebook_intermediary': 'FACEBOOK_INTERMEDIARY',
   'linkedin-company': 'LINKEDIN_COMPANY',
   'linkedin_company': 'LINKEDIN_COMPANY',
+  'apontador': 'APONTADOR',
+  'guia-mais': 'GUIA_MAIS',
+  'guia_mais': 'GUIA_MAIS',
+  'guiamais': 'GUIA_MAIS',
+  'kimi': 'KIMI',
+  'moonshot': 'KIMI',
   'openai': 'OPENAI',
   'anthropic': 'ANTHROPIC',
 }
@@ -47,6 +56,13 @@ const PROVIDER_TO_DATA_SOURCES: Record<string, DataSource[]> = {
   FACEBOOK_GRAPH: [DataSource.FACEBOOK],
   FACEBOOK_INTERMEDIARY: [DataSource.FACEBOOK],
   LINKEDIN_COMPANY: [DataSource.LINKEDIN_COMPANY],
+  // H-09: faltavam — pause/resume reportava impacto zero (sourceFilter {}).
+  APONTADOR: [DataSource.APONTADOR],
+  GUIA_MAIS: [DataSource.GUIA_MAIS],
+  // LLMs nao tem jobs de coleta (geram pitch) — mapeiam para [] por design.
+  KIMI: [],
+  OPENAI: [],
+  ANTHROPIC: [],
 }
 
 const FALLBACK_CHAIN: Record<string, string[]> = {
@@ -60,8 +76,12 @@ const FALLBACK_CHAIN: Record<string, string[]> = {
   HERE_MAPS: ['TOMTOM', 'GOOGLE_PLACES'],
   TOMTOM: ['HERE_MAPS', 'GOOGLE_PLACES'],
   LINKEDIN_COMPANY: ['APIFY'],
-  OPENAI: ['ANTHROPIC'],
-  ANTHROPIC: ['OPENAI'],
+  // H-09: headless BR fazem fallback entre si e para Apify.
+  APONTADOR: ['GUIA_MAIS', 'APIFY'],
+  GUIA_MAIS: ['APONTADOR', 'APIFY'],
+  KIMI: ['OPENAI', 'ANTHROPIC'],
+  OPENAI: ['KIMI', 'ANTHROPIC'],
+  ANTHROPIC: ['KIMI', 'OPENAI'],
 }
 
 function normalizeProvider(input: string): string {
@@ -180,6 +200,11 @@ export async function executeProviderOperation(
   try {
     const admin = await requireAdmin()
     const provider = normalizeProvider(providerParam)
+    // H-08: whitelist contra o catalogo (defense-in-depth) — 400 explicito em vez
+    // de normalizar input arbitrario e so falhar tarde no findUnique (404).
+    if (!CATALOG_SOURCES.has(provider)) {
+      throw buildError('INVALID_PROVIDER', `Provider desconhecido: ${providerParam}`, 400)
+    }
     const body = await readBody(request)
     const correlationId = body.correlationId ?? crypto.randomUUID()
     const reauth = validateReauthSession({

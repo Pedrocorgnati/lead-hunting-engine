@@ -1,19 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
-  CheckCircle2,
   Key,
   Loader2,
   Pencil,
   Plus,
+  RefreshCw,
   Trash2,
-  XCircle,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +29,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { InlineRecoveryPanel, type ProviderHealth } from '@/components/InlineRecoveryPanel'
+import { PROVIDER_CATALOG } from '@/lib/constants/provider-catalog'
+import { CREDENTIAL_PROVIDER_MAP } from '@/lib/constants/enums'
 import { toast } from 'sonner'
 
 interface ApiCredentialSafe {
@@ -49,22 +49,76 @@ interface ApiCredentialSafe {
   updatedAt: string
 }
 
+interface CredentialsResponse {
+  data?: ApiCredentialSafe[]
+  error?: { code: string; message: string }
+}
+
+interface StatusResponse {
+  data?: ProviderHealth[]
+  error?: { code: string; message: string }
+}
+
+const APIFY_COVERED_PROVIDERS = new Set([
+  'INSTAGRAM_APIFY',
+  'FACEBOOK_INTERMEDIARY',
+  'LINKEDIN_COMPANY',
+])
+
+const HEADLESS_NO_CREDENTIAL_PROVIDERS = new Set([
+  'APONTADOR',
+  'GUIA_MAIS',
+])
+
+const HIDDEN_PROVIDER_CARDS = new Set([
+  ...APIFY_COVERED_PROVIDERS,
+  ...HEADLESS_NO_CREDENTIAL_PROVIDERS,
+])
+
 const PROVIDER_OPTIONS = [
-  { value: 'GOOGLE_PLACES', label: 'Google Places' },
-  { value: 'OUTSCRAPER', label: 'Outscraper' },
-  { value: 'APIFY', label: 'Apify' },
-  { value: 'OPENAI', label: 'OpenAI' },
-  { value: 'ANTHROPIC', label: 'Anthropic' },
-  { value: 'HERE_MAPS', label: 'HERE Maps' },
-  { value: 'TOMTOM', label: 'TomTom' },
-  { value: 'CUSTOM', label: 'Custom' },
+  ...PROVIDER_CATALOG
+    .filter((provider) => !HIDDEN_PROVIDER_CARDS.has(provider.source))
+    .map((provider) => ({
+      value: provider.source,
+      label: provider.label,
+    })),
+  { value: 'CUSTOM', label: CREDENTIAL_PROVIDER_MAP.CUSTOM.label },
 ]
+
+const STATUS_ORDER: Record<ProviderHealth['status'], number> = {
+  UP: 0,
+  DEGRADED: 1,
+  PAUSED: 2,
+  DOWN: 3,
+  UNCONFIGURED: 4,
+}
+
+function formatTimestamp(value: string | null): string {
+  if (!value) return 'Nunca'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('pt-BR')
+}
+
+function buildFallbackHealth(cred: ApiCredentialSafe): ProviderHealth {
+  return {
+    source: cred.provider,
+    label: cred.label ?? cred.provider,
+    status: cred.isActive ? 'UP' : 'PAUSED',
+    latencyMs: null,
+    quotaRemaining: null,
+    rateLimitResetAt: cred.usageResetAt,
+    lastError: null,
+    fallbackProvider: null,
+    updatedAt: cred.updatedAt,
+  }
+}
 
 export default function CredenciaisPage() {
   const [creds, setCreds] = useState<ApiCredentialSafe[]>([])
+  const [providers, setProviders] = useState<ProviderHealth[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [testing, setTesting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -80,58 +134,55 @@ export default function CredenciaisPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/v1/admin/config/credentials')
-      const json = (await res.json().catch(() => ({}))) as {
-        data?: ApiCredentialSafe[]
-        error?: { code: string; message: string }
-      }
-      if (!res.ok) {
-        setError(json.error?.message ?? 'Erro ao carregar credenciais.')
+      const [credentialsRes, statusRes] = await Promise.all([
+        fetch('/api/v1/admin/config/credentials'),
+        fetch('/api/v1/admin/providers/status'),
+      ])
+
+      const credentialsJson = (await credentialsRes.json().catch(() => ({}))) as CredentialsResponse
+      const statusJson = (await statusRes.json().catch(() => ({}))) as StatusResponse
+
+      if (!credentialsRes.ok) {
+        setError(credentialsJson.error?.message ?? 'Erro ao carregar credenciais.')
         return
       }
-      setCreds(Array.isArray(json.data) ? json.data : [])
+      if (!statusRes.ok) {
+        setError(statusJson.error?.message ?? 'Erro ao carregar status dos provedores.')
+        return
+      }
+
+      setCreds(Array.isArray(credentialsJson.data) ? credentialsJson.data : [])
+      setProviders(Array.isArray(statusJson.data) ? statusJson.data : [])
     } catch {
-      setError('Erro de rede ao carregar credenciais.')
+      setError('Erro de rede ao carregar provedores.')
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    void load()
+    const timeout = window.setTimeout(() => void load(), 0)
+    return () => window.clearTimeout(timeout)
   }, [load])
 
-  async function handleTest(provider: string) {
-    setTesting(provider)
-    try {
-      const res = await fetch(
-        `/api/v1/admin/config/credentials/${encodeURIComponent(provider)}/test`,
-        { method: 'POST' }
-      )
-      const json = (await res.json().catch(() => ({}))) as {
-        data?: { ok: boolean; message: string }
-        error?: { code: string; message: string }
-      }
-      if (!res.ok) {
-        toast.error(json.error?.message ?? 'Falha no teste de credencial.')
-        return
-      }
-      if (json.data?.ok) {
-        toast.success(json.data.message)
-      } else {
-        toast.error(json.data?.message ?? 'Teste falhou.')
-      }
-      await load()
-    } catch {
-      toast.error('Erro de rede ao testar credencial.')
-    } finally {
-      setTesting(null)
-    }
-  }
+  const credentialByProvider = useMemo(
+    () => new Map(creds.map((cred) => [cred.provider, cred])),
+    [creds],
+  )
 
-  function openCreate() {
+  const unifiedProviders = useMemo(() => {
+    const items = (providers.length > 0 ? providers : creds.map(buildFallbackHealth))
+      .filter((provider) => !HIDDEN_PROVIDER_CARDS.has(provider.source))
+    return [...items].sort((a, b) => {
+      const statusDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+      if (statusDiff !== 0) return statusDiff
+      return a.label.localeCompare(b.label, 'pt-BR')
+    })
+  }, [creds, providers])
+
+  function openCreate(provider?: string) {
     setEditingCred(null)
-    setFormProvider('')
+    setFormProvider(provider ?? '')
     setFormApiKey('')
     setDialogOpen(true)
   }
@@ -160,21 +211,16 @@ export default function CredenciaisPage() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ apiKey: formApiKey }),
-        }
+        },
       )
       const json = (await res.json().catch(() => ({}))) as {
-        data?: ApiCredentialSafe
         error?: { code: string; message: string }
       }
       if (!res.ok) {
         toast.error(json.error?.message ?? 'Erro ao salvar credencial.')
         return
       }
-      toast.success(
-        editingCred
-          ? 'Credencial atualizada com sucesso.'
-          : 'Credencial criada com sucesso.'
-      )
+      toast.success(editingCred ? 'Credencial atualizada.' : 'Credencial criada.')
       setDialogOpen(false)
       await load()
     } catch {
@@ -195,7 +241,7 @@ export default function CredenciaisPage() {
     try {
       const res = await fetch(
         `/api/v1/admin/config/credentials/${encodeURIComponent(confirmCred.provider)}`,
-        { method: 'DELETE' }
+        { method: 'DELETE' },
       )
       if (!res.ok) {
         const json = (await res.json().catch(() => ({}))) as {
@@ -204,7 +250,7 @@ export default function CredenciaisPage() {
         toast.error(json.error?.message ?? 'Erro ao remover credencial.')
         return
       }
-      toast.success('Credencial removida com sucesso.')
+      toast.success('Credencial removida.')
       setConfirmOpen(false)
       await load()
     } catch {
@@ -216,159 +262,141 @@ export default function CredenciaisPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Credenciais de provedores</h1>
+          <h1 className="text-2xl font-semibold">Credenciais e provedores</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie as chaves de API para cada provedor de dados.
+            Configure chaves de API, acompanhe status e opere cada provider em um unico lugar.
           </p>
         </div>
-        <Button size="sm" onClick={openCreate} data-testid="create-credential">
-          <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
-          Nova credencial
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+            Atualizar
+          </Button>
+          <Button size="sm" onClick={() => openCreate()} data-testid="create-credential">
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            Nova credencial
+          </Button>
+        </div>
       </div>
 
       {loading && (
-        <div
-          className="flex justify-center py-12"
-          aria-label="Carregando credenciais..."
-        >
-          <Loader2
-            className="h-6 w-6 animate-spin text-muted-foreground"
-            aria-hidden="true"
-          />
+        <div className="flex justify-center py-12" aria-label="Carregando provedores...">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
         </div>
       )}
 
       {!loading && error && (
         <div
           role="alert"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-center gap-2"
+          className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
         >
           <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           {error}
         </div>
       )}
 
-      {!loading && !error && creds.length === 0 && (
-        <div role="status" className="text-center py-12">
-          <Key
-            className="h-8 w-8 text-muted-foreground mx-auto mb-2"
-            aria-hidden="true"
-          />
-          <p className="text-sm text-muted-foreground">
-            Nenhuma credencial configurada.
-          </p>
+      {!loading && !error && unifiedProviders.length === 0 && (
+        <div role="status" className="py-12 text-center">
+          <Key className="mx-auto mb-2 h-8 w-8 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">Nenhum provedor encontrado.</p>
         </div>
       )}
 
-      {!loading && !error && creds.length > 0 && (
-        <div className="space-y-3">
-          {creds.map((cred) => (
-            <Card key={cred.provider} data-testid={`cred-${cred.provider}`}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-sm font-medium">
-                      {cred.label ?? cred.provider}
-                    </CardTitle>
-                    <Badge variant={cred.isActive ? 'secondary' : 'outline'}>
-                      {cred.isActive ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                    {cred.isActive && (
-                      <CheckCircle2
-                        className="h-4 w-4 text-emerald-600"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
+      {!loading && !error && unifiedProviders.length > 0 && (
+        <div className="space-y-4">
+          {unifiedProviders.map((provider) => {
+            const cred = credentialByProvider.get(provider.source)
+            return (
+              <InlineRecoveryPanel
+                key={provider.source}
+                health={provider}
+                onRecovered={() => void load()}
+                credentialSummary={
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
+                    <div>
+                      <dt className="text-muted-foreground">Chave cadastrada</dt>
+                      <dd className="font-mono font-medium">
+                        {cred?.maskedValue ?? 'Não cadastrada'}
+                      </dd>
+                    </div>
+                    {cred?.lastValidatedAt ? (
+                      <div>
+                        <dt className="text-muted-foreground">Último teste</dt>
+                        <dd className="font-medium">{formatTimestamp(cred.lastValidatedAt)}</dd>
+                      </div>
+                    ) : null}
+                    {cred ? (
+                      <div>
+                        <dt className="text-muted-foreground">Credencial</dt>
+                        <dd className="font-medium">{cred.isActive ? 'Ativa' : 'Inativa'}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                }
+                credentialActions={
+                  cred ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEdit(cred)}
+                        data-testid={`edit-cred-${cred.provider}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        Editar chave
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDelete(cred)}
+                        disabled={deleting === cred.provider}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                        data-testid={`delete-cred-${cred.provider}`}
+                      >
+                        {deleting === cred.provider ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        )}
+                        Remover chave
+                      </Button>
+                    </>
+                  ) : (
                     <Button
-                      size="sm"
+                      type="button"
                       variant="outline"
-                      disabled={!!testing}
-                      onClick={() => void handleTest(cred.provider)}
-                      data-testid={`test-cred-${cred.provider}`}
-                    >
-                      {testing === cred.provider ? (
-                        <Loader2
-                          className="h-3.5 w-3.5 animate-spin"
-                          aria-hidden
-                        />
-                      ) : null}
-                      Testar
-                    </Button>
-                    <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => openEdit(cred)}
-                      data-testid={`edit-cred-${cred.provider}`}
+                      onClick={() => openCreate(provider.source)}
+                      data-testid={`add-cred-${provider.source}`}
                     >
-                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                      Cadastrar chave
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openDelete(cred)}
-                      data-testid={`delete-cred-${cred.provider}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-1">
-                <p className="text-xs text-muted-foreground">
-                  Valor: <span className="font-mono">{cred.maskedValue}</span>
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Usos: {cred.usageCount}
-                  {cred.usageResetAt
-                    ? ` (reset em ${new Date(cred.usageResetAt).toLocaleDateString('pt-BR')})`
-                    : ''}
-                </p>
-                {cred.cost != null && (
-                  <p className="text-xs text-muted-foreground">
-                    Custo acumulado: US${cred.cost.toFixed(4)}
-                  </p>
-                )}
-                {cred.lastValidatedAt && (
-                  <p className="text-xs text-muted-foreground">
-                    Ultima validacao:{' '}
-                    {new Date(cred.lastValidatedAt).toLocaleString('pt-BR')}
-                  </p>
-                )}
-                {cred.auditSummary && (
-                  <p className="text-xs text-muted-foreground truncate" title={cred.auditSummary}>
-                    Audit: {cred.auditSummary}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Atualizado em:{' '}
-                  {new Date(cred.updatedAt).toLocaleString('pt-BR')}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+                  )
+                }
+              />
+            )
+          })}
         </div>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingCred ? 'Editar credencial' : 'Nova credencial'}
-            </DialogTitle>
+            <DialogTitle>{editingCred ? 'Editar credencial' : 'Nova credencial'}</DialogTitle>
             <DialogDescription>
               {editingCred
-                ? 'Atualize a chave de API do provedor selecionado.'
-                : 'Selecione o provedor e informe a chave de API.'}
+                ? 'Atualize a chave de API do provider.'
+                : 'Selecione o provider e informe a chave de API.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cred-provider">Provedor</Label>
+              <Label htmlFor="cred-provider">Provider</Label>
               {editingCred ? (
                 <Input
                   id="cred-provider"
@@ -376,17 +404,14 @@ export default function CredenciaisPage() {
                   disabled
                 />
               ) : (
-                <Select
-                  value={formProvider}
-                  onValueChange={(v) => setFormProvider(v ?? '')}
-                >
+                <Select value={formProvider} onValueChange={(value) => setFormProvider(value ?? '')}>
                   <SelectTrigger id="cred-provider">
-                    <SelectValue placeholder="Selecione um provedor" />
+                    <SelectValue placeholder="Selecione um provider" />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROVIDER_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {PROVIDER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -399,28 +424,22 @@ export default function CredenciaisPage() {
                 id="cred-api-key"
                 type="password"
                 value={formApiKey}
-                placeholder="Informe a chave de API"
-                onChange={(e) => setFormApiKey(e.target.value)}
+                placeholder="Cole a chave do provider"
+                onChange={(event) => setFormApiKey(event.target.value)}
                 autoComplete="off"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               Cancelar
             </Button>
             <Button
               onClick={() => void handleSave()}
               disabled={saving || !formProvider.trim() || !formApiKey.trim()}
             >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden />
-              ) : null}
-              {editingCred ? 'Salvar alteracoes' : 'Criar credencial'}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+              {editingCred ? 'Salvar alterações' : 'Criar credencial'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -436,8 +455,7 @@ export default function CredenciaisPage() {
         description={
           <span>
             Tem certeza que deseja remover a credencial{' '}
-            <strong>{confirmCred?.label ?? confirmCred?.provider}</strong>? Esta
-            acao nao pode ser desfeita.
+            <strong>{confirmCred?.label ?? confirmCred?.provider}</strong>? Esta acao nao pode ser desfeita.
           </span>
         }
         confirmLabel="Remover"

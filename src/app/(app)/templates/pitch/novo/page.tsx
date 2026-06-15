@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { TONE_OPTIONS, TONE_LABELS } from '@/lib/pitch/tone-config'
+import { CHANNEL_OPTIONS, CHANNEL_LABELS } from '@/lib/pitch/channel-config'
+import { TEMPLATE_PLACEHOLDERS } from '@/lib/pitch/template-vars'
 
 export const metadata: Metadata = {
   title: 'Novo template de pitch',
@@ -34,23 +36,31 @@ export default function NovoTemplatePage() {
       <form action={async (formData: FormData) => { 'use server'; await createPitchTemplate(formData) }} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">Nome</Label>
-          <Input id="name" name="name" placeholder="Ex: Pitch formal para imobiliária" required />
+          <Input id="name" name="name" placeholder="Ex: E-mail sem site — clínicas" required />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="channel">Canal</Label>
+            <select id="channel" name="channel" className="w-full rounded-md border bg-background px-3 py-2 text-sm" defaultValue="email">
+              {CHANNEL_OPTIONS.map((c) => (
+                <option key={c} value={c}>{CHANNEL_LABELS[c]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tone">Tom</Label>
+            <select id="tone" name="tone" className="w-full rounded-md border bg-background px-3 py-2 text-sm" defaultValue="formal">
+              {TONE_OPTIONS.map((tone) => (
+                <option key={tone} value={tone}>{TONE_LABELS[tone] ?? tone}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tone">Tom</Label>
-          <select
-            id="tone"
-            name="tone"
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            defaultValue="formal"
-          >
-            {TONE_OPTIONS.map((tone) => (
-              <option key={tone} value={tone}>
-                {TONE_LABELS[tone] ?? tone}
-              </option>
-            ))}
-          </select>
+          <Label htmlFor="subject">Assunto <span className="text-xs text-muted-foreground">(só para e-mail)</span></Label>
+          <Input id="subject" name="subject" placeholder="Ex: {{empresa}} no Google" />
         </div>
 
         <div className="space-y-2">
@@ -59,12 +69,14 @@ export default function NovoTemplatePage() {
             id="content"
             name="content"
             rows={10}
-            placeholder="Escreva o conteúdo do pitch. Use {{nome}}, {{empresa}}, {{segmento}} como placeholders."
+            placeholder={'Olá, pessoal da {{empresa}}!\nEncontrei vocês procurando {{segmento}} em {{cidade}}. Notei que {{problema}}...\n— {{meu_nome}}, {{meu_whatsapp}}'}
             required
           />
-          <p className="text-xs text-muted-foreground">
-            Dica: use {'{{nome}}'}, {'{{empresa}}'}, {'{{segmento}}'} como placeholders que serão substituídos ao aplicar o pitch.
-          </p>
+          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">Placeholders disponíveis (substituídos no envio):</p>
+            <p className="mt-1"><strong>Do lead:</strong> {TEMPLATE_PLACEHOLDERS.filter((p) => p.group === 'lead').map((p) => `{{${p.key}}}`).join(' · ')}</p>
+            <p className="mt-0.5"><strong>Seus (perfil de remetente):</strong> {TEMPLATE_PLACEHOLDERS.filter((p) => p.group === 'remetente').map((p) => `{{${p.key}}}`).join(' · ')}</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

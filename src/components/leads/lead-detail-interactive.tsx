@@ -10,6 +10,7 @@ import { LeadStatusSelect } from './lead-status-select'
 import { LeadNotesEditor } from './lead-notes-editor'
 import { LifecycleTracker } from './lifecycle-tracker'
 import { PitchCard } from './pitch-card'
+import { AddToCampaignButton } from './AddToCampaignButton'
 import { LeadHistoryTimeline } from './LeadHistoryTimeline'
 import { LeadTasksPanel } from './lead-tasks-panel'
 import { LeadTagsEditor } from './LeadTagsEditor'
@@ -290,7 +291,11 @@ function LeadDetailInteractiveInner({ lead }: Props) {
 
           {/* ── PITCH ─────────────────────────────────────────────────── */}
           {activeTab === 'pitch' && (
-            <PitchCard leadId={lead.id} initialPitch={initialPitch} />
+            <div className="space-y-4">
+              <PitchCard leadId={lead.id} initialPitch={initialPitch} />
+              {/* outreach-engine: do "lead pronto" ao envio, sem sair daqui */}
+              <AddToCampaignButton leadId={lead.id} />
+            </div>
           )}
 
           {/* ── HISTÓRICO ─────────────────────────────────────────────── */}

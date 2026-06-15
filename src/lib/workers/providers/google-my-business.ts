@@ -1,4 +1,5 @@
 import { kvGet, kvSet } from '@/lib/cache/kv-cache'
+import { RateLimiter } from '../utils/rate-limiter'
 
 /**
  * Google My Business Provider — horario, fotos, categorias via Google Places Details API.
@@ -57,6 +58,10 @@ export async function fetchGmb(placeId: string): Promise<GmbData | null> {
   if (cached) return cached
 
   try {
+    // P-02: compartilha o bucket 'google-places' com o TextSearch — Place
+    // Details conta na mesma quota Google; cache de 7 dias (acima) ja deduplica
+    // re-coletas, entao o rate limit so incide em place_ids novos.
+    await RateLimiter.wait('google-places')
     const url = new URL(`${PLACES_BASE}/details/json`)
     url.searchParams.set('place_id', id)
     url.searchParams.set('language', 'pt-BR')

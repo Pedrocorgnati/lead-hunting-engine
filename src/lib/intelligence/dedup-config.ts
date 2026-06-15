@@ -17,6 +17,14 @@ function parseNumber(raw: string | undefined, fallback: number): number {
   return Number.isFinite(n) ? n : fallback
 }
 
+function parseBoolean(raw: string | undefined, fallback: boolean): boolean {
+  if (raw === undefined) return fallback
+  const normalized = raw.trim().toLowerCase()
+  if (['1', 'true', 'sim', 'on', 'yes'].includes(normalized)) return true
+  if (['0', 'false', 'nao', 'não', 'off', 'no'].includes(normalized)) return false
+  return fallback
+}
+
 export const DEDUP_CONFIG = {
   /** Acima disso, merge automatico. Default conservador. */
   autoMergeMinScore: parseNumber(process.env.DEDUP_AUTO_MERGE_MIN, 0.95),
@@ -24,6 +32,8 @@ export const DEDUP_CONFIG = {
   pendingReviewMin: parseNumber(process.env.DEDUP_PENDING_REVIEW_MIN, 0.75),
   /** Janela em dias para undo de merges humanos. */
   undoWindowDays: parseNumber(process.env.DEDUP_UNDO_WINDOW_DAYS, 7),
+  /** Fallback global opcional para segurança contra colisões transconta. */
+  globalFallbackEnabled: parseBoolean(process.env.DEDUP_GLOBAL_FALLBACK, true),
 } as const
 
 export type DedupClassification =

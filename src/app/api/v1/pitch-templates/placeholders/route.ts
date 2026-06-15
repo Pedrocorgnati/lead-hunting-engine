@@ -1,33 +1,15 @@
 import { successResponse } from '@/lib/api-utils'
+import { TEMPLATE_PLACEHOLDERS, TEMPLATE_PLACEHOLDER_REGEX } from '@/lib/pitch/template-vars'
 
-const PLACEHOLDERS = [
-  {
-    key: 'nome',
-    label: 'Nome',
-    example: 'João Silva',
-    description: 'Nome do contato',
-    required: true,
-  },
-  {
-    key: 'empresa',
-    label: 'Empresa',
-    example: 'Acme Corp',
-    description: 'Nome da empresa',
-    required: false,
-  },
-  {
-    key: 'segmento',
-    label: 'Segmento',
-    example: 'Tecnologia',
-    description: 'Segmento ou nicho da empresa',
-    required: false,
-  },
-] as const
-
+/**
+ * Placeholders REAIS (substituídos no envio). Antes a rota anunciava
+ * nome/empresa/segmento que nunca eram substituídos — agora reflete o
+ * vocabulário canônico de template-vars (lead + remetente).
+ */
 export async function GET() {
   return successResponse({
-    placeholders: PLACEHOLDERS,
-    keys: PLACEHOLDERS.map((item) => item.key),
-    placeholderRegex: String.raw`\{\{\s*([a-zA-Z0-9_]+)\s*\}\}`,
+    placeholders: TEMPLATE_PLACEHOLDERS,
+    keys: TEMPLATE_PLACEHOLDERS.map((p) => p.key),
+    placeholderRegex: TEMPLATE_PLACEHOLDER_REGEX,
   })
 }

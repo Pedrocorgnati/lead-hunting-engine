@@ -9,6 +9,8 @@ export class ApontadorStrategy {
   private scraper = new HeadlessScraper()
 
   async search(term: string, location: string, maxResults = 20): Promise<BusinessResult[]> {
+    // H-12: termo vazio gera URL invalida e falha silenciosa no headless.
+    if (!term?.trim()) throw new Error('TERM_EMPTY: termo de busca vazio')
     await this.scraper.launch()
 
     try {

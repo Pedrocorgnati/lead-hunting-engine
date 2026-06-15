@@ -1,5 +1,6 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS, POLL_TIMEOUT_MS } from './_timeouts'
 import type { ScraperProvider, BusinessSearchParams, BusinessResult } from './types'
 
 const APIFY_GOOGLE_MAPS_ACTOR = 'compass/crawler-google-places'
@@ -25,6 +26,7 @@ export const ApifyProvider: ScraperProvider = {
             maxCrawledPlacesPerSearch: params.maxResults ?? 100,
             language: 'pt',
           }),
+          ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
         }
       )
       if (!res.ok) throw new Error(`Apify start run: HTTP ${res.status}`)
@@ -43,8 +45,10 @@ export const ApifyProvider: ScraperProvider = {
 
       const statusRes = await fetch(
         `https://api.apify.com/v2/actor-runs/${runId}`,
-        { headers: { Authorization: `Bearer ${apiKey}` } }
+        { headers: { Authorization: `Bearer ${apiKey}` }, ...abortAfter(POLL_TIMEOUT_MS) }
       )
+      // H-05: checar ok antes de .json() — 5xx/429 com body nao-JSON crasharia o worker.
+      if (!statusRes.ok) throw new Error(`Apify poll status: HTTP ${statusRes.status}`)
       statusData = await statusRes.json() as typeof statusData
     } while (['RUNNING', 'READY'].includes(statusData.data?.status ?? ''))
 
@@ -57,8 +61,10 @@ export const ApifyProvider: ScraperProvider = {
     const limit = params.maxResults ?? 100
     const dataRes = await fetch(
       `https://api.apify.com/v2/datasets/${datasetId}/items?limit=${limit}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
+      { headers: { Authorization: `Bearer ${apiKey}` }, ...abortAfter(POLL_TIMEOUT_MS) }
     )
+    // H-05: checar ok antes de .json()
+    if (!dataRes.ok) throw new Error(`Apify dataset: HTTP ${dataRes.status}`)
     const items = await dataRes.json() as Record<string, unknown>[]
 
     return (items ?? []).map((b: Record<string, unknown>): BusinessResult => {

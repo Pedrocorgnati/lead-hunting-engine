@@ -1,5 +1,6 @@
 import { RateLimiter } from '../../utils/rate-limiter'
 import { withRetry } from '../../utils/retry-backoff'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS } from '../_timeouts'
 import type { ScraperProvider, BusinessSearchParams, BusinessResult } from '../types'
 
 /**
@@ -53,6 +54,7 @@ export const YelpApiProvider: ScraperProvider = {
     const json = await withRetry(async () => {
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${apiKey}` },
+        ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
       })
       if (res.status === 401) throw new Error('YELP_API_TOKEN_MISSING: token invalido ou revogado')
       if (res.status === 429) throw new Error('YELP_API_RATE_LIMITED')

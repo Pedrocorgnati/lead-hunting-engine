@@ -15,6 +15,7 @@
 import { ProxyPool, type ProxyConfig } from './providers/proxy-pool'
 import { nextFingerprint, fingerprintHeaders } from './fingerprint'
 import { captureException } from '@/lib/observability/sentry'
+import { maskUrlSecrets } from '@/lib/observability/mask-url'
 
 export interface HttpClientOptions {
   /** Rate limit (req/s). Default 2. */
@@ -148,7 +149,8 @@ export class HttpClient {
     }
 
     const finalError = lastError instanceof Error ? lastError : new Error('http-client: all retries exhausted')
-    captureException(finalError, { layer: 'http-client', url })
+    // H-02: mascara key/apiKey/access_token/token e user:pass@ antes de logar.
+    captureException(finalError, { layer: 'http-client', url: maskUrlSecrets(url) })
     throw finalError
   }
 

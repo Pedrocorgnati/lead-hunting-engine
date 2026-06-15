@@ -2,6 +2,7 @@ import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
 import { CircuitBreaker } from '../utils/circuit-breaker'
 import { IG_FALLBACK_CB_KEY } from './instagram-apify'
+import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS, POLL_TIMEOUT_MS } from './_timeouts'
 import type { SocialProvider, SocialSearchParams, SocialProfileData } from './types'
 
 /**
@@ -60,6 +61,7 @@ export const InstagramPhantomBusterProvider: SocialProvider = {
             id: agentId,
             argument: { profiles: [handle] },
           }),
+          ...abortAfter(PROVIDER_FETCH_TIMEOUT_MS),
         })
         if (!res.ok) throw new Error(`PhantomBuster launch HTTP ${res.status}`)
         return res.json() as Promise<PhantomBusterLaunchResponse>
@@ -75,7 +77,9 @@ export const InstagramPhantomBusterProvider: SocialProvider = {
         await new Promise(r => setTimeout(r, 5000))
         const r = await fetch(`${PB_BASE}/containers/fetch?id=${containerId}`, {
           headers: { 'X-Phantombuster-Key': apiKey },
+          ...abortAfter(POLL_TIMEOUT_MS),
         })
+        if (!r.ok) throw new Error(`PhantomBuster poll HTTP ${r.status}`)
         status = (await r.json()) as PhantomBusterStatusResponse
         if (status.status && status.status !== 'running') break
       }

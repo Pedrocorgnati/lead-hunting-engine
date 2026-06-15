@@ -15,14 +15,13 @@ import { GuiaMaisStrategy } from './strategies/guiamais-headless'
 import { LinkedInCompaniesProvider } from './linkedin-companies'
 import { tryYelpApi } from './directories'
 import { isHeadlessEnabled } from './anti-bot'
+import { DataSource } from '@/lib/constants/enums'
 import type { BusinessSearchParams, BusinessResult, SocialSearchParams, SocialProfileData, SocialProvider } from './types'
 import { queryReclameAqui } from './reclame-aqui'
 import { querySintegra } from './sintegra'
 import { queryTripAdvisor } from './tripadvisor'
 import { fetchIbgeMunicipio } from './ibge'
 import { fetchGmb } from './google-my-business'
-
-const PROVIDER_ORDER = [GooglePlacesProvider, OutscraperProvider, ApifyProvider]
 
 type HeadlessTier = 'OFFICIAL_API' | 'INTERMEDIARY' | 'HEADLESS'
 
@@ -35,6 +34,80 @@ const SOCIAL_PROVIDERS: Record<string, SocialProvider[]> = {
 const SOCIAL_CRED_MAP: Record<string, string[]> = {
   INSTAGRAM: ['instagram-graph', 'apify', 'phantombuster'],
   FACEBOOK:  ['facebook-graph',  'apify'],
+}
+
+interface SearchAttemptTrace {
+  provider: string
+  source: string
+  status: 'skipped' | 'empty' | 'error' | 'success'
+  reason: string
+  resultCount?: number
+}
+
+interface SearchAttemptOptions {
+  sources?: string[]
+  attemptTrace?: SearchAttemptTrace[]
+}
+
+type SearchProvider = typeof GooglePlacesProvider | typeof OutscraperProvider | typeof ApifyProvider
+
+interface ProviderDescriptor {
+  provider: SearchProvider
+  source: DataSource
+}
+
+const BUSINESS_PROVIDER_ORDER: ProviderDescriptor[] = [
+  { provider: GooglePlacesProvider, source: DataSource.GOOGLE_MAPS },
+  { provider: OutscraperProvider, source: DataSource.OUTSCRAPER },
+  { provider: ApifyProvider, source: DataSource.APIFY },
+]
+
+function normalizeRequestedSources(requestedSources?: string[]): DataSource[] {
+  if (!requestedSources || requestedSources.length === 0) return []
+  const normalized = requestedSources.map((value) => value.trim().toLowerCase())
+
+  const map: Record<string, DataSource> = {
+    'google-maps': DataSource.GOOGLE_MAPS,
+    'google_maps': DataSource.GOOGLE_MAPS,
+    'googleplaces': DataSource.GOOGLE_MAPS,
+    'googleplacesapi': DataSource.GOOGLE_MAPS,
+    'google_places': DataSource.GOOGLE_MAPS,
+    'google maps': DataSource.GOOGLE_MAPS,
+    'google-places': DataSource.GOOGLE_MAPS,
+    'google_places_business': DataSource.GOOGLE_MAPS,
+    'googlemaps': DataSource.GOOGLE_MAPS,
+    'google-maps-business': DataSource.GOOGLE_MAPS,
+    'google-maps-api': DataSource.GOOGLE_MAPS,
+    'google_maps_api': DataSource.GOOGLE_MAPS,
+    'outscraper': DataSource.OUTSCRAPER,
+    'apify': DataSource.APIFY,
+  }
+  const resolved = normalized
+    .map((value) => {
+      if (Object.values(DataSource).includes(value.toUpperCase() as DataSource)) {
+        return value.toUpperCase() as DataSource
+      }
+      return map[value]
+    })
+    .filter((source): source is DataSource =>
+      typeof source === 'string' && Object.values(DataSource).includes(source),
+    )
+
+  return Array.from(new Set(resolved))
+}
+
+function resolveProviderChain(requestedSources?: string[]): ProviderDescriptor[] {
+  const normalized = normalizeRequestedSources(requestedSources)
+  if (normalized.length === 0) return BUSINESS_PROVIDER_ORDER
+
+  const explicit = normalized
+    .map((source) => BUSINESS_PROVIDER_ORDER.find((provider) => provider.source === source))
+    .filter((entry): entry is ProviderDescriptor => Boolean(entry))
+
+  const byName = new Map(explicit.map((entry) => [entry.provider.name, entry]))
+  const fallback = BUSINESS_PROVIDER_ORDER.filter((entry) => !byName.has(entry.provider.name))
+
+  return [...explicit, ...fallback]
 }
 
 /**
@@ -95,14 +168,37 @@ function isHoneypot(result: BusinessResult): boolean {
  * Se todos falharem, lança erro agregado com motivos de cada falha (SYS_001).
  * Nunca expõe a chave de API nas mensagens de erro (SEC-012).
  */
-export async function searchBusinesses(params: BusinessSearchParams): Promise<BusinessResult[]> {
+export async function searchBusinesses(
+  params: BusinessSearchParams,
+  options: SearchAttemptOptions = {},
+): Promise<BusinessResult[]> {
   const errors: string[] = []
+  const providerChain = resolveProviderChain(options.sources)
 
-  for (const provider of PROVIDER_ORDER) {
+  const pushTrace = (
+    provider: string,
+    source: DataSource,
+    status: SearchAttemptTrace['status'],
+    reason: string,
+    resultCount?: number,
+  ) => {
+    if (!options.attemptTrace) return
+    options.attemptTrace.push({
+      provider,
+      source,
+      status,
+      reason,
+      resultCount,
+    })
+  }
+
+  for (const entry of providerChain) {
+    const provider = entry.provider
     const apiKey = await getApiKey(provider.name)
     if (!apiKey) {
       // CONFIG_080: sem credencial — pular silenciosamente
       errors.push(`${provider.name}: sem credencial configurada`)
+      pushTrace(provider.name, entry.source, 'skipped', 'sem credencial configurada')
       continue
     }
 
@@ -114,10 +210,19 @@ export async function searchBusinesses(params: BusinessSearchParams): Promise<Bu
         metadata: { resultCount: raw.length, query: params.query, location: params.location },
       })
       const results = raw.filter((r) => !isHoneypot(r))
-      if (results.length > 0) return results
-      errors.push(`${provider.name}: retornou 0 resultados válidos (${raw.length - results.length} honeypots filtrados)`)
+      const removedByFilter = raw.length - results.length
+      if (results.length > 0) {
+        pushTrace(provider.name, entry.source, 'success', 'resultados encontrados')
+        return results
+      }
+
+      const reason = `retornou 0 resultados válidos (${removedByFilter} removidos por filtro honeypot)`
+      errors.push(`${provider.name}: ${reason}`)
+      pushTrace(provider.name, entry.source, 'empty', reason, results.length)
     } catch (e) {
-      errors.push(`${provider.name}: ${(e as Error).message}`)
+      const message = `${(e as Error).message}`
+      errors.push(`${provider.name}: ${message}`)
+      pushTrace(provider.name, entry.source, 'error', message)
     }
   }
 
@@ -322,4 +427,3 @@ export function isSecondaryProviderEnabled(name: keyof typeof SECONDARY_PROVIDER
   if (!desc.requiresEnv || desc.requiresEnv.length === 0) return true
   return desc.requiresEnv.every((key) => Boolean(process.env[key]))
 }
-

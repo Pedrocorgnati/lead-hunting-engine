@@ -220,6 +220,7 @@ async function executeRetry(
       query: parent.niche,
       location: parent.state ? `${parent.city}, ${parent.state}` : parent.city,
       maxResults: parent.limitVal ?? 100,
+      sources: parent.sources,
       retriedFromId: parent.id,
       correlationId,
     })

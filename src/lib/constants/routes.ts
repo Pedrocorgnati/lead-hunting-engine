@@ -9,6 +9,7 @@ export const Routes = {
   LEADS: '/leads',
   LEAD_DETAIL: (id: string) => `/leads/${id}`,
   COLETAS: '/coletas',
+  COLETAS_NOVA: '/coletas/nova',
   COLLECTION_DETAIL: (id: string) => `/coletas/${id}`,
   EXPORTAR: '/exportar',
   EXPORT: '/exportar',
@@ -49,12 +50,13 @@ export const Routes = {
   ADMIN_API_USAGE: '/admin/api-usage',
   ADMIN_JOBS_FILA: '/admin/jobs/fila',
   ADMIN_JOBS_CRON: '/admin/jobs/cron',
+  // outreach-engine (06-10): Centro de Outreach + Painel de Saude (tasks 15/29)
+  ADMIN_OUTREACH: '/admin/outreach',
   ADMIN_SCORING_VERSOES: '/admin/scoring/versoes',
   ADMIN_RETENCAO: '/admin/retencao',
   ADMIN_DSAR: '/admin/dsar',
   ADMIN_CONFIG_PRIVACIDADE: '/admin/configuracoes/privacidade',
   ADMIN_CONTEUDO: '/admin/conteudo',
-  ONBOARDING: '/onboarding',
 } as const
 
 export const API_ROUTES = {
@@ -105,8 +107,5 @@ export const API_ROUTES = {
   ADMIN_AUDIT_LOG_EXPORT:'/api/v1/admin/audit-log/export',
   ADMIN_MAINTENANCE_WINDOW: '/api/v1/admin/maintenance/window',
   ADMIN_MAINTENANCE_BANNER_PUBLISH: '/api/v1/admin/maintenance/banner/publish',
-  ONBOARDING_COMPLETE: '/api/v1/onboarding/complete',
-  ONBOARDING_PROGRESS: '/api/v1/onboarding/progress',
-  ONBOARDING_CATALOG: '/api/v1/onboarding/catalog',
   HEALTH: '/api/health',
 } as const

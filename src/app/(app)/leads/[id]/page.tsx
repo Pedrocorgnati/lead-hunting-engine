@@ -100,9 +100,12 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
         </div>
       </div>
 
-      {/* TASK-3 intake-review: badges de sinais estruturados (WhatsApp / E-commerce / Pixels) */}
+      {/* TASK-3 intake-review: badges de sinais estruturados (WhatsApp / E-commerce / Pixels).
+          Review 06-11 R1-1/R3-4 (critério 19): whatsappLevel fecha o fio — sem
+          ele o badge 'WhatsApp provável' era código morto inalcançável. */}
       <LeadSignals
         isWhatsappChannel={lead.isWhatsappChannel}
+        whatsappLevel={lead.whatsappLevel}
         hasEcommerce={lead.hasEcommerce}
         ecommercePlatform={lead.ecommercePlatform}
         analyticsPixels={lead.analyticsPixels}

@@ -10,7 +10,8 @@
  */
 import { existsSync } from 'fs'
 import { join } from 'path'
-import { APP_NAV_ITEMS, ADMIN_NAV_ITEMS } from '../nav-config'
+import { Routes } from '@/lib/constants'
+import { APP_NAV_ITEMS, ADMIN_NAV_GROUPS, ADMIN_NAV_ITEMS } from '../nav-config'
 
 const APP_DIR = join(__dirname, '..', '..', '..', 'app')
 const ROUTE_GROUPS = ['(app)', '(public)', '(auth)']
@@ -64,5 +65,32 @@ describe('nav-config — Zero Routes Orphans', () => {
     for (const href of admin) {
       expect(app.has(href)).toBe(false)
     }
+  })
+
+  it('prioriza o fluxo operacional antes de dashboards e templates', () => {
+    expect(APP_NAV_ITEMS.map((item) => item.href).slice(0, 4)).toEqual([
+      Routes.COLETAS,
+      Routes.LEADS,
+      Routes.ADMIN_OUTREACH,
+      Routes.RADAR,
+    ])
+  })
+
+  it('mantem provedores consolidado em Credenciais, sem aba propria na sidebar', () => {
+    const hrefs = ADMIN_NAV_ITEMS.map((item) => item.href)
+    expect(hrefs).toContain(Routes.ADMIN_CREDENCIAIS)
+    expect(hrefs).not.toContain(Routes.ADMIN_PROVEDORES)
+  })
+
+  it('agrupa administracao em poucas categorias com essencial aberto por padrao', () => {
+    expect(ADMIN_NAV_GROUPS.map((group) => group.label)).toEqual([
+      'Admin essencial',
+      'Monitoramento',
+      'Governança',
+      'Baixa frequência',
+    ])
+    expect(ADMIN_NAV_GROUPS.filter((group) => group.defaultOpen).map((group) => group.id)).toEqual([
+      'admin-essencial',
+    ])
   })
 })

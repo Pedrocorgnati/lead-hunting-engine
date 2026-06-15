@@ -137,6 +137,7 @@ export async function requeueJob(job: OwnedJob): Promise<RequeueOutcome> {
         query: job.niche,
         location: job.state ? `${job.city}, ${job.state}` : job.city,
         maxResults: job.limitVal ?? 100,
+        sources: job.sources,
         retriedFromId: job.id,
       })
     } catch (err) {

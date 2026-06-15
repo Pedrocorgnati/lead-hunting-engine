@@ -27,15 +27,30 @@ export interface DispatchInput<T> {
    * true; em serverless o cron drain-local-queue continua sendo o backstop.
    */
   drainImmediately?: boolean
+  /**
+   * outreach-engine (06-10, task 01): pre-checagem obrigatoria ANTES de
+   * qualquer dispatch outbound. `allowed=false` bloqueia o dispatch inteiro
+   * (nem trigger nem fila) e o resultado registra os motivos — trilha
+   * explicita de pre-checagem no fluxo.
+   */
+  gate?: () => Promise<{ allowed: boolean; reasons: string[] }>
 }
 
 export interface DispatchResult {
-  mode: 'trigger' | 'local_queue'
+  mode: 'trigger' | 'local_queue' | 'blocked'
   jobId?: string
+  blockedReasons?: string[]
 }
 
 export async function dispatchJob<T>(input: DispatchInput<T>): Promise<DispatchResult> {
   const timeoutMs = input.triggerTimeoutMs ?? DEFAULT_TRIGGER_TIMEOUT_MS
+
+  if (input.gate) {
+    const gate = await input.gate()
+    if (!gate.allowed) {
+      return { mode: 'blocked', blockedReasons: gate.reasons }
+    }
+  }
 
   if (input.triggerFn && process.env.TRIGGER_SECRET_KEY) {
     try {
@@ -50,10 +65,11 @@ export async function dispatchJob<T>(input: DispatchInput<T>): Promise<DispatchR
 
   if (input.drainImmediately !== false) {
     // Fire-and-forget: roda o job agora no mesmo processo (next start /
-    // self-hosted). Falha aqui nao importa — o cron drain reprocessa.
+    // self-hosted). Falha aqui nao bloqueia (o cron drain reprocessa), mas
+    // P-13: registrar em vez de engolir — senao erro de drain fica invisivel.
     void import('./drain-local-queue')
       .then(({ runDrainLocalQueue }) => runDrainLocalQueue())
-      .catch(() => {})
+      .catch((err) => captureException(err, { layer: 'dispatcher', kind: input.kind, mode: 'immediate-drain' }))
   }
 
   return { mode: 'local_queue', jobId: id }

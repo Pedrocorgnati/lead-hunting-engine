@@ -32,7 +32,7 @@ const PROFILE_LINKS = [
     icon: BellRing,
   },
   {
-    href: '/settings/sessions',
+    href: Routes.PERFIL_SEGURANCA,
     label: 'Sessões ativas',
     description: 'Dispositivos conectados à sua conta',
     icon: MonitorSmartphone,

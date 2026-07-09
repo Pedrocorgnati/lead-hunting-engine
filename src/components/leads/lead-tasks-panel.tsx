@@ -121,7 +121,7 @@ export function LeadTasksPanel({ leadId }: LeadTasksPanelProps) {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7"
+                className="h-9 w-9"
                 disabled={removingId === task.id}
                 onClick={() => {
                   if (window.confirm('Remover reminder?')) void deleteTask(task.id)

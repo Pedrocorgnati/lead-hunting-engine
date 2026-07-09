@@ -1,0 +1,1551 @@
+{
+  "status": "ok",
+  "scan_root": "/home/pedro/Repositórios/systemForge/output/workspace/lead-hunting-engine",
+  "root_source": "argv",
+  "files_scanned": 873,
+  "truncated": false,
+  "thresholds": {
+    "miller_max": 7,
+    "nav_deep_depth": 3
+  },
+  "counts": {
+    "nav_overload": 1,
+    "cta_parity": 6,
+    "action_without_feedback": 20,
+    "hidden_functionality": 127,
+    "total": 154
+  },
+  "signals": {
+    "nav_overload": [
+      {
+        "file": "src/app/(app)/admin/jobs/[id]/page.tsx",
+        "top_level_count": 8,
+        "threshold": 7,
+        "law": "Miller(7+-2) + Hick",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "reduzir itens top-level a <=7; rebaixar raros p/ overflow (Progressive Disclosure), sem deletar."
+      }
+    ],
+    "cta_parity": [
+      {
+        "file": "src/app/(app)/perfil/privacidade/page.tsx",
+        "competing_primary_count": 2,
+        "law": "Fitts + Von Restorff + Visual Hierarchy",
+        "disciplines": [
+          "hierarquia-visual",
+          "usabilidade"
+        ],
+        "fix_hint": "1 CTA primario por agrupamento; demais em variant neutra (ghost/outline)."
+      },
+      {
+        "file": "src/app/(app)/admin/outreach/_components/OutreachCenter.tsx",
+        "competing_primary_count": 4,
+        "law": "Fitts + Von Restorff + Visual Hierarchy",
+        "disciplines": [
+          "hierarquia-visual",
+          "usabilidade"
+        ],
+        "fix_hint": "1 CTA primario por agrupamento; demais em variant neutra (ghost/outline)."
+      },
+      {
+        "file": "src/components/profile/deletion-request-section.tsx",
+        "competing_primary_count": 3,
+        "law": "Fitts + Von Restorff + Visual Hierarchy",
+        "disciplines": [
+          "hierarquia-visual",
+          "usabilidade"
+        ],
+        "fix_hint": "1 CTA primario por agrupamento; demais em variant neutra (ghost/outline)."
+      },
+      {
+        "file": "src/components/admin/ScoringImpactPreview.tsx",
+        "competing_primary_count": 2,
+        "law": "Fitts + Von Restorff + Visual Hierarchy",
+        "disciplines": [
+          "hierarquia-visual",
+          "usabilidade"
+        ],
+        "fix_hint": "1 CTA primario por agrupamento; demais em variant neutra (ghost/outline)."
+      },
+      {
+        "file": "src/components/ui/dropdown-menu.tsx",
+        "competing_primary_count": 8,
+        "law": "Fitts + Von Restorff + Visual Hierarchy",
+        "disciplines": [
+          "hierarquia-visual",
+          "usabilidade"
+        ],
+        "fix_hint": "1 CTA primario por agrupamento; demais em variant neutra (ghost/outline)."
+      },
+      {
+        "file": "src/components/ui/tabs.tsx",
+        "competing_primary_count": 2,
+        "law": "Fitts + Von Restorff + Visual Hierarchy",
+        "disciplines": [
+          "hierarquia-visual",
+          "usabilidade"
+        ],
+        "fix_hint": "1 CTA primario por agrupamento; demais em variant neutra (ghost/outline)."
+      }
+    ],
+    "action_without_feedback": [
+      {
+        "file": "src/app/global-error.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/api/v1/profile/dsar/requests/route.ts",
+        "handlers": 3,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/api/v1/admin/audit-log/_query.ts",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/api/v1/admin/outreach/mailboxes/route.ts",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/api/v1/leads/[id]/undo/route.ts",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/coletas/error.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/error.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/page.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/[id]/page.tsx",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/novo/page.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/admin/error.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/leads/error.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/app/(app)/dashboard/_components/SourcePerformance.tsx",
+        "handlers": 4,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/NotificationPermissionBanner.tsx",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/dev/DataTestOverlay.tsx",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/export/export-page-content.tsx",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/consent/ConsentReceiptWidget.tsx",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/mobile/bottom-sheet.tsx",
+        "handlers": 2,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/shared/nav-item.tsx",
+        "handlers": 1,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      },
+      {
+        "file": "src/components/shared/sidebar.tsx",
+        "handlers": 5,
+        "law": "Nielsen H1 (Visibility of System Status) = Zero Silencio",
+        "disciplines": [
+          "usabilidade"
+        ],
+        "fix_hint": "toda acao precisa de feedback explicito (toast/loading/redirect/erro)."
+      }
+    ],
+    "hidden_functionality": [
+      {
+        "file": "src/app/(auth)/login/login-form.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(auth)/invite/[token]/invite-activation-form.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/recuperar-senha/page.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/notifications/page.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/error.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/page.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/nova/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/error.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/erros/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/_components/CancelButton.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/_components/LiveProgressPanel.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/_components/ResumeButton.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/_components/ExportPartialButton.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/_components/CopyButton.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/coletas/[id]/_components/RetryButton.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/[id]/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/novo/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/templates/pitch/_components/TemplateCardActions.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/perfil/page.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/perfil/seguranca/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/perfil/privacidade/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/error.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/alertas/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/convites/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/api-usage/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/operadores/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/operadores/[id]/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/dlq/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/feature-flags/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/users/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/retencao/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/jobs/cron/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/jobs/fila/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/jobs/[id]/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/configuracoes/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/configuracoes/privacidade/_components/TriggerCleanupButton.tsx",
+        "depth": 7,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/scoring/versoes/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/config/regions/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/config/niches/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/config/limits/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/config/scoring/page.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/manutencao/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/credenciais/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/dsar/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/metricas/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/classificacao/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/classificacao/_components/ClassificationPreviewPanel.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/admin/outreach/_components/OutreachCenter.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/settings/sessions/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/exportar/budgetflow/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/error.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/page.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/[id]/_components/BudgetFlowExport.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/[id]/_components/TagsEditor.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/[id]/_components/NotesEditor.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/[id]/_components/Attachments.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/[id]/_components/RecomputeButton.tsx",
+        "depth": 6,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/comparar/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/_components/LeadsPagination.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/leads/_components/ExportButton.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/radar/_components/RadarLiveRefresher.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/radar/_components/RadarActions.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/dashboard/_components/DashboardMetrics.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/(app)/dashboard/_components/SourcePerformance.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/auth/reset-password/page.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/auth/reset-password/update/page.tsx",
+        "depth": 5,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/erro/429/page.tsx",
+        "depth": 4,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/app/manutencao/MaintenancePageClient.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/dev/DataTestOverlay.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/export/export-form.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/export/export-page-content.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/consent/ConsentReceiptWidget.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/errors/error-experience.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/mobile/bottom-sheet.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/notifications/NotificationPreferencesForm.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/profile/deletion-request-section.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/profile/profile-form.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/profile/AvatarUploader.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/landing/WaitlistForm.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/landing/CookieBanner.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/landing/ContactForm.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/credential-form.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/AlertsSettings.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/ContactMessagesTable.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/MetricsComparePanel.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/ApiUsageBreakdown.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/PilotProgramDashboard.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/AuditLogTable.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/credential-card.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/ScoringRuleVersionCompare.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/RadarUsageChart.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/scoring-rules-form.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/ScoringRuleHistoryModal.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/CopyCredentialButton.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/WaitlistTable.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/admin/EcuReportCard.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/auth/ReauthDialog.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/feedback/NpsWidget.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/PipelineTimeline.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/lead-notes-editor.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/lead-detail-interactive.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/SavedViewsBar.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/ContactEventForm.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/DuplicateResolver.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/LeadScoreBreakdown.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/pitch-card.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/AddToCampaignButton.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/BulkAddToCampaign.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/budget-flow.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/PitchTemplateFallback.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/lead-radar-tab.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/lead-tasks-panel.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/PitchHistoryDrawer.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/LeadTagsEditor.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/leads/lifecycle-tracker.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/shared/sidebar.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/shared/header.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/shared/DataState.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/exports/ExportHistoryTable.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/ui/error-boundary.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/ui/theme-toggle.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/ui/loading-button.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/ui/dialog.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/ui/pagination.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/ui/modal.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      },
+      {
+        "file": "src/components/radar/RadarRecollectButton.tsx",
+        "depth": 3,
+        "law": "Nielsen H6 (Recognition over Recall) + Progressive Disclosure",
+        "disciplines": [
+          "arquitetura-informacao",
+          "usabilidade"
+        ],
+        "fix_hint": "acao critica deve ser alcancavel em <=2 niveis a partir da raiz da tarefa."
+      }
+    ]
+  },
+  "json_path": "/home/pedro/Repositórios/systemForge/output/workspace/lead-hunting-engine/usability/usability-signals.json",
+  "verdict": "DONE"
+}

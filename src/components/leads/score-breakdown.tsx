@@ -37,7 +37,7 @@ function ScoreBar({ score, max }: { score: number; max: number }) {
     <div className="flex items-center gap-3">
       <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${color}`}
+          className={`h-full rounded-full transition-[width,background-color] ${color}`}
           style={{ width: `${pct}%` }}
           role="progressbar"
           aria-valuenow={score}

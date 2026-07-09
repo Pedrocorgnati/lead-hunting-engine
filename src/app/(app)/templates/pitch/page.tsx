@@ -71,7 +71,7 @@ export default async function TemplatesPitchPage({ searchParams }: PageProps) {
             </div>
             <div className="space-y-1">
               <Label htmlFor="sp-whatsapp" className="text-xs">Seu WhatsApp <span className="text-muted-foreground">{'{{meu_whatsapp}}'}</span></Label>
-              <Input id="sp-whatsapp" name="whatsapp" defaultValue={sender.whatsapp} placeholder="(12) 99999-9999" />
+              <Input id="sp-whatsapp" name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" defaultValue={sender.whatsapp} placeholder="(12) 99999-9999" />
             </div>
             <div className="space-y-1">
               <Label htmlFor="sp-portfolio" className="text-xs">Seu portfólio <span className="text-muted-foreground">{'{{meu_portfolio}}'}</span></Label>

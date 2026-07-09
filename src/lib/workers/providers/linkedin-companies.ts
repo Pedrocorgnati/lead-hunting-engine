@@ -1,6 +1,7 @@
 import { RateLimiter } from '../utils/rate-limiter'
 import { withRetry } from '../utils/retry-backoff'
 import { abortAfter, PROVIDER_FETCH_TIMEOUT_MS, POLL_TIMEOUT_MS } from './_timeouts'
+import { PROVIDER_API } from '@/lib/constants/provider-urls'
 import type { ScraperProvider, BusinessSearchParams, BusinessResult } from './types'
 
 const LINKEDIN_APIFY_ACTOR = 'curious_coder/linkedin-company-scraper'
@@ -31,7 +32,7 @@ export const LinkedInCompaniesProvider: ScraperProvider = {
     // nao estiver disponivel. Respeita rate-limit + retry-backoff + nunca loga token.
     const runRes = await withRetry(async () => {
       const res = await fetch(
-        `https://api.apify.com/v2/acts/${LINKEDIN_APIFY_ACTOR}/runs`,
+        `${PROVIDER_API.APIFY_BASE}/acts/${LINKEDIN_APIFY_ACTOR}/runs`,
         {
           method: 'POST',
           headers: {
@@ -59,7 +60,7 @@ export const LinkedInCompaniesProvider: ScraperProvider = {
     do {
       if (pollCount++ > 60) throw new Error('LinkedIn Apify: timeout aguardando run')
       await new Promise((r) => setTimeout(r, 5000))
-      const statusRes = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
+      const statusRes = await fetch(`${PROVIDER_API.APIFY_BASE}/actor-runs/${runId}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
         ...abortAfter(POLL_TIMEOUT_MS),
       })
@@ -74,7 +75,7 @@ export const LinkedInCompaniesProvider: ScraperProvider = {
     const datasetId = statusData.data?.defaultDatasetId
     const limit = params.maxResults ?? 25
     const dataRes = await fetch(
-      `https://api.apify.com/v2/datasets/${datasetId}/items?limit=${limit}`,
+      `${PROVIDER_API.APIFY_BASE}/datasets/${datasetId}/items?limit=${limit}`,
       { headers: { Authorization: `Bearer ${apiKey}` }, ...abortAfter(POLL_TIMEOUT_MS) }
     )
     if (!dataRes.ok) throw new Error(`LinkedIn Apify dataset: HTTP ${dataRes.status}`)

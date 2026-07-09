@@ -1,14 +1,16 @@
 import type { NextConfig } from 'next'
-import createNextIntlPlugin from 'next-intl/plugin'
 // TASK-MS4-T03 — bundle analyzer ativavel via `ANALYZE=true npm run build`.
-// O plugin envolve a config externa apos withSentryIfEnabled e withNextIntl.
+// O plugin envolve a config externa apos withSentryIfEnabled.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
   openAnalyzer: false,
 })
 
-const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
+// i18n: app e pt-BR-only (MVP B2B invite-only). O scaffold next-intl (request.ts +
+// messages/*.json + provider) nunca foi conectado a nenhum componente e foi
+// removido no route-drift sweep 2026-06-23. Reintroduzir via createNextIntlPlugin
+// se en/i18n virar requisito real (ver I18N-SPEC).
 
 const isDev = process.env.NODE_ENV === 'development'
 const sentryEnabled = !isDev && !!process.env.NEXT_PUBLIC_SENTRY_DSN
@@ -108,4 +110,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withBundleAnalyzer(withSentryIfEnabled(withNextIntl(nextConfig)))
+export default withBundleAnalyzer(withSentryIfEnabled(nextConfig))

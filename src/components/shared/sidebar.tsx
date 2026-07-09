@@ -236,7 +236,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       <aside
         data-testid="sidebar"
         className={cn(
-          'hidden md:flex flex-col border-r bg-background transition-all duration-200 ease-in-out',
+          'hidden md:flex flex-col border-r bg-background transition-[width] duration-200 ease-in-out',
           collapsed ? 'w-16' : 'w-64'
         )}
       >

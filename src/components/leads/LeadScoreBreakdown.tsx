@@ -6,10 +6,10 @@ import type { ScoreBreakdownResponse, ScoreRule } from '@/app/api/v1/leads/[id]/
 
 function ScoreBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0
-  const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+  const color = pct >= 70 ? 'bg-success' : pct >= 40 ? 'bg-warning' : 'bg-destructive'
   return (
     <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden" aria-hidden="true">
-      <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+      <div className={`h-full rounded-full transition-[width,background-color] ${color}`} style={{ width: `${pct}%` }} />
     </div>
   )
 }

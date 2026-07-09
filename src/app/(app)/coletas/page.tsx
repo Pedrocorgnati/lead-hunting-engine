@@ -151,7 +151,7 @@ function JobCard({
         >
           <div
             className={cn(
-              'h-full rounded-full transition-all duration-500',
+              'h-full rounded-full transition-[width,background-color] duration-500',
               job.status === JobStatus.RUNNING ? 'bg-info animate-pulse' : 'bg-success'
             )}
             style={{ width: `${job.status === JobStatus.COMPLETED ? 100 : Math.max(3, progressPct)}%` }}

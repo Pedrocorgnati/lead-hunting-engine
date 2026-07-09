@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Users, Settings, BarChart3, Wrench, UserRound, FlaskConical, ListTodo, Clock, KeyRound, Tags, Flag, BellRing, Gauge, ScrollText, Archive, ShieldCheck, FileText, History } from 'lucide-react'
+import { Users, Settings, BarChart3, Wrench, UserRound, FlaskConical, ListTodo, Clock, KeyRound, Tags, Flag, BellRing, Gauge, ScrollText, Archive, ShieldCheck, FileText, History, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { Routes } from '@/lib/constants/routes'
@@ -181,6 +181,12 @@ const ADMIN_SECTION_GROUPS = [
         description: 'Respostas NPS coletadas in-app.',
         icon: BarChart3,
       },
+      {
+        href: '/admin/contact-messages',
+        label: 'Mensagens de contato',
+        description: 'Mensagens enviadas pelo formulário de contato.',
+        icon: MessageSquare,
+      },
     ],
   },
 ]
@@ -224,7 +230,7 @@ export default async function AdminPage() {
                     key={section.href}
                     href={section.href}
                     data-testid={`admin-section-${section.label.toLowerCase()}`}
-                    className="group rounded-lg border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+                    className="group rounded-lg border bg-card p-4 shadow-sm transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md"
                   >
                     <div className="flex items-start gap-3">
                       <div className="rounded-md bg-primary/10 p-2">

@@ -5,6 +5,7 @@ import { AuditService } from '@/lib/services/audit-service'
 import type { UpsertCredentialInput, UpdateScoringRuleInput } from '@/schemas/config.schema'
 import type { ScoringRule } from '@prisma/client'
 import { CollectionJobStatus, DataSource } from '@/lib/constants/enums'
+import { PROVIDER_API } from '@/lib/constants/provider-urls'
 import {
   DEFAULT_SCORING_RULES as CANONICAL_DEFAULTS,
   DEPRECATED_SCORING_SLUGS,
@@ -250,7 +251,7 @@ export class ConfigService {
       switch (provider) {
         case 'GOOGLE_PLACES': {
           const res = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${apiKey}`
+            `${PROVIDER_API.GOOGLE_GEOCODE}?address=test&key=${apiKey}`
           )
           const data = (await res.json()) as { status: string }
           const ok = data.status !== 'REQUEST_DENIED'
@@ -258,28 +259,28 @@ export class ConfigService {
           break
         }
         case 'OUTSCRAPER': {
-          const res = await fetch('https://api.outscraper.com/me', {
+          const res = await fetch(PROVIDER_API.OUTSCRAPER_ME, {
             headers: { 'X-API-KEY': apiKey },
           })
           result = { ok: res.ok, message: res.ok ? 'Outscraper: conta válida' : `Outscraper: ${res.status}` }
           break
         }
         case 'APIFY': {
-          const res = await fetch('https://api.apify.com/v2/users/me', {
+          const res = await fetch(`${PROVIDER_API.APIFY_BASE}/users/me`, {
             headers: { Authorization: `Bearer ${apiKey}` },
           })
           result = { ok: res.ok, message: res.ok ? 'Apify: conta válida' : `Apify: ${res.status}` }
           break
         }
         case 'OPENAI': {
-          const res = await fetch('https://api.openai.com/v1/models', {
+          const res = await fetch(PROVIDER_API.OPENAI_MODELS, {
             headers: { Authorization: `Bearer ${apiKey}` },
           })
           result = { ok: res.ok, message: res.ok ? 'OpenAI: chave válida' : `OpenAI: ${res.status}` }
           break
         }
         case 'KIMI': {
-          const res = await fetch('https://api.moonshot.ai/v1/models', {
+          const res = await fetch(PROVIDER_API.KIMI_MODELS, {
             headers: { Authorization: `Bearer ${apiKey}` },
           })
           result = { ok: res.ok, message: res.ok ? 'Kimi: chave valida' : `Kimi: ${res.status}` }
@@ -288,7 +289,7 @@ export class ConfigService {
         case 'ANTHROPIC': {
           // Live test: chamada minima ao endpoint /v1/models (GET).
           // Anthropic retorna 200 com lista de modelos em chave valida; 401 em invalida.
-          const res = await fetch('https://api.anthropic.com/v1/models', {
+          const res = await fetch(PROVIDER_API.ANTHROPIC_MODELS, {
             headers: {
               'x-api-key': apiKey,
               'anthropic-version': '2023-06-01',
@@ -303,12 +304,12 @@ export class ConfigService {
           break
         }
         case 'HERE_MAPS': {
-          const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=test&apiKey=${apiKey}`)
+          const res = await fetch(`${PROVIDER_API.HERE_GEOCODE}?q=test&apiKey=${apiKey}`)
           result = { ok: res.ok, message: res.ok ? 'HERE Maps: chave válida' : `HERE Maps: ${res.status}` }
           break
         }
         case 'TOMTOM': {
-          const res = await fetch(`https://api.tomtom.com/search/2/search/test.json?key=${apiKey}`)
+          const res = await fetch(`${PROVIDER_API.TOMTOM_SEARCH}?key=${apiKey}`)
           result = { ok: res.ok, message: res.ok ? 'TomTom: chave válida' : `TomTom: ${res.status}` }
           break
         }
